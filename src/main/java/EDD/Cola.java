@@ -105,6 +105,25 @@ public class Cola<T> {
         }
     }
 
+    /**
+     * Copia los datos en orden FIFO sin exponer los nodos.
+     * @return arreglo independiente con las referencias a los datos
+     */
+    public Object[] instantanea() {
+        mutex.acquireUninterruptibly();
+        try {
+            Object[] copia = new Object[tamano];
+            Nodo<T> actual = cabeza;
+            for (int i = 0; i < copia.length; i++) {
+                copia[i] = actual.getDato();
+                actual = actual.getSiguiente();
+            }
+            return copia;
+        } finally {
+            mutex.release();
+        }
+    }
+
     /** Indica si la cola no contiene elementos. */
     public boolean estaVacia() {
         mutex.acquireUninterruptibly();

@@ -13,6 +13,31 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de instantanea verificada en consola.
+        EDD.Cola<String> original = new EDD.Cola<>();
+        System.out.println("Instantanea vacia: " + original.instantanea().length + " (esperado: 0)");
+        if (original.instantanea().length != 0) throw new AssertionError("Copia vacia incorrecta");
+        original.agregar("A");
+        original.agregar("B");
+        original.agregar("C");
+        Object[] copia = original.instantanea();
+        System.out.println("Copia FIFO: " + copia[0] + ", " + copia[1] + ", " + copia[2] + " (esperado: A, B, C)");
+        if (copia.length != 3 || !"A".equals(copia[0]) || !"B".equals(copia[1]) || !"C".equals(copia[2]))
+            throw new AssertionError("Orden de copia incorrecto");
+        copia[0] = "X";
+        System.out.println("Cola tras modificar arreglo: " + original.primero() + " (esperado: A)");
+        if (!"A".equals(original.primero())) throw new AssertionError("Arreglo expone estructura interna");
+        original.quitar();
+        original.agregar("D");
+        System.out.println("Copia previa tras modificar cola: " + copia[1] + ", " + copia[2] + " (esperado: B, C)");
+        if (!"B".equals(copia[1]) || !"C".equals(copia[2])) throw new AssertionError("Copia alterada por cola");
+        Object[] nueva = original.instantanea();
+        System.out.println("Nueva copia: " + nueva[0] + ", " + nueva[1] + ", " + nueva[2] + " (esperado: B, C, D)");
+        if (!"B".equals(nueva[0]) || !"C".equals(nueva[1]) || !"D".equals(nueva[2]))
+            throw new AssertionError("Contenido actualizado incorrecto");
+
+        */
+
         /* Prueba de semaforos y concurrencia verificada en consola.
         EDD.Cola<Integer> compartida = new EDD.Cola<>();
         Thread[] hilos = new Thread[4];
