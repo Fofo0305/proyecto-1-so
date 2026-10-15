@@ -1,5 +1,7 @@
 package EDD;
 
+import java.util.concurrent.Semaphore;
+
 /**
  * Cola de elementos enlazados.
  *
@@ -7,6 +9,7 @@ package EDD;
  * @param <T> tipo del dato almacenado
  */
 public class Cola<T> {
+    private final Semaphore mutex = new Semaphore(1, true);
     private Nodo<T> cabeza;
     private Nodo<T> finalCol;
     private int tamano;
@@ -23,17 +26,22 @@ public class Cola<T> {
      * @throws IllegalArgumentException si el dato es null
      */
     public void agregar(T dato) {
-        if (dato == null) {
-            throw new IllegalArgumentException("El dato no puede ser null");
+        mutex.acquireUninterruptibly();
+        try {
+            if (dato == null) {
+                throw new IllegalArgumentException("El dato no puede ser null");
+            }
+            Nodo<T> nuevo = new Nodo<>(dato);
+            if (finalCol == null) {
+                cabeza = nuevo;
+            } else {
+                finalCol.setSiguiente(nuevo);
+            }
+            finalCol = nuevo;
+            tamano++;
+        } finally {
+            mutex.release();
         }
-        Nodo<T> nuevo = new Nodo<>(dato);
-        if (finalCol == null) {
-            cabeza = nuevo;
-        } else {
-            finalCol.setSiguiente(nuevo);
-        }
-        finalCol = nuevo;
-        tamano++;
     }
 
     /**
@@ -41,16 +49,21 @@ public class Cola<T> {
      * @return dato retirado, o null si la cola está vacía
      */
     public T quitar() {
-        if (cabeza == null) {
-            return null;
+        mutex.acquireUninterruptibly();
+        try {
+            if (cabeza == null) {
+                return null;
+            }
+            T dato = cabeza.getDato();
+            cabeza = cabeza.getSiguiente();
+            if (cabeza == null) {
+                finalCol = null;
+            }
+            tamano--;
+            return dato;
+        } finally {
+            mutex.release();
         }
-        T dato = cabeza.getDato();
-        cabeza = cabeza.getSiguiente();
-        if (cabeza == null) {
-            finalCol = null;
-        }
-        tamano--;
-        return dato;
     }
 
     /**
@@ -58,7 +71,12 @@ public class Cola<T> {
      * @return primer dato, o null si la cola está vacía
      */
     public T primero() {
-        return cabeza == null ? null : cabeza.getDato();
+        mutex.acquireUninterruptibly();
+        try {
+            return cabeza == null ? null : cabeza.getDato();
+        } finally {
+            mutex.release();
+        }
     }
 
     /**
@@ -66,7 +84,12 @@ public class Cola<T> {
      * @return último dato, o null si la cola está vacía
      */
     public T ultimo() {
-        return finalCol == null ? null : finalCol.getDato();
+        mutex.acquireUninterruptibly();
+        try {
+            return finalCol == null ? null : finalCol.getDato();
+        } finally {
+            mutex.release();
+        }
     }
 
     /**
@@ -74,11 +97,21 @@ public class Cola<T> {
      * @return tamaño actual de la cola
      */
     public int getTamano() {
-        return tamano;
+        mutex.acquireUninterruptibly();
+        try {
+            return tamano;
+        } finally {
+            mutex.release();
+        }
     }
 
     /** Indica si la cola no contiene elementos. */
     public boolean estaVacia() {
-        return cabeza == null;
+        mutex.acquireUninterruptibly();
+        try {
+            return cabeza == null;
+        } finally {
+            mutex.release();
+        }
     }
 }

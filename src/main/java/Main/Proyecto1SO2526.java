@@ -13,6 +13,62 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de semaforos y concurrencia verificada en consola.
+        EDD.Cola<Integer> compartida = new EDD.Cola<>();
+        Thread[] hilos = new Thread[4];
+        for (int i = 0; i < hilos.length; i++) {
+            final int inicio = i * 1000;
+            hilos[i] = new Thread(() -> {
+                for (int j = 0; j < 1000; j++) {
+                    compartida.agregar(inicio + j);
+                    compartida.primero();
+                    compartida.ultimo();
+                    compartida.getTamano();
+                    compartida.estaVacia();
+                }
+            });
+            hilos[i].start();
+        }
+        try {
+            for (Thread hilo : hilos) hilo.join();
+            System.out.println("Inserciones concurrentes: " + compartida.getTamano() + " (esperado: 4000)");
+            if (compartida.getTamano() != 4000) throw new AssertionError("Se perdieron inserciones");
+            boolean[] vistos = new boolean[4000];
+            java.util.concurrent.Semaphore control = new java.util.concurrent.Semaphore(1);
+            int[] resultados = new int[2];
+            for (int i = 0; i < hilos.length; i++) {
+                hilos[i] = new Thread(() -> {
+                    Integer dato;
+                    while ((dato = compartida.quitar()) != null) {
+                        control.acquireUninterruptibly();
+                        try {
+                            if (dato < 0 || dato >= vistos.length || vistos[dato]) resultados[1]++;
+                            else vistos[dato] = true;
+                            resultados[0]++;
+                        } finally { control.release(); }
+                    }
+                });
+                hilos[i].start();
+            }
+            for (Thread hilo : hilos) hilo.join();
+            System.out.println("Extracciones: " + resultados[0] + ", errores: " + resultados[1] + " (esperado: 4000, 0)");
+            System.out.println("Cola final: " + compartida.getTamano() + ", " + compartida.estaVacia() + " (esperado: 0, true)");
+            if (resultados[0] != 4000 || resultados[1] != 0 || !compartida.estaVacia())
+                throw new AssertionError("Error de extraccion concurrente");
+            try {
+                compartida.agregar(null);
+                throw new AssertionError("Se acepto null");
+            } catch (IllegalArgumentException esperado) {
+                compartida.agregar(7);
+                System.out.println("Permiso tras excepcion: " + compartida.quitar() + " (esperado: 7)");
+            }
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba interrumpida", interrupcion);
+        }
+
+        */
+
         /* Pruebas de Nodo y operaciones basicas de Cola verificadas en consola.
         EDD.Nodo<String> nodo = new EDD.Nodo<>("A");
         System.out.println("Nodo inicial: " + nodo.getDato() + " (esperado: A)");
