@@ -13,6 +13,88 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba final integrada de EDD verificada en consola.
+        EDD.Cola<Integer> integrada = new EDD.Cola<>();
+        if (!integrada.estaVacia() || integrada.getTamano() != 0
+                || integrada.quitar() != null || integrada.primero() != null
+                || integrada.ultimo() != null || integrada.instantanea().length != 0)
+            throw new AssertionError("Estado inicial incorrecto");
+        System.out.println("Casos de cola vacia: OK");
+        try {
+            integrada.agregar(null);
+            throw new AssertionError("Se acepto null");
+        } catch (IllegalArgumentException esperado) {
+            System.out.println("Rechazo de null: OK");
+        }
+        for (int vuelta = 0; vuelta < 3; vuelta++) {
+            for (int i = 0; i < 100; i++) integrada.agregar(i);
+            Object[] foto = integrada.instantanea();
+            if (foto.length != 100 || integrada.primero() != 0 || integrada.ultimo() != 99)
+                throw new AssertionError("Extremos o tamano incorrectos");
+            for (int i = 0; i < 100; i++) {
+                if (!Integer.valueOf(i).equals(foto[i]) || integrada.quitar() != i)
+                    throw new AssertionError("Orden FIFO incorrecto");
+            }
+            if (!integrada.estaVacia() || integrada.getTamano() != 0 || integrada.ultimo() != null)
+                throw new AssertionError("La cola no se vacio correctamente");
+        }
+        System.out.println("FIFO, instantaneas y reutilizacion en tres vueltas: OK");
+
+        EDD.Cola<Integer> concurrente = new EDD.Cola<>();
+        java.util.concurrent.Semaphore inicio = new java.util.concurrent.Semaphore(0);
+        java.util.concurrent.Semaphore controlFinal = new java.util.concurrent.Semaphore(1);
+        boolean[] recibidos = new boolean[2000];
+        int[] conteos = new int[2];
+        Thread[] trabajadores = new Thread[4];
+        for (int i = 0; i < 2; i++) {
+            final int base = i * 1000;
+            trabajadores[i] = new Thread(() -> {
+                inicio.acquireUninterruptibly();
+                for (int j = 0; j < 1000; j++) concurrente.agregar(base + j);
+            });
+        }
+        for (int i = 2; i < 4; i++) {
+            trabajadores[i] = new Thread(() -> {
+                inicio.acquireUninterruptibly();
+                for (int intento = 0; intento < 5000; intento++) {
+                    concurrente.instantanea();
+                    Integer valor = concurrente.quitar();
+                    if (valor == null) {
+                        Thread.yield();
+                        continue;
+                    }
+                    controlFinal.acquireUninterruptibly();
+                    try {
+                        if (valor < 0 || valor >= recibidos.length || recibidos[valor]) conteos[1]++;
+                        else recibidos[valor] = true;
+                        conteos[0]++;
+                    } finally { controlFinal.release(); }
+                }
+            });
+        }
+        for (Thread trabajador : trabajadores) trabajador.start();
+        inicio.release(4);
+        try {
+            for (Thread trabajador : trabajadores) trabajador.join();
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba final interrumpida", interrupcion);
+        }
+        Integer pendiente;
+        while ((pendiente = concurrente.quitar()) != null) {
+            if (pendiente < 0 || pendiente >= recibidos.length || recibidos[pendiente]) conteos[1]++;
+            else recibidos[pendiente] = true;
+            conteos[0]++;
+        }
+        System.out.println("Elementos recuperados: " + conteos[0] + ", duplicados o invalidos: " + conteos[1] + " (esperado: 2000, 0)");
+        if (conteos[0] != 2000 || conteos[1] != 0 || !concurrente.estaVacia()
+                || concurrente.getTamano() != 0 || concurrente.instantanea().length != 0)
+            throw new AssertionError("Fallo de integracion concurrente");
+        for (boolean recibido : recibidos)
+            if (!recibido) throw new AssertionError("Elemento perdido");
+        System.out.println("Prueba integrada de EDD: OK");
+        */
+
         /* Prueba de instantanea verificada en consola.
         EDD.Cola<String> original = new EDD.Cola<>();
         System.out.println("Instantanea vacia: " + original.instantanea().length + " (esperado: 0)");
