@@ -53,6 +53,30 @@ public class Cola<T> {
         return dato;
     }
 
+    /**
+     * Consulta el primer dato sin retirarlo.
+     * @return primer dato, o null si la cola está vacía
+     */
+    public T primero() {
+        return cabeza == null ? null : cabeza.getDato();
+    }
+
+    /**
+     * Consulta el último dato sin retirarlo.
+     * @return último dato, o null si la cola está vacía
+     */
+    public T ultimo() {
+        return finalCol == null ? null : finalCol.getDato();
+    }
+
+    /**
+     * Consulta la cantidad de elementos.
+     * @return tamaño actual de la cola
+     */
+    public int getTamano() {
+        return tamano;
+    }
+
     /** Indica si la cola no contiene elementos. */
     public boolean estaVacia() {
         return cabeza == null;
