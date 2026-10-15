@@ -36,6 +36,23 @@ public class Cola<T> {
         tamano++;
     }
 
+    /**
+     * Retira el primer dato de la cola.
+     * @return dato retirado, o null si la cola está vacía
+     */
+    public T quitar() {
+        if (cabeza == null) {
+            return null;
+        }
+        T dato = cabeza.getDato();
+        cabeza = cabeza.getSiguiente();
+        if (cabeza == null) {
+            finalCol = null;
+        }
+        tamano--;
+        return dato;
+    }
+
     /** Indica si la cola no contiene elementos. */
     public boolean estaVacia() {
         return cabeza == null;
