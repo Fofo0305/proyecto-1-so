@@ -1,4 +1,4 @@
-package com.mycompany.proyecto1so2526.edd;
+package EDD;
 
 /**
  * Cola de elementos enlazados.

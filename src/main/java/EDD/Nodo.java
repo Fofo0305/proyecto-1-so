@@ -1,4 +1,4 @@
-package com.mycompany.proyecto1so2526.edd;
+package EDD;
 
 /**
  * Nodo genérico para estructuras enlazadas.
