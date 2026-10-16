@@ -13,6 +13,19 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de EstadoProceso verificada en consola.
+        String[] nombresEstados = {"NUEVO", "LISTO", "EJECUCION", "BLOQUEADO", "TERMINADO"};
+        Modelo.EstadoProceso[] estados = Modelo.EstadoProceso.values();
+        if (estados.length != nombresEstados.length) throw new AssertionError("Cantidad de estados incorrecta");
+        for (int i = 0; i < estados.length; i++) {
+            System.out.println("Estado: " + estados[i] + " (esperado: " + nombresEstados[i] + ")");
+            if (!estados[i].name().equals(nombresEstados[i])
+                    || Modelo.EstadoProceso.valueOf(nombresEstados[i]) != estados[i])
+                throw new AssertionError("Estado incorrecto");
+        }
+        System.out.println("Prueba de EstadoProceso: OK");
+        */
+
         /* Prueba final integrada de EDD verificada en consola.
         EDD.Cola<Integer> integrada = new EDD.Cola<>();
         if (!integrada.estaVacia() || integrada.getTamano() != 0
