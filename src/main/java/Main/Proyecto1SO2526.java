@@ -13,6 +13,19 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de MotivoBloqueo verificada en consola.
+        String[] nombresMotivos = {"NINGUNO", "ENTRADA_SALIDA", "SEMAFORO", "RED"};
+        Modelo.MotivoBloqueo[] motivos = Modelo.MotivoBloqueo.values();
+        if (motivos.length != nombresMotivos.length) throw new AssertionError("Cantidad de motivos incorrecta");
+        for (int i = 0; i < motivos.length; i++) {
+            System.out.println("Motivo: " + motivos[i] + " (esperado: " + nombresMotivos[i] + ")");
+            if (!motivos[i].name().equals(nombresMotivos[i])
+                    || Modelo.MotivoBloqueo.valueOf(nombresMotivos[i]) != motivos[i])
+                throw new AssertionError("Motivo incorrecto");
+        }
+        System.out.println("Prueba de MotivoBloqueo: OK");
+        */
+
         /* Prueba de PoliticaPlanificacion verificada en consola.
         String[] nombresPoliticas = {"FCFS", "ROUND_ROBIN", "EDF", "PRIORIDADES"};
         Modelo.PoliticaPlanificacion[] politicas = Modelo.PoliticaPlanificacion.values();
