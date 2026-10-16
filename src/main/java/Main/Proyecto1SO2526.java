@@ -13,6 +13,19 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de ModoCPU verificada en consola.
+        String[] nombresModos = {"USUARIO", "SISTEMA_OPERATIVO"};
+        Modelo.ModoCPU[] modos = Modelo.ModoCPU.values();
+        if (modos.length != nombresModos.length) throw new AssertionError("Cantidad de modos incorrecta");
+        for (int i = 0; i < modos.length; i++) {
+            System.out.println("Modo: " + modos[i] + " (esperado: " + nombresModos[i] + ")");
+            if (!modos[i].name().equals(nombresModos[i])
+                    || Modelo.ModoCPU.valueOf(nombresModos[i]) != modos[i])
+                throw new AssertionError("Modo incorrecto");
+        }
+        System.out.println("Prueba de ModoCPU: OK");
+        */
+
         /* Prueba de TipoProceso verificada en consola.
         String[] nombresTipos = {"CPU_BOUND", "IO_BOUND", "PRODUCTOR", "CONSUMIDOR"};
         Modelo.TipoProceso[] tipos = Modelo.TipoProceso.values();
