@@ -13,6 +13,19 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de PoliticaPlanificacion verificada en consola.
+        String[] nombresPoliticas = {"FCFS", "ROUND_ROBIN", "EDF", "PRIORIDADES"};
+        Modelo.PoliticaPlanificacion[] politicas = Modelo.PoliticaPlanificacion.values();
+        if (politicas.length != nombresPoliticas.length) throw new AssertionError("Cantidad de politicas incorrecta");
+        for (int i = 0; i < politicas.length; i++) {
+            System.out.println("Politica: " + politicas[i] + " (esperado: " + nombresPoliticas[i] + ")");
+            if (!politicas[i].name().equals(nombresPoliticas[i])
+                    || Modelo.PoliticaPlanificacion.valueOf(nombresPoliticas[i]) != politicas[i])
+                throw new AssertionError("Politica incorrecta");
+        }
+        System.out.println("Prueba de PoliticaPlanificacion: OK");
+        */
+
         /* Prueba de ModoCPU verificada en consola.
         String[] nombresModos = {"USUARIO", "SISTEMA_OPERATIVO"};
         Modelo.ModoCPU[] modos = Modelo.ModoCPU.values();
