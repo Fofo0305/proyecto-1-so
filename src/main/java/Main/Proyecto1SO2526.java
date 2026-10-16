@@ -13,6 +13,19 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de TipoProceso verificada en consola.
+        String[] nombresTipos = {"CPU_BOUND", "IO_BOUND", "PRODUCTOR", "CONSUMIDOR"};
+        Modelo.TipoProceso[] tipos = Modelo.TipoProceso.values();
+        if (tipos.length != nombresTipos.length) throw new AssertionError("Cantidad de tipos incorrecta");
+        for (int i = 0; i < tipos.length; i++) {
+            System.out.println("Tipo: " + tipos[i] + " (esperado: " + nombresTipos[i] + ")");
+            if (!tipos[i].name().equals(nombresTipos[i])
+                    || Modelo.TipoProceso.valueOf(nombresTipos[i]) != tipos[i])
+                throw new AssertionError("Tipo incorrecto");
+        }
+        System.out.println("Prueba de TipoProceso: OK");
+        */
+
         /* Prueba de EstadoProceso verificada en consola.
         String[] nombresEstados = {"NUEVO", "LISTO", "EJECUCION", "BLOQUEADO", "TERMINADO"};
         Modelo.EstadoProceso[] estados = Modelo.EstadoProceso.values();
