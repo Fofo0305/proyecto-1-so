@@ -13,6 +13,25 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de capacidad de RAM verificada en consola.
+        Modelo.Memoria ramInicial = new Modelo.Memoria(256);
+        System.out.println("RAM capacidad/usada/libre: " + ramInicial.getCapacidad() + "/" + ramInicial.getUsada() + "/" + ramInicial.getLibre() + " (esperado: 256/0/256)");
+        if (ramInicial.getCapacidad() != 256 || ramInicial.getUsada() != 0 || ramInicial.getLibre() != 256)
+            throw new AssertionError("RAM inicial incorrecta");
+        Modelo.Memoria ramMinima = new Modelo.Memoria(1);
+        if (ramMinima.getCapacidad() != 1 || ramMinima.getLibre() != 1)
+            throw new AssertionError("Capacidad minima incorrecta");
+        for (int capacidadInvalida : new int[] {0, -1, Integer.MIN_VALUE}) {
+            try {
+                new Modelo.Memoria(capacidadInvalida);
+                throw new AssertionError("Se acepto RAM no positiva");
+            } catch (IllegalArgumentException esperado) {
+                System.out.println("Capacidad rechazada: " + capacidadInvalida);
+            }
+        }
+        System.out.println("Prueba de capacidad y consultas de RAM: OK");
+        */
+
         /* Prueba integrada del modelo verificada en consola.
         EDD.Cola<Modelo.Proceso> cargaModelo = new EDD.Cola<>();
         Modelo.Proceso completo = new Modelo.Proceso("Completo", 1, Modelo.TipoProceso.CPU_BOUND, 0, 32, 2, 2);
