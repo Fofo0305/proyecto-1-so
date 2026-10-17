@@ -13,6 +13,66 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba integrada de gestion RAM verificada en consola.
+        Modelo.Memoria ramIntegrada = new Modelo.Memoria(128);
+        Modelo.Proceso procesoRam = new Modelo.Proceso("RAM", 1, Modelo.TipoProceso.CPU_BOUND, 0, 64, 1, 5);
+        String claveProcesoRam = "proceso:" + procesoRam.getId();
+        if (!ramIntegrada.reservar(claveProcesoRam, procesoRam.getMemoria())
+                || !ramIntegrada.reservar("buffer:1", 32) || !ramIntegrada.reservar(32))
+            throw new AssertionError("Fallo de reservas mixtas");
+        if (ramIntegrada.reservar("proceso:pendiente", 1)) throw new AssertionError("Se sobreasigno RAM llena");
+        int[] llenaRam = ramIntegrada.instantanea();
+        System.out.println("RAM compartida llena usada/libre: " + llenaRam[0] + "/" + llenaRam[1] + " (esperado: 128/0)");
+        procesoRam.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        procesoRam.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        procesoRam.ejecutarInstruccion();
+        procesoRam.cambiarEstado(Modelo.EstadoProceso.TERMINADO, Modelo.MotivoBloqueo.NINGUNO);
+        if (ramIntegrada.liberar(claveProcesoRam) != 64 || ramIntegrada.liberar(claveProcesoRam) != 0
+                || !ramIntegrada.reservar("proceso:pendiente", 64))
+            throw new AssertionError("No se reutilizo la reserva del proceso");
+        ramIntegrada.liberar(32);
+        if (ramIntegrada.liberar("buffer:1") != 32 || ramIntegrada.liberar("proceso:pendiente") != 64)
+            throw new AssertionError("Se perdieron reservas tras liberar");
+        if (ramIntegrada.getUsada() != 0) throw new AssertionError("Quedo RAM ocupada");
+        System.out.println("Liberacion tras finalizar proceso y reutilizacion con buffer: OK");
+        Thread[] carreraRam = new Thread[8];
+        Throwable[] fallosCarreraRam = new Throwable[8];
+        boolean[] ganadoresRam = new boolean[8];
+        java.util.concurrent.Semaphore inicioCarreraRam = new java.util.concurrent.Semaphore(0);
+        for (int i = 0; i < carreraRam.length; i++) {
+            final int indiceCarreraRam = i;
+            carreraRam[i] = new Thread(() -> {
+                inicioCarreraRam.acquireUninterruptibly();
+                try {
+                    ganadoresRam[indiceCarreraRam] = ramIntegrada.reservar("buffer:compartido", 64);
+                } catch (IllegalArgumentException duplicadoEsperado) {
+                    ganadoresRam[indiceCarreraRam] = false;
+                } catch (Throwable falloCarreraRam) {
+                    fallosCarreraRam[indiceCarreraRam] = falloCarreraRam;
+                }
+            });
+            carreraRam[i].start();
+        }
+        inicioCarreraRam.release(carreraRam.length);
+        try {
+            for (Thread competidorRam : carreraRam) competidorRam.join();
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba integrada de RAM interrumpida", interrupcion);
+        }
+        int ganadoresTotalRam = 0;
+        for (int i = 0; i < carreraRam.length; i++) {
+            if (fallosCarreraRam[i] != null) throw new AssertionError("Fallo de carrera RAM", fallosCarreraRam[i]);
+            if (ganadoresRam[i]) ganadoresTotalRam++;
+        }
+        System.out.println("Reservas exitosas del mismo propietario: " + ganadoresTotalRam + " (esperado: 1)");
+        if (ganadoresTotalRam != 1 || ramIntegrada.getUsada() != 64 || ramIntegrada.liberar("buffer:compartido") != 64)
+            throw new AssertionError("Duplicado concurrente altero contabilidad");
+        int[] cierreRam = ramIntegrada.instantanea();
+        if (cierreRam[0] != 0 || cierreRam[1] != 128) throw new AssertionError("Cierre de RAM incorrecto");
+        System.out.println("Prueba integrada de gestion RAM: OK, usada/libre final 0/128");
+        */
+
         /* Prueba de instantanea de RAM verificada en consola.
         Modelo.Memoria ramFoto = new Modelo.Memoria(100);
         ramFoto.reservar("proceso:1", 40);
