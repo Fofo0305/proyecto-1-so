@@ -13,6 +13,47 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de reservas por propietario verificada en consola.
+        Modelo.Memoria propietariosRam = new Modelo.Memoria(100);
+        if (!propietariosRam.reservar("proceso:1", 60) || !propietariosRam.reservar("buffer:1", 30)
+                || !propietariosRam.reservar(10) || propietariosRam.reservar("proceso:2", 1))
+            throw new AssertionError("Capacidad compartida incorrecta");
+        System.out.println("Procesos/buffers/sin propietario usada/libre: " + propietariosRam.getUsada() + "/" + propietariosRam.getLibre() + " (esperado: 100/0)");
+        try {
+            propietariosRam.reservar("proceso:1", 1);
+            throw new AssertionError("Se acepto propietario duplicado");
+        } catch (IllegalArgumentException esperado) {
+            if (propietariosRam.getUsada() != 100) throw new AssertionError("Duplicado altero RAM");
+        }
+        try {
+            propietariosRam.liberar(11);
+            throw new AssertionError("Se libero RAM de otro propietario");
+        } catch (IllegalArgumentException esperado) {
+            if (propietariosRam.getUsada() != 100) throw new AssertionError("Liberacion invalida altero RAM");
+        }
+        propietariosRam.liberar(10);
+        if (propietariosRam.liberar("inexistente") != 0 || propietariosRam.liberar("proceso:1") != 60
+                || propietariosRam.liberar("proceso:1") != 0 || propietariosRam.getUsada() != 30)
+            throw new AssertionError("Liberacion por propietario incorrecta");
+        if (!propietariosRam.reservar("proceso:2", 70) || propietariosRam.liberar("buffer:1") != 30
+                || propietariosRam.liberar("proceso:2") != 70 || propietariosRam.getUsada() != 0)
+            throw new AssertionError("Rotacion perdio reservas");
+        for (String propietarioInvalido : new String[] {null, "", "  "}) {
+            try {
+                propietariosRam.reservar(propietarioInvalido, 1);
+                throw new AssertionError("Propietario invalido aceptado al reservar");
+            } catch (IllegalArgumentException esperado) { }
+            try {
+                propietariosRam.liberar(propietarioInvalido);
+                throw new AssertionError("Propietario invalido aceptado al liberar");
+            } catch (IllegalArgumentException esperado) { }
+        }
+        if (!propietariosRam.reservar("proceso:1", 100) || propietariosRam.liberar("proceso:1") != 100)
+            throw new AssertionError("No se pudo reutilizar propietario");
+        System.out.println("Duplicados, liberacion repetida y aislamiento de propietarios: OK");
+        System.out.println("Prueba de reservas por propietario: OK");
+        */
+
         /* Prueba de ReservaMemoria verificada en consola.
         Modelo.ReservaMemoria reservaProceso = new Modelo.ReservaMemoria("proceso:1", 64);
         Modelo.ReservaMemoria reservaBuffer = new Modelo.ReservaMemoria("buffer:1", 16);
