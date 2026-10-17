@@ -13,6 +13,55 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de transiciones y motivos verificada en consola.
+        Modelo.EstadoProceso[] estadosPrueba = Modelo.EstadoProceso.values();
+        int transicionesValidas = 0;
+        int transicionesRechazadas = 0;
+        for (Modelo.EstadoProceso origen : estadosPrueba) {
+            for (Modelo.EstadoProceso destino : estadosPrueba) {
+                Modelo.Proceso transicion = new Modelo.Proceso("T", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 2, 3);
+                if (origen != Modelo.EstadoProceso.NUEVO) transicion.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+                if (origen == Modelo.EstadoProceso.EJECUCION || origen == Modelo.EstadoProceso.BLOQUEADO)
+                    transicion.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+                if (origen == Modelo.EstadoProceso.BLOQUEADO)
+                    transicion.cambiarEstado(origen, Modelo.MotivoBloqueo.SEMAFORO);
+                if (origen == Modelo.EstadoProceso.TERMINADO)
+                    transicion.cambiarEstado(origen, Modelo.MotivoBloqueo.NINGUNO);
+                boolean esperado = switch (origen) {
+                    case NUEVO -> destino == Modelo.EstadoProceso.LISTO || destino == Modelo.EstadoProceso.TERMINADO;
+                    case LISTO -> destino == Modelo.EstadoProceso.EJECUCION || destino == Modelo.EstadoProceso.TERMINADO;
+                    case EJECUCION -> destino == Modelo.EstadoProceso.LISTO || destino == Modelo.EstadoProceso.BLOQUEADO || destino == Modelo.EstadoProceso.TERMINADO;
+                    case BLOQUEADO -> destino == Modelo.EstadoProceso.LISTO || destino == Modelo.EstadoProceso.TERMINADO;
+                    case TERMINADO -> false;
+                };
+                Modelo.MotivoBloqueo motivoAnterior = transicion.getMotivoBloqueo();
+                try {
+                    transicion.cambiarEstado(destino, destino == Modelo.EstadoProceso.BLOQUEADO ? Modelo.MotivoBloqueo.RED : Modelo.MotivoBloqueo.NINGUNO);
+                    if (!esperado || transicion.getEstado() != destino) throw new AssertionError("Transicion invalida aceptada");
+                    transicionesValidas++;
+                } catch (IllegalStateException rechazo) {
+                    if (esperado || transicion.getEstado() != origen || transicion.getMotivoBloqueo() != motivoAnterior)
+                        throw new AssertionError("Rechazo altero el contexto");
+                    transicionesRechazadas++;
+                }
+            }
+        }
+        Modelo.Proceso motivoInvalido = new Modelo.Proceso("M", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 2, 3);
+        for (int caso = 0; caso < 4; caso++) {
+            try {
+                motivoInvalido.cambiarEstado(caso == 0 ? null : caso == 3 ? Modelo.EstadoProceso.BLOQUEADO : Modelo.EstadoProceso.LISTO,
+                        caso == 1 ? null : caso == 2 ? Modelo.MotivoBloqueo.RED : Modelo.MotivoBloqueo.NINGUNO);
+                throw new AssertionError("Estado o motivo incoherente aceptado");
+            } catch (IllegalArgumentException esperado) {
+                if (motivoInvalido.getEstado() != Modelo.EstadoProceso.NUEVO || motivoInvalido.getMotivoBloqueo() != Modelo.MotivoBloqueo.NINGUNO)
+                    throw new AssertionError("Motivo invalido altero contexto");
+            }
+        }
+        System.out.println("Transiciones validas/rechazadas: " + transicionesValidas + "/" + transicionesRechazadas + " (esperado: 9/16)");
+        System.out.println("Motivos incoherentes y nulos rechazados sin alterar contexto: OK");
+        System.out.println("Prueba de transiciones: OK");
+        */
+
         /* Prueba de validaciones del PCB verificada en consola.
         Modelo.Proceso antesValidacion = new Modelo.Proceso("Valido", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
         int rechazados = 0;

@@ -4,6 +4,7 @@ import java.util.concurrent.Semaphore;
 
 /**
  * Bloque de control de un proceso monohilo.
+ * El núcleo debe serializar las transiciones y las lecturas del contexto.
  * @author Adolfo
  */
 public class Proceso {
@@ -57,6 +58,34 @@ public class Proceso {
         this.motivoBloqueo = MotivoBloqueo.NINGUNO;
         this.pc = 0;
         this.mar = 0;
+    }
+
+    /**
+     * Cambia el estado siguiendo el ciclo de vida del proceso.
+     * Solo un proceso bloqueado puede tener un motivo distinto de NINGUNO.
+     * @param nuevo estado solicitado
+     * @param motivo causa del bloqueo, o NINGUNO
+     */
+    public void cambiarEstado(EstadoProceso nuevo, MotivoBloqueo motivo) {
+        if (nuevo == null || motivo == null) {
+            throw new IllegalArgumentException("El estado y el motivo son obligatorios");
+        }
+        if ((nuevo == EstadoProceso.BLOQUEADO) != (motivo != MotivoBloqueo.NINGUNO)) {
+            throw new IllegalArgumentException("El motivo no corresponde al estado");
+        }
+        boolean permitido = switch (estado) {
+            case NUEVO -> nuevo == EstadoProceso.LISTO || nuevo == EstadoProceso.TERMINADO;
+            case LISTO -> nuevo == EstadoProceso.EJECUCION || nuevo == EstadoProceso.TERMINADO;
+            case EJECUCION -> nuevo == EstadoProceso.LISTO || nuevo == EstadoProceso.BLOQUEADO
+                    || nuevo == EstadoProceso.TERMINADO;
+            case BLOQUEADO -> nuevo == EstadoProceso.LISTO || nuevo == EstadoProceso.TERMINADO;
+            case TERMINADO -> false;
+        };
+        if (!permitido) {
+            throw new IllegalStateException("Transicion no permitida: " + estado + " -> " + nuevo);
+        }
+        estado = nuevo;
+        motivoBloqueo = motivo;
     }
 
     public long getId() { return id; }
