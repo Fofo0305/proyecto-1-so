@@ -13,6 +13,62 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de concurrencia de RAM verificada en consola.
+        Modelo.Memoria ramConcurrente = new Modelo.Memoria(100);
+        Thread[] usuariosRam = new Thread[8];
+        Throwable[] erroresRam = new Throwable[usuariosRam.length];
+        java.util.concurrent.Semaphore salidaRam = new java.util.concurrent.Semaphore(0);
+        int[] exitosRam = new int[usuariosRam.length];
+        for (int i = 0; i < usuariosRam.length; i++) {
+            final int indiceRam = i;
+            usuariosRam[i] = new Thread(() -> {
+                try {
+                    salidaRam.acquireUninterruptibly();
+                    for (int vueltaRam = 0; vueltaRam < 1000; vueltaRam++) {
+                        if (ramConcurrente.reservar(30)) {
+                            try {
+                                int usadaRam = ramConcurrente.getUsada();
+                                int libreRam = ramConcurrente.getLibre();
+                                if (usadaRam < 30 || usadaRam > 100 || libreRam < 0 || libreRam > 100)
+                                    throw new AssertionError("Sobreasignacion de RAM");
+                                exitosRam[indiceRam]++;
+                            } finally {
+                                ramConcurrente.liberar(30);
+                            }
+                        }
+                    }
+                } catch (Throwable errorRam) {
+                    erroresRam[indiceRam] = errorRam;
+                }
+            });
+            usuariosRam[i].start();
+        }
+        salidaRam.release(usuariosRam.length);
+        try {
+            for (Thread usuarioRam : usuariosRam) usuarioRam.join();
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de RAM interrumpida", interrupcion);
+        }
+        int totalReservasRam = 0;
+        for (int i = 0; i < erroresRam.length; i++) {
+            if (erroresRam[i] != null) throw new AssertionError("Fallo de hilo de RAM", erroresRam[i]);
+            totalReservasRam += exitosRam[i];
+        }
+        System.out.println("Reservas concurrentes completadas: " + totalReservasRam);
+        System.out.println("RAM final usada/libre: " + ramConcurrente.getUsada() + "/" + ramConcurrente.getLibre() + " (esperado: 0/100)");
+        if (totalReservasRam == 0 || ramConcurrente.getUsada() != 0 || ramConcurrente.getLibre() != 100)
+            throw new AssertionError("Perdida de unidades de RAM");
+        try {
+            ramConcurrente.liberar(1);
+            throw new AssertionError("Se libero memoria inexistente");
+        } catch (IllegalArgumentException esperado) {
+            if (!ramConcurrente.reservar(100)) throw new AssertionError("Permiso no liberado tras rechazo");
+            ramConcurrente.liberar(100);
+        }
+        System.out.println("Prueba de semaforo y concurrencia de RAM: OK");
+        */
+
         /* Prueba de liberacion de RAM verificada en consola.
         Modelo.Memoria ramLiberacion = new Modelo.Memoria(100);
         ramLiberacion.reservar(80);
