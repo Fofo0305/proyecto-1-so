@@ -13,6 +13,21 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de PCB basico verificada en consola.
+        Modelo.Proceso pcb = new Modelo.Proceso("P1", 2, Modelo.TipoProceso.CPU_BOUND, 3, 64, 10, 20);
+        System.out.println("PCB: " + pcb.getNombre() + ", computador " + pcb.getComputador() + ", " + pcb.getTipo());
+        System.out.println("Prioridad/RAM/instrucciones: " + pcb.getPrioridad() + "/" + pcb.getMemoria() + "/" + pcb.getInstrucciones());
+        System.out.println("Estado: " + pcb.getEstado() + ", bloqueo: " + pcb.getMotivoBloqueo());
+        System.out.println("PC/MAR/restante/deadline: " + pcb.getPc() + "/" + pcb.getMar() + "/" + pcb.getRestante() + "/" + pcb.getDeadline());
+        if (!"P1".equals(pcb.getNombre()) || pcb.getComputador() != 2 || pcb.getTipo() != Modelo.TipoProceso.CPU_BOUND
+                || pcb.getPrioridad() != 3 || pcb.getMemoria() != 64 || pcb.getInstrucciones() != 10
+                || pcb.getEstado() != Modelo.EstadoProceso.NUEVO || pcb.getMotivoBloqueo() != Modelo.MotivoBloqueo.NINGUNO
+                || pcb.getPc() != 0 || pcb.getMar() != 0 || pcb.getRestante() != 10
+                || pcb.getDeadline() != 20 || pcb.getDeadlineInicial() != 20)
+            throw new AssertionError("PCB inicial incorrecto");
+        System.out.println("Prueba de PCB basico: OK");
+        */
+
         /* Prueba de MotivoBloqueo verificada en consola.
         String[] nombresMotivos = {"NINGUNO", "ENTRADA_SALIDA", "SEMAFORO", "RED"};
         Modelo.MotivoBloqueo[] motivos = Modelo.MotivoBloqueo.values();
