@@ -13,6 +13,38 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de recepcion de procesos nuevos verificada en consola.
+        Sistema.Computador receptorUno = new Sistema.Computador(1, 32);
+        Sistema.Computador receptorDos = new Sistema.Computador(2, 64);
+        Modelo.Proceso nuevoUno = new Modelo.Proceso("N1", 1, Modelo.TipoProceso.CPU_BOUND, 0, 16, 2, 5);
+        Modelo.Proceso nuevoDos = new Modelo.Proceso("N2", 1, Modelo.TipoProceso.CPU_BOUND, 0, 100, 2, 5);
+        receptorUno.recibirProceso(nuevoUno);
+        receptorUno.recibirProceso(nuevoDos);
+        Modelo.Proceso[] recibidosNuevos = receptorUno.getNuevos();
+        System.out.println("Orden de nuevos: " + recibidosNuevos[0].getNombre() + ", " + recibidosNuevos[1].getNombre() + " (esperado: N1, N2)");
+        if (recibidosNuevos.length != 2 || recibidosNuevos[0] != nuevoUno || recibidosNuevos[1] != nuevoDos
+                || receptorUno.getMemoria().getUsada() != 0 || receptorUno.getListos().length != 0)
+            throw new AssertionError("Recepcion altero orden, RAM o listos");
+        recibidosNuevos[0] = null;
+        if (receptorUno.getNuevos()[0] != nuevoUno || receptorDos.getNuevos().length != 0)
+            throw new AssertionError("Consulta altero colas o se compartieron procesos");
+        Modelo.Proceso yaListo = new Modelo.Proceso("Listo", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        yaListo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        Modelo.Proceso otroComputador = new Modelo.Proceso("Otro", 2, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        for (Modelo.Proceso invalidoNuevo : new Modelo.Proceso[] {null, nuevoUno, yaListo, otroComputador}) {
+            try {
+                receptorUno.recibirProceso(invalidoNuevo);
+                throw new AssertionError("Recepcion invalida aceptada");
+            } catch (IllegalArgumentException esperado) {
+                if (receptorUno.getNuevos().length != 2 || receptorUno.getMemoria().getUsada() != 0)
+                    throw new AssertionError("Rechazo altero computador");
+            }
+        }
+        receptorDos.recibirProceso(otroComputador);
+        System.out.println("Nuevos por computador: " + receptorUno.getNuevos().length + "/" + receptorDos.getNuevos().length + " (esperado: 2/1)");
+        System.out.println("Prueba de recepcion de procesos nuevos sin reservar RAM: OK");
+        */
+
         /* Prueba de inicializacion de colas propias verificada en consola.
         Sistema.Computador colasUno = new Sistema.Computador(1, 128);
         Sistema.Computador colasDos = new Sistema.Computador(2, 256);

@@ -3,12 +3,15 @@ package Sistema;
 import Modelo.Memoria;
 import Modelo.Proceso;
 import EDD.Cola;
+import Modelo.EstadoProceso;
+import java.util.concurrent.Semaphore;
 
 /**
  * Computador reutilizable con identificación y RAM propias.
  * @author Adolfo
  */
 public class Computador {
+    private final Semaphore mutex = new Semaphore(1, true);
     private final int id;
     private final Memoria memoria;
     private final Cola<Proceso> nuevos = new Cola<>();
@@ -22,6 +25,36 @@ public class Computador {
         }
         this.id = id;
         this.memoria = new Memoria(capacidadRam);
+    }
+
+    /**
+     * Recibe un proceso asignado a este computador y lo deja en nuevos sin reservar RAM.
+     * @param proceso proceso en estado NUEVO que se incorpora
+     */
+    public void recibirProceso(Proceso proceso) {
+        if (proceso == null) {
+            throw new IllegalArgumentException("El proceso es obligatorio");
+        }
+        mutex.acquireUninterruptibly();
+        try {
+            if (proceso.getComputador() != id || proceso.getEstado() != EstadoProceso.NUEVO) {
+                throw new IllegalArgumentException("El proceso debe ser nuevo y pertenecer a este computador");
+            }
+            if (contiene(nuevos, proceso.getId()) || contiene(listos, proceso.getId())
+                    || contiene(bloqueados, proceso.getId()) || contiene(terminados, proceso.getId())) {
+                throw new IllegalArgumentException("El proceso ya pertenece al computador");
+            }
+            nuevos.agregar(proceso);
+        } finally {
+            mutex.release();
+        }
+    }
+
+    private boolean contiene(Cola<Proceso> cola, long idProceso) {
+        for (Object elemento : cola.instantanea()) {
+            if (((Proceso) elemento).getId() == idProceso) return true;
+        }
+        return false;
     }
 
     public int getId() { return id; }
