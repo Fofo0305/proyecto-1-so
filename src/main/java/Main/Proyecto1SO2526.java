@@ -13,6 +13,50 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de ejecucion y contexto verificada en consola.
+        Modelo.Proceso ejecutable = new Modelo.Proceso("CPU", 1, Modelo.TipoProceso.CPU_BOUND, 0, 16, 2, 5);
+        try {
+            ejecutable.ejecutarInstruccion();
+            throw new AssertionError("Un proceso nuevo ejecuto");
+        } catch (IllegalStateException esperado) {
+            if (ejecutable.getPc() != 0 || ejecutable.getMar() != 0 || ejecutable.getRestante() != 2)
+                throw new AssertionError("El rechazo altero el contexto");
+        }
+        ejecutable.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        ejecutable.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        ejecutable.ejecutarInstruccion();
+        System.out.println("Primera instruccion PC/MAR/restante: " + ejecutable.getPc() + "/" + ejecutable.getMar() + "/" + ejecutable.getRestante() + " (esperado: 1/1/1)");
+        if (ejecutable.getPc() != 1 || ejecutable.getMar() != 1 || ejecutable.getRestante() != 1)
+            throw new AssertionError("Primera instruccion incorrecta");
+        ejecutable.cambiarEstado(Modelo.EstadoProceso.BLOQUEADO, Modelo.MotivoBloqueo.ENTRADA_SALIDA);
+        try {
+            ejecutable.ejecutarInstruccion();
+            throw new AssertionError("Un bloqueado ejecuto");
+        } catch (IllegalStateException esperado) {
+            if (ejecutable.getPc() != 1 || ejecutable.getRestante() != 1) throw new AssertionError("Bloqueado alterado");
+        }
+        ejecutable.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        ejecutable.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        ejecutable.ejecutarInstruccion();
+        try {
+            ejecutable.ejecutarInstruccion();
+            throw new AssertionError("Se ejecuto mas trabajo del declarado");
+        } catch (IllegalStateException esperado) {
+            if (ejecutable.getPc() != 2 || ejecutable.getMar() != 2 || ejecutable.getRestante() != 0)
+                throw new AssertionError("Fin de instrucciones incorrecto");
+        }
+        Modelo.Proceso terminadoCpu = new Modelo.Proceso("Fin", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        terminadoCpu.cambiarEstado(Modelo.EstadoProceso.TERMINADO, Modelo.MotivoBloqueo.NINGUNO);
+        try {
+            terminadoCpu.ejecutarInstruccion();
+            throw new AssertionError("Un terminado ejecuto");
+        } catch (IllegalStateException esperado) {
+            if (terminadoCpu.getPc() != 0 || terminadoCpu.getRestante() != 1) throw new AssertionError("Terminado alterado");
+        }
+        System.out.println("Ejecucion completa PC/MAR/restante: 2/2/0; nuevos, bloqueados, terminados y trabajo agotado rechazados");
+        System.out.println("Prueba de ejecucion y contexto: OK");
+        */
+
         /* Prueba de transiciones y motivos verificada en consola.
         Modelo.EstadoProceso[] estadosPrueba = Modelo.EstadoProceso.values();
         int transicionesValidas = 0;

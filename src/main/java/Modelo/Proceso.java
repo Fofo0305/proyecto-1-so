@@ -88,6 +88,16 @@ public class Proceso {
         motivoBloqueo = motivo;
     }
 
+    /** Ejecuta una instrucción cuando el proceso tiene CPU, trabajo y plazo disponibles. */
+    public void ejecutarInstruccion() {
+        if (estado != EstadoProceso.EJECUCION || restante == 0 || deadline == 0) {
+            throw new IllegalStateException("El proceso no puede ejecutar una instruccion");
+        }
+        pc++;
+        mar++;
+        restante--;
+    }
+
     public long getId() { return id; }
     public String getNombre() { return nombre; }
     public int getComputador() { return computador; }
