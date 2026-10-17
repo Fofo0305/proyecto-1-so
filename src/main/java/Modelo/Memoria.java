@@ -16,6 +16,22 @@ public class Memoria {
         this.usada = 0;
     }
 
+    /**
+     * Reserva unidades de RAM si hay espacio suficiente.
+     * @param cantidad unidades solicitadas
+     * @return true si se realizó la reserva; false si falta espacio
+     */
+    public boolean reservar(int cantidad) {
+        if (cantidad < 1) {
+            throw new IllegalArgumentException("La reserva debe ser positiva");
+        }
+        if (cantidad > capacidad - usada) {
+            return false;
+        }
+        usada += cantidad;
+        return true;
+    }
+
     public int getCapacidad() { return capacidad; }
     public int getUsada() { return usada; }
     public int getLibre() { return capacidad - usada; }

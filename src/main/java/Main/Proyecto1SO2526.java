@@ -13,6 +13,32 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de reservas de RAM verificada en consola.
+        Modelo.Memoria ramReservas = new Modelo.Memoria(100);
+        boolean primeraReserva = ramReservas.reservar(60);
+        System.out.println("Reserva 60: " + primeraReserva + ", usada/libre: " + ramReservas.getUsada() + "/" + ramReservas.getLibre() + " (esperado: true, 60/40)");
+        if (!primeraReserva || ramReservas.getUsada() != 60 || ramReservas.getLibre() != 40)
+            throw new AssertionError("Reserva inicial incorrecta");
+        boolean sinEspacio = ramReservas.reservar(41);
+        System.out.println("Reserva sin espacio: " + sinEspacio + ", usada: " + ramReservas.getUsada() + " (esperado: false, 60)");
+        if (sinEspacio || ramReservas.getUsada() != 60) throw new AssertionError("Reserva fallida altero RAM");
+        if (!ramReservas.reservar(40) || ramReservas.getLibre() != 0 || ramReservas.reservar(1))
+            throw new AssertionError("Limite de capacidad incorrecto");
+        for (int cantidadInvalida : new int[] {0, -1, Integer.MIN_VALUE}) {
+            try {
+                ramReservas.reservar(cantidadInvalida);
+                throw new AssertionError("Se acepto reserva no positiva");
+            } catch (IllegalArgumentException esperado) {
+                if (ramReservas.getUsada() != 100) throw new AssertionError("Rechazo altero RAM");
+            }
+        }
+        Modelo.Memoria ramGrande = new Modelo.Memoria(Integer.MAX_VALUE);
+        if (!ramGrande.reservar(Integer.MAX_VALUE) || ramGrande.reservar(1) || ramGrande.getLibre() != 0)
+            throw new AssertionError("Desbordamiento en reserva");
+        System.out.println("RAM llena, cantidades invalidas y limite entero: OK");
+        System.out.println("Prueba de reservas de RAM: OK");
+        */
+
         /* Prueba de capacidad de RAM verificada en consola.
         Modelo.Memoria ramInicial = new Modelo.Memoria(256);
         System.out.println("RAM capacidad/usada/libre: " + ramInicial.getCapacidad() + "/" + ramInicial.getUsada() + "/" + ramInicial.getLibre() + " (esperado: 256/0/256)");
