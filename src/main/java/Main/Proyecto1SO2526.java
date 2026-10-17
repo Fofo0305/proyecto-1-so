@@ -13,6 +13,55 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de instantanea de RAM verificada en consola.
+        Modelo.Memoria ramFoto = new Modelo.Memoria(100);
+        ramFoto.reservar("proceso:1", 40);
+        ramFoto.reservar("buffer:1", 20);
+        ramFoto.reservar(10);
+        int[] fotoRam = ramFoto.instantanea();
+        System.out.println("Instantanea usada/libre: " + fotoRam[0] + "/" + fotoRam[1] + " (esperado: 70/30)");
+        if (fotoRam.length != 2 || fotoRam[0] != 70 || fotoRam[1] != 30)
+            throw new AssertionError("Instantanea de RAM incorrecta");
+        fotoRam[0] = -1;
+        fotoRam[1] = -1;
+        if (ramFoto.getUsada() != 70 || ramFoto.getLibre() != 30) throw new AssertionError("Arreglo expone contabilidad");
+        int[] fotoAnteriorRam = ramFoto.instantanea();
+        ramFoto.liberar("proceso:1");
+        if (fotoAnteriorRam[0] != 70 || fotoAnteriorRam[1] != 30) throw new AssertionError("Instantanea anterior modificada");
+        Thread[] escritoresFoto = new Thread[4];
+        Throwable[] erroresFoto = new Throwable[4];
+        for (int i = 0; i < escritoresFoto.length; i++) {
+            final int indiceFoto = i;
+            escritoresFoto[i] = new Thread(() -> {
+                try {
+                    for (int j = 0; j < 500; j++) {
+                        String propietarioFoto = "proceso:foto" + indiceFoto;
+                        if (ramFoto.reservar(propietarioFoto, 10)) {
+                            try {
+                                int[] actualFoto = ramFoto.instantanea();
+                                if (actualFoto[0] < 0 || actualFoto[1] < 0 || actualFoto[0] + actualFoto[1] != 100)
+                                    throw new AssertionError("Lectura inconsistente");
+                            } finally { ramFoto.liberar(propietarioFoto); }
+                        }
+                    }
+                } catch (Throwable errorFoto) { erroresFoto[indiceFoto] = errorFoto; }
+            });
+            escritoresFoto[i].start();
+        }
+        try {
+            for (Thread escritorFoto : escritoresFoto) escritorFoto.join();
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de instantanea interrumpida", interrupcion);
+        }
+        for (Throwable errorFoto : erroresFoto)
+            if (errorFoto != null) throw new AssertionError("Fallo concurrente de instantanea", errorFoto);
+        int[] fotoFinalRam = ramFoto.instantanea();
+        System.out.println("Instantanea tras concurrencia: " + fotoFinalRam[0] + "/" + fotoFinalRam[1] + " (esperado: 30/70)");
+        if (fotoFinalRam[0] != 30 || fotoFinalRam[1] != 70) throw new AssertionError("Perdida de reservas durante lectura");
+        System.out.println("Prueba de instantanea de RAM y aislamiento: OK");
+        */
+
         /* Prueba de reservas por propietario verificada en consola.
         Modelo.Memoria propietariosRam = new Modelo.Memoria(100);
         if (!propietariosRam.reservar("proceso:1", 60) || !propietariosRam.reservar("buffer:1", 30)

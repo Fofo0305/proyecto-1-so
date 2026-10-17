@@ -114,6 +114,19 @@ public class Memoria {
         }
     }
 
+    /**
+     * Consulta la ocupación completa en un mismo instante.
+     * @return arreglo independiente con RAM usada y libre, en ese orden
+     */
+    public int[] instantanea() {
+        mutex.acquireUninterruptibly();
+        try {
+            return new int[] {usada, capacidad - usada};
+        } finally {
+            mutex.release();
+        }
+    }
+
     public int getCapacidad() { return capacidad; }
     public int getUsada() {
         mutex.acquireUninterruptibly();
