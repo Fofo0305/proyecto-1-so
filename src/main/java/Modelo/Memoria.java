@@ -32,6 +32,17 @@ public class Memoria {
         return true;
     }
 
+    /**
+     * Devuelve unidades previamente reservadas a la RAM disponible.
+     * @param cantidad unidades que se liberan
+     */
+    public void liberar(int cantidad) {
+        if (cantidad < 1 || cantidad > usada) {
+            throw new IllegalArgumentException("La liberacion debe ser positiva y no superar la RAM reservada");
+        }
+        usada -= cantidad;
+    }
+
     public int getCapacidad() { return capacidad; }
     public int getUsada() { return usada; }
     public int getLibre() { return capacidad - usada; }

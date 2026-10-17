@@ -13,6 +13,37 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de liberacion de RAM verificada en consola.
+        Modelo.Memoria ramLiberacion = new Modelo.Memoria(100);
+        ramLiberacion.reservar(80);
+        ramLiberacion.liberar(30);
+        System.out.println("Liberacion parcial usada/libre: " + ramLiberacion.getUsada() + "/" + ramLiberacion.getLibre() + " (esperado: 50/50)");
+        if (ramLiberacion.getUsada() != 50 || ramLiberacion.getLibre() != 50)
+            throw new AssertionError("Liberacion parcial incorrecta");
+        for (int cantidadInvalida : new int[] {0, -1, 51, Integer.MAX_VALUE}) {
+            try {
+                ramLiberacion.liberar(cantidadInvalida);
+                throw new AssertionError("Se acepto liberacion invalida");
+            } catch (IllegalArgumentException esperado) {
+                if (ramLiberacion.getUsada() != 50 || ramLiberacion.getLibre() != 50)
+                    throw new AssertionError("Liberacion rechazada altero RAM");
+            }
+        }
+        ramLiberacion.liberar(50);
+        System.out.println("Liberacion total usada/libre: " + ramLiberacion.getUsada() + "/" + ramLiberacion.getLibre() + " (esperado: 0/100)");
+        if (ramLiberacion.getUsada() != 0 || ramLiberacion.getLibre() != 100 || !ramLiberacion.reservar(100))
+            throw new AssertionError("La RAM no pudo reutilizarse");
+        ramLiberacion.liberar(100);
+        try {
+            ramLiberacion.liberar(1);
+            throw new AssertionError("Se libero RAM sin reserva");
+        } catch (IllegalArgumentException esperado) {
+            if (ramLiberacion.getUsada() != 0) throw new AssertionError("RAM usada negativa");
+        }
+        System.out.println("Liberaciones invalidas y repetidas rechazadas; RAM reutilizable: OK");
+        System.out.println("Prueba de liberacion de RAM: OK");
+        */
+
         /* Prueba de reservas de RAM verificada en consola.
         Modelo.Memoria ramReservas = new Modelo.Memoria(100);
         boolean primeraReserva = ramReservas.reservar(60);
