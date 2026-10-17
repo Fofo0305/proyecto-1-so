@@ -59,22 +59,64 @@ public class Computador {
     public int admitirProcesos() {
         mutex.acquireUninterruptibly();
         try {
-            int admitidos = 0;
-            int pendientes = nuevos.getTamano();
-            for (int i = 0; i < pendientes; i++) {
-                Proceso proceso = nuevos.primero();
-                if (memoria.reservar("proceso:" + proceso.getId(), proceso.getMemoria())) {
-                    proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
-                    nuevos.quitar();
-                    listos.agregar(proceso);
-                    admitidos++;
-                } else {
-                    nuevos.agregar(nuevos.quitar());
-                }
-            }
-            return admitidos;
+            return admitirPendientes();
         } finally {
             mutex.release();
+        }
+    }
+
+    private int admitirPendientes() {
+        int admitidos = 0;
+        int pendientes = nuevos.getTamano();
+        for (int i = 0; i < pendientes; i++) {
+            Proceso proceso = nuevos.primero();
+            if (memoria.reservar("proceso:" + proceso.getId(), proceso.getMemoria())) {
+                proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+                nuevos.quitar();
+                listos.agregar(proceso);
+                admitidos++;
+            } else {
+                nuevos.agregar(nuevos.quitar());
+            }
+        }
+        return admitidos;
+    }
+
+    /**
+     * Termina un proceso registrado, libera su reserva y vuelve a revisar los nuevos.
+     * El núcleo solicita esta operación al finalizar, vencer o cancelar un proceso.
+     * @param proceso proceso que se retira de las colas activas
+     * @return false si ya estaba en terminados; true si se terminó ahora
+     */
+    public boolean terminarProceso(Proceso proceso) {
+        if (proceso == null || proceso.getComputador() != id) {
+            throw new IllegalArgumentException("El proceso debe pertenecer a este computador");
+        }
+        mutex.acquireUninterruptibly();
+        try {
+            if (contiene(terminados, proceso.getId())) return false;
+            if (!contiene(nuevos, proceso.getId()) && !contiene(listos, proceso.getId())
+                    && !contiene(bloqueados, proceso.getId())) {
+                throw new IllegalArgumentException("El proceso no esta registrado en el computador");
+            }
+            proceso.cambiarEstado(EstadoProceso.TERMINADO, MotivoBloqueo.NINGUNO);
+            retirar(nuevos, proceso.getId());
+            retirar(listos, proceso.getId());
+            retirar(bloqueados, proceso.getId());
+            memoria.liberar("proceso:" + proceso.getId());
+            terminados.agregar(proceso);
+            admitirPendientes();
+            return true;
+        } finally {
+            mutex.release();
+        }
+    }
+
+    private void retirar(Cola<Proceso> cola, long idProceso) {
+        int cantidad = cola.getTamano();
+        for (int i = 0; i < cantidad; i++) {
+            Proceso proceso = cola.quitar();
+            if (proceso.getId() != idProceso) cola.agregar(proceso);
         }
     }
 

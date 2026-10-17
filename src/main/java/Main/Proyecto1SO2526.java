@@ -13,6 +13,56 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de terminacion y readmision verificada en consola.
+        Sistema.Computador finComputador = new Sistema.Computador(1, 100);
+        Modelo.Proceso ocupadoFin = new Modelo.Proceso("Ocupa", 1, Modelo.TipoProceso.CPU_BOUND, 0, 80, 1, 10);
+        Modelo.Proceso esperaFin = new Modelo.Proceso("Espera", 1, Modelo.TipoProceso.CPU_BOUND, 0, 50, 1, 10);
+        Modelo.Proceso grandeFin = new Modelo.Proceso("Grande", 1, Modelo.TipoProceso.CPU_BOUND, 0, 101, 1, 10);
+        finComputador.getMemoria().reservar("buffer:1", 20);
+        finComputador.recibirProceso(ocupadoFin);
+        finComputador.recibirProceso(esperaFin);
+        finComputador.recibirProceso(grandeFin);
+        if (finComputador.admitirProcesos() != 1 || finComputador.getMemoria().getUsada() != 100)
+            throw new AssertionError("Preparacion de terminacion incorrecta");
+        ocupadoFin.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        ocupadoFin.ejecutarInstruccion();
+        if (!finComputador.terminarProceso(ocupadoFin)) throw new AssertionError("No termino el proceso");
+        System.out.println("Tras terminar: listos=" + finComputador.getListos()[0].getNombre()
+                + ", nuevos=" + finComputador.getNuevos()[0].getNombre()
+                + ", terminados=" + finComputador.getTerminados()[0].getNombre()
+                + " (esperado: Espera, Grande, Ocupa)");
+        System.out.println("RAM usada/libre tras readmitir: " + finComputador.getMemoria().getUsada()
+                + "/" + finComputador.getMemoria().getLibre() + " (esperado: 70/30)");
+        if (ocupadoFin.getEstado() != Modelo.EstadoProceso.TERMINADO || esperaFin.getEstado() != Modelo.EstadoProceso.LISTO
+                || finComputador.getListos().length != 1 || finComputador.getListos()[0] != esperaFin
+                || finComputador.getNuevos().length != 1 || finComputador.getNuevos()[0] != grandeFin
+                || finComputador.getTerminados().length != 1 || finComputador.getTerminados()[0] != ocupadoFin
+                || finComputador.getMemoria().getUsada() != 70)
+            throw new AssertionError("Terminacion no libero RAM o no admitio pendientes");
+        if (finComputador.terminarProceso(ocupadoFin) || finComputador.getTerminados().length != 1
+                || finComputador.getMemoria().getUsada() != 70)
+            throw new AssertionError("Terminacion repetida altero RAM o colas");
+        if (!finComputador.terminarProceso(grandeFin) || finComputador.getNuevos().length != 0
+                || finComputador.getMemoria().getUsada() != 70)
+            throw new AssertionError("Terminar nuevo libero memoria ajena");
+        finComputador.terminarProceso(esperaFin);
+        if (finComputador.getMemoria().getUsada() != 20 || finComputador.getListos().length != 0)
+            throw new AssertionError("Se libero reserva del buffer");
+        Modelo.Proceso noRegistradoFin = new Modelo.Proceso("Ajeno", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        Modelo.Proceso otroFin = new Modelo.Proceso("Otro", 2, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        for (Modelo.Proceso invalidoFin : new Modelo.Proceso[] {null, noRegistradoFin, otroFin}) {
+            try {
+                finComputador.terminarProceso(invalidoFin);
+                throw new AssertionError("Terminacion invalida aceptada");
+            } catch (IllegalArgumentException esperado) { }
+        }
+        if (finComputador.getTerminados().length != 3 || finComputador.getMemoria().getUsada() != 20
+                || noRegistradoFin.getEstado() != Modelo.EstadoProceso.NUEVO)
+            throw new AssertionError("Rechazo altero el sistema");
+        System.out.println("Repeticiones sin efecto, nuevos sin reserva y buffer conservado: OK");
+        System.out.println("Prueba de terminacion y readmision de pendientes: OK");
+        */
+
         /* Prueba de admision de nuevos a listos verificada en consola.
         Sistema.Computador admisor = new Sistema.Computador(1, 100);
         Sistema.Computador admisorOtro = new Sistema.Computador(2, 100);
