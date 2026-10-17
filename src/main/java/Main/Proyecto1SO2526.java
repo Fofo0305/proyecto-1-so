@@ -13,6 +13,312 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba integrada de gestion RAM verificada en consola.
+        Modelo.Memoria ramIntegrada = new Modelo.Memoria(128);
+        Modelo.Proceso procesoRam = new Modelo.Proceso("RAM", 1, Modelo.TipoProceso.CPU_BOUND, 0, 64, 1, 5);
+        String claveProcesoRam = "proceso:" + procesoRam.getId();
+        if (!ramIntegrada.reservar(claveProcesoRam, procesoRam.getMemoria())
+                || !ramIntegrada.reservar("buffer:1", 32) || !ramIntegrada.reservar(32))
+            throw new AssertionError("Fallo de reservas mixtas");
+        if (ramIntegrada.reservar("proceso:pendiente", 1)) throw new AssertionError("Se sobreasigno RAM llena");
+        int[] llenaRam = ramIntegrada.instantanea();
+        System.out.println("RAM compartida llena usada/libre: " + llenaRam[0] + "/" + llenaRam[1] + " (esperado: 128/0)");
+        procesoRam.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        procesoRam.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        procesoRam.ejecutarInstruccion();
+        procesoRam.cambiarEstado(Modelo.EstadoProceso.TERMINADO, Modelo.MotivoBloqueo.NINGUNO);
+        if (ramIntegrada.liberar(claveProcesoRam) != 64 || ramIntegrada.liberar(claveProcesoRam) != 0
+                || !ramIntegrada.reservar("proceso:pendiente", 64))
+            throw new AssertionError("No se reutilizo la reserva del proceso");
+        ramIntegrada.liberar(32);
+        if (ramIntegrada.liberar("buffer:1") != 32 || ramIntegrada.liberar("proceso:pendiente") != 64)
+            throw new AssertionError("Se perdieron reservas tras liberar");
+        if (ramIntegrada.getUsada() != 0) throw new AssertionError("Quedo RAM ocupada");
+        System.out.println("Liberacion tras finalizar proceso y reutilizacion con buffer: OK");
+        Thread[] carreraRam = new Thread[8];
+        Throwable[] fallosCarreraRam = new Throwable[8];
+        boolean[] ganadoresRam = new boolean[8];
+        java.util.concurrent.Semaphore inicioCarreraRam = new java.util.concurrent.Semaphore(0);
+        for (int i = 0; i < carreraRam.length; i++) {
+            final int indiceCarreraRam = i;
+            carreraRam[i] = new Thread(() -> {
+                inicioCarreraRam.acquireUninterruptibly();
+                try {
+                    ganadoresRam[indiceCarreraRam] = ramIntegrada.reservar("buffer:compartido", 64);
+                } catch (IllegalArgumentException duplicadoEsperado) {
+                    ganadoresRam[indiceCarreraRam] = false;
+                } catch (Throwable falloCarreraRam) {
+                    fallosCarreraRam[indiceCarreraRam] = falloCarreraRam;
+                }
+            });
+            carreraRam[i].start();
+        }
+        inicioCarreraRam.release(carreraRam.length);
+        try {
+            for (Thread competidorRam : carreraRam) competidorRam.join();
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba integrada de RAM interrumpida", interrupcion);
+        }
+        int ganadoresTotalRam = 0;
+        for (int i = 0; i < carreraRam.length; i++) {
+            if (fallosCarreraRam[i] != null) throw new AssertionError("Fallo de carrera RAM", fallosCarreraRam[i]);
+            if (ganadoresRam[i]) ganadoresTotalRam++;
+        }
+        System.out.println("Reservas exitosas del mismo propietario: " + ganadoresTotalRam + " (esperado: 1)");
+        if (ganadoresTotalRam != 1 || ramIntegrada.getUsada() != 64 || ramIntegrada.liberar("buffer:compartido") != 64)
+            throw new AssertionError("Duplicado concurrente altero contabilidad");
+        int[] cierreRam = ramIntegrada.instantanea();
+        if (cierreRam[0] != 0 || cierreRam[1] != 128) throw new AssertionError("Cierre de RAM incorrecto");
+        System.out.println("Prueba integrada de gestion RAM: OK, usada/libre final 0/128");
+        */
+
+        /* Prueba de instantanea de RAM verificada en consola.
+        Modelo.Memoria ramFoto = new Modelo.Memoria(100);
+        ramFoto.reservar("proceso:1", 40);
+        ramFoto.reservar("buffer:1", 20);
+        ramFoto.reservar(10);
+        int[] fotoRam = ramFoto.instantanea();
+        System.out.println("Instantanea usada/libre: " + fotoRam[0] + "/" + fotoRam[1] + " (esperado: 70/30)");
+        if (fotoRam.length != 2 || fotoRam[0] != 70 || fotoRam[1] != 30)
+            throw new AssertionError("Instantanea de RAM incorrecta");
+        fotoRam[0] = -1;
+        fotoRam[1] = -1;
+        if (ramFoto.getUsada() != 70 || ramFoto.getLibre() != 30) throw new AssertionError("Arreglo expone contabilidad");
+        int[] fotoAnteriorRam = ramFoto.instantanea();
+        ramFoto.liberar("proceso:1");
+        if (fotoAnteriorRam[0] != 70 || fotoAnteriorRam[1] != 30) throw new AssertionError("Instantanea anterior modificada");
+        Thread[] escritoresFoto = new Thread[4];
+        Throwable[] erroresFoto = new Throwable[4];
+        for (int i = 0; i < escritoresFoto.length; i++) {
+            final int indiceFoto = i;
+            escritoresFoto[i] = new Thread(() -> {
+                try {
+                    for (int j = 0; j < 500; j++) {
+                        String propietarioFoto = "proceso:foto" + indiceFoto;
+                        if (ramFoto.reservar(propietarioFoto, 10)) {
+                            try {
+                                int[] actualFoto = ramFoto.instantanea();
+                                if (actualFoto[0] < 0 || actualFoto[1] < 0 || actualFoto[0] + actualFoto[1] != 100)
+                                    throw new AssertionError("Lectura inconsistente");
+                            } finally { ramFoto.liberar(propietarioFoto); }
+                        }
+                    }
+                } catch (Throwable errorFoto) { erroresFoto[indiceFoto] = errorFoto; }
+            });
+            escritoresFoto[i].start();
+        }
+        try {
+            for (Thread escritorFoto : escritoresFoto) escritorFoto.join();
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de instantanea interrumpida", interrupcion);
+        }
+        for (Throwable errorFoto : erroresFoto)
+            if (errorFoto != null) throw new AssertionError("Fallo concurrente de instantanea", errorFoto);
+        int[] fotoFinalRam = ramFoto.instantanea();
+        System.out.println("Instantanea tras concurrencia: " + fotoFinalRam[0] + "/" + fotoFinalRam[1] + " (esperado: 30/70)");
+        if (fotoFinalRam[0] != 30 || fotoFinalRam[1] != 70) throw new AssertionError("Perdida de reservas durante lectura");
+        System.out.println("Prueba de instantanea de RAM y aislamiento: OK");
+        */
+
+        /* Prueba de reservas por propietario verificada en consola.
+        Modelo.Memoria propietariosRam = new Modelo.Memoria(100);
+        if (!propietariosRam.reservar("proceso:1", 60) || !propietariosRam.reservar("buffer:1", 30)
+                || !propietariosRam.reservar(10) || propietariosRam.reservar("proceso:2", 1))
+            throw new AssertionError("Capacidad compartida incorrecta");
+        System.out.println("Procesos/buffers/sin propietario usada/libre: " + propietariosRam.getUsada() + "/" + propietariosRam.getLibre() + " (esperado: 100/0)");
+        try {
+            propietariosRam.reservar("proceso:1", 1);
+            throw new AssertionError("Se acepto propietario duplicado");
+        } catch (IllegalArgumentException esperado) {
+            if (propietariosRam.getUsada() != 100) throw new AssertionError("Duplicado altero RAM");
+        }
+        try {
+            propietariosRam.liberar(11);
+            throw new AssertionError("Se libero RAM de otro propietario");
+        } catch (IllegalArgumentException esperado) {
+            if (propietariosRam.getUsada() != 100) throw new AssertionError("Liberacion invalida altero RAM");
+        }
+        propietariosRam.liberar(10);
+        if (propietariosRam.liberar("inexistente") != 0 || propietariosRam.liberar("proceso:1") != 60
+                || propietariosRam.liberar("proceso:1") != 0 || propietariosRam.getUsada() != 30)
+            throw new AssertionError("Liberacion por propietario incorrecta");
+        if (!propietariosRam.reservar("proceso:2", 70) || propietariosRam.liberar("buffer:1") != 30
+                || propietariosRam.liberar("proceso:2") != 70 || propietariosRam.getUsada() != 0)
+            throw new AssertionError("Rotacion perdio reservas");
+        for (String propietarioInvalido : new String[] {null, "", "  "}) {
+            try {
+                propietariosRam.reservar(propietarioInvalido, 1);
+                throw new AssertionError("Propietario invalido aceptado al reservar");
+            } catch (IllegalArgumentException esperado) { }
+            try {
+                propietariosRam.liberar(propietarioInvalido);
+                throw new AssertionError("Propietario invalido aceptado al liberar");
+            } catch (IllegalArgumentException esperado) { }
+        }
+        if (!propietariosRam.reservar("proceso:1", 100) || propietariosRam.liberar("proceso:1") != 100)
+            throw new AssertionError("No se pudo reutilizar propietario");
+        System.out.println("Duplicados, liberacion repetida y aislamiento de propietarios: OK");
+        System.out.println("Prueba de reservas por propietario: OK");
+        */
+
+        /* Prueba de ReservaMemoria verificada en consola.
+        Modelo.ReservaMemoria reservaProceso = new Modelo.ReservaMemoria("proceso:1", 64);
+        Modelo.ReservaMemoria reservaBuffer = new Modelo.ReservaMemoria("buffer:1", 16);
+        System.out.println("Reserva proceso: " + reservaProceso.getPropietario() + ", " + reservaProceso.getCantidad() + " (esperado: proceso:1, 64)");
+        System.out.println("Reserva buffer: " + reservaBuffer.getPropietario() + ", " + reservaBuffer.getCantidad() + " (esperado: buffer:1, 16)");
+        if (!"proceso:1".equals(reservaProceso.getPropietario()) || reservaProceso.getCantidad() != 64
+                || !"buffer:1".equals(reservaBuffer.getPropietario()) || reservaBuffer.getCantidad() != 16)
+            throw new AssertionError("Datos de reserva incorrectos");
+        int reservasInvalidas = 0;
+        for (int casoReserva = 0; casoReserva < 5; casoReserva++) {
+            try {
+                new Modelo.ReservaMemoria(casoReserva == 0 ? null : casoReserva == 1 ? "" : casoReserva == 2 ? "  " : "P",
+                        casoReserva == 3 ? 0 : casoReserva == 4 ? -1 : 1);
+                throw new AssertionError("Reserva invalida aceptada");
+            } catch (IllegalArgumentException esperado) {
+                reservasInvalidas++;
+            }
+        }
+        if (reservasInvalidas != 5 || new Modelo.ReservaMemoria("minima", 1).getCantidad() != 1)
+            throw new AssertionError("Validacion de reserva incorrecta");
+        System.out.println("Reservas invalidas rechazadas: " + reservasInvalidas + " (esperado: 5)");
+        System.out.println("Prueba de ReservaMemoria: OK");
+        */
+
+        /* Prueba de concurrencia de RAM verificada en consola.
+        Modelo.Memoria ramConcurrente = new Modelo.Memoria(100);
+        Thread[] usuariosRam = new Thread[8];
+        Throwable[] erroresRam = new Throwable[usuariosRam.length];
+        java.util.concurrent.Semaphore salidaRam = new java.util.concurrent.Semaphore(0);
+        int[] exitosRam = new int[usuariosRam.length];
+        for (int i = 0; i < usuariosRam.length; i++) {
+            final int indiceRam = i;
+            usuariosRam[i] = new Thread(() -> {
+                try {
+                    salidaRam.acquireUninterruptibly();
+                    for (int vueltaRam = 0; vueltaRam < 1000; vueltaRam++) {
+                        if (ramConcurrente.reservar(30)) {
+                            try {
+                                int usadaRam = ramConcurrente.getUsada();
+                                int libreRam = ramConcurrente.getLibre();
+                                if (usadaRam < 30 || usadaRam > 100 || libreRam < 0 || libreRam > 100)
+                                    throw new AssertionError("Sobreasignacion de RAM");
+                                exitosRam[indiceRam]++;
+                            } finally {
+                                ramConcurrente.liberar(30);
+                            }
+                        }
+                    }
+                } catch (Throwable errorRam) {
+                    erroresRam[indiceRam] = errorRam;
+                }
+            });
+            usuariosRam[i].start();
+        }
+        salidaRam.release(usuariosRam.length);
+        try {
+            for (Thread usuarioRam : usuariosRam) usuarioRam.join();
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de RAM interrumpida", interrupcion);
+        }
+        int totalReservasRam = 0;
+        for (int i = 0; i < erroresRam.length; i++) {
+            if (erroresRam[i] != null) throw new AssertionError("Fallo de hilo de RAM", erroresRam[i]);
+            totalReservasRam += exitosRam[i];
+        }
+        System.out.println("Reservas concurrentes completadas: " + totalReservasRam);
+        System.out.println("RAM final usada/libre: " + ramConcurrente.getUsada() + "/" + ramConcurrente.getLibre() + " (esperado: 0/100)");
+        if (totalReservasRam == 0 || ramConcurrente.getUsada() != 0 || ramConcurrente.getLibre() != 100)
+            throw new AssertionError("Perdida de unidades de RAM");
+        try {
+            ramConcurrente.liberar(1);
+            throw new AssertionError("Se libero memoria inexistente");
+        } catch (IllegalArgumentException esperado) {
+            if (!ramConcurrente.reservar(100)) throw new AssertionError("Permiso no liberado tras rechazo");
+            ramConcurrente.liberar(100);
+        }
+        System.out.println("Prueba de semaforo y concurrencia de RAM: OK");
+        */
+
+        /* Prueba de liberacion de RAM verificada en consola.
+        Modelo.Memoria ramLiberacion = new Modelo.Memoria(100);
+        ramLiberacion.reservar(80);
+        ramLiberacion.liberar(30);
+        System.out.println("Liberacion parcial usada/libre: " + ramLiberacion.getUsada() + "/" + ramLiberacion.getLibre() + " (esperado: 50/50)");
+        if (ramLiberacion.getUsada() != 50 || ramLiberacion.getLibre() != 50)
+            throw new AssertionError("Liberacion parcial incorrecta");
+        for (int cantidadInvalida : new int[] {0, -1, 51, Integer.MAX_VALUE}) {
+            try {
+                ramLiberacion.liberar(cantidadInvalida);
+                throw new AssertionError("Se acepto liberacion invalida");
+            } catch (IllegalArgumentException esperado) {
+                if (ramLiberacion.getUsada() != 50 || ramLiberacion.getLibre() != 50)
+                    throw new AssertionError("Liberacion rechazada altero RAM");
+            }
+        }
+        ramLiberacion.liberar(50);
+        System.out.println("Liberacion total usada/libre: " + ramLiberacion.getUsada() + "/" + ramLiberacion.getLibre() + " (esperado: 0/100)");
+        if (ramLiberacion.getUsada() != 0 || ramLiberacion.getLibre() != 100 || !ramLiberacion.reservar(100))
+            throw new AssertionError("La RAM no pudo reutilizarse");
+        ramLiberacion.liberar(100);
+        try {
+            ramLiberacion.liberar(1);
+            throw new AssertionError("Se libero RAM sin reserva");
+        } catch (IllegalArgumentException esperado) {
+            if (ramLiberacion.getUsada() != 0) throw new AssertionError("RAM usada negativa");
+        }
+        System.out.println("Liberaciones invalidas y repetidas rechazadas; RAM reutilizable: OK");
+        System.out.println("Prueba de liberacion de RAM: OK");
+        */
+
+        /* Prueba de reservas de RAM verificada en consola.
+        Modelo.Memoria ramReservas = new Modelo.Memoria(100);
+        boolean primeraReserva = ramReservas.reservar(60);
+        System.out.println("Reserva 60: " + primeraReserva + ", usada/libre: " + ramReservas.getUsada() + "/" + ramReservas.getLibre() + " (esperado: true, 60/40)");
+        if (!primeraReserva || ramReservas.getUsada() != 60 || ramReservas.getLibre() != 40)
+            throw new AssertionError("Reserva inicial incorrecta");
+        boolean sinEspacio = ramReservas.reservar(41);
+        System.out.println("Reserva sin espacio: " + sinEspacio + ", usada: " + ramReservas.getUsada() + " (esperado: false, 60)");
+        if (sinEspacio || ramReservas.getUsada() != 60) throw new AssertionError("Reserva fallida altero RAM");
+        if (!ramReservas.reservar(40) || ramReservas.getLibre() != 0 || ramReservas.reservar(1))
+            throw new AssertionError("Limite de capacidad incorrecto");
+        for (int cantidadInvalida : new int[] {0, -1, Integer.MIN_VALUE}) {
+            try {
+                ramReservas.reservar(cantidadInvalida);
+                throw new AssertionError("Se acepto reserva no positiva");
+            } catch (IllegalArgumentException esperado) {
+                if (ramReservas.getUsada() != 100) throw new AssertionError("Rechazo altero RAM");
+            }
+        }
+        Modelo.Memoria ramGrande = new Modelo.Memoria(Integer.MAX_VALUE);
+        if (!ramGrande.reservar(Integer.MAX_VALUE) || ramGrande.reservar(1) || ramGrande.getLibre() != 0)
+            throw new AssertionError("Desbordamiento en reserva");
+        System.out.println("RAM llena, cantidades invalidas y limite entero: OK");
+        System.out.println("Prueba de reservas de RAM: OK");
+        */
+
+        /* Prueba de capacidad de RAM verificada en consola.
+        Modelo.Memoria ramInicial = new Modelo.Memoria(256);
+        System.out.println("RAM capacidad/usada/libre: " + ramInicial.getCapacidad() + "/" + ramInicial.getUsada() + "/" + ramInicial.getLibre() + " (esperado: 256/0/256)");
+        if (ramInicial.getCapacidad() != 256 || ramInicial.getUsada() != 0 || ramInicial.getLibre() != 256)
+            throw new AssertionError("RAM inicial incorrecta");
+        Modelo.Memoria ramMinima = new Modelo.Memoria(1);
+        if (ramMinima.getCapacidad() != 1 || ramMinima.getLibre() != 1)
+            throw new AssertionError("Capacidad minima incorrecta");
+        for (int capacidadInvalida : new int[] {0, -1, Integer.MIN_VALUE}) {
+            try {
+                new Modelo.Memoria(capacidadInvalida);
+                throw new AssertionError("Se acepto RAM no positiva");
+            } catch (IllegalArgumentException esperado) {
+                System.out.println("Capacidad rechazada: " + capacidadInvalida);
+            }
+        }
+        System.out.println("Prueba de capacidad y consultas de RAM: OK");
+        */
+
         /* Prueba integrada del modelo verificada en consola.
         EDD.Cola<Modelo.Proceso> cargaModelo = new EDD.Cola<>();
         Modelo.Proceso completo = new Modelo.Proceso("Completo", 1, Modelo.TipoProceso.CPU_BOUND, 0, 32, 2, 2);
