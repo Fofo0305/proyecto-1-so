@@ -13,6 +13,29 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de inicializacion de colas propias verificada en consola.
+        Sistema.Computador colasUno = new Sistema.Computador(1, 128);
+        Sistema.Computador colasDos = new Sistema.Computador(2, 256);
+        Sistema.Computador[] computadoresColas = {colasUno, colasDos};
+        for (Sistema.Computador computadorColas : computadoresColas) {
+            System.out.println("Computador " + computadorColas.getId() + " nuevos/listos/bloqueados/terminados: "
+                    + computadorColas.getNuevos().length + "/" + computadorColas.getListos().length + "/"
+                    + computadorColas.getBloqueados().length + "/" + computadorColas.getTerminados().length
+                    + " (esperado: 0/0/0/0)");
+            if (computadorColas.getNuevos().length != 0 || computadorColas.getListos().length != 0
+                    || computadorColas.getBloqueados().length != 0 || computadorColas.getTerminados().length != 0)
+                throw new AssertionError("Las colas no comenzaron vacias");
+        }
+        Modelo.Proceso[] consultaNuevos = colasUno.getNuevos();
+        if (consultaNuevos == colasUno.getNuevos() || consultaNuevos == colasDos.getNuevos()
+                || colasUno.getListos() == colasDos.getListos()
+                || colasUno.getBloqueados() == colasDos.getBloqueados()
+                || colasUno.getTerminados() == colasDos.getTerminados())
+            throw new AssertionError("Consultas compartidas entre computadores");
+        System.out.println("Consultas devuelven arreglos independientes: OK");
+        System.out.println("Prueba de inicializacion de colas propias: OK");
+        */
+
         /* Prueba de computadores y RAM independiente verificada en consola.
         Sistema.Computador computadorUno = new Sistema.Computador(1, 128);
         Sistema.Computador computadorDos = new Sistema.Computador(2, 256);
