@@ -13,6 +13,27 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de computadores y RAM independiente verificada en consola.
+        Sistema.Computador computadorUno = new Sistema.Computador(1, 128);
+        Sistema.Computador computadorDos = new Sistema.Computador(2, 256);
+        if (computadorUno.getId() != 1 || computadorDos.getId() != 2
+                || computadorUno.getMemoria() == computadorDos.getMemoria())
+            throw new AssertionError("Computadores sin identidad o memoria independiente");
+        computadorUno.getMemoria().reservar("proceso:1", 64);
+        System.out.println("Computador 1 RAM usada/libre: " + computadorUno.getMemoria().getUsada() + "/" + computadorUno.getMemoria().getLibre() + " (esperado: 64/64)");
+        System.out.println("Computador 2 RAM usada/libre: " + computadorDos.getMemoria().getUsada() + "/" + computadorDos.getMemoria().getLibre() + " (esperado: 0/256)");
+        if (computadorUno.getMemoria().getUsada() != 64 || computadorUno.getMemoria().getLibre() != 64
+                || computadorDos.getMemoria().getUsada() != 0 || computadorDos.getMemoria().getLibre() != 256)
+            throw new AssertionError("Una RAM afecto al otro computador");
+        for (int casoComputador = 0; casoComputador < 2; casoComputador++) {
+            try {
+                new Sistema.Computador(casoComputador == 0 ? 0 : 1, casoComputador == 1 ? 0 : 128);
+                throw new AssertionError("Configuracion invalida aceptada");
+            } catch (IllegalArgumentException esperado) { }
+        }
+        System.out.println("Prueba de computadores y RAM independiente: OK");
+        */
+
         /* Prueba integrada de gestion RAM verificada en consola.
         Modelo.Memoria ramIntegrada = new Modelo.Memoria(128);
         Modelo.Proceso procesoRam = new Modelo.Proceso("RAM", 1, Modelo.TipoProceso.CPU_BOUND, 0, 64, 1, 5);
