@@ -98,6 +98,18 @@ public class Proceso {
         restante--;
     }
 
+    /**
+     * Descuenta un ciclo del plazo, también en NUEVO o BLOQUEADO, sin bajar de cero.
+     * El núcleo debe llamarlo una vez por ciclo, después de la instrucción.
+     * Si finalización y vencimiento coinciden, el núcleo prioriza la finalización.
+     * Este método no termina procesos ni modifica sus colas.
+     */
+    public void descontarDeadline() {
+        if (estado != EstadoProceso.TERMINADO && deadline > 0) {
+            deadline--;
+        }
+    }
+
     public long getId() { return id; }
     public String getNombre() { return nombre; }
     public int getComputador() { return computador; }

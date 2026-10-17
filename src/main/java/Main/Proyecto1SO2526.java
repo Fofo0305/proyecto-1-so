@@ -13,6 +13,35 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de deadline verificada en consola.
+        Modelo.Proceso plazo = new Modelo.Proceso("Plazo", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 5, 2);
+        plazo.descontarDeadline();
+        System.out.println("Deadline en NUEVO: " + plazo.getDeadline() + " (esperado: 1)");
+        if (plazo.getDeadline() != 1) throw new AssertionError("No desconto en nuevos");
+        plazo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        plazo.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        plazo.cambiarEstado(Modelo.EstadoProceso.BLOQUEADO, Modelo.MotivoBloqueo.RED);
+        plazo.descontarDeadline();
+        plazo.descontarDeadline();
+        System.out.println("Deadline en BLOQUEADO sin negativos: " + plazo.getDeadline() + " (esperado: 0)");
+        if (plazo.getDeadline() != 0 || plazo.getDeadlineInicial() != 2) throw new AssertionError("Deadline incorrecto");
+        plazo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        plazo.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        try {
+            plazo.ejecutarInstruccion();
+            throw new AssertionError("Proceso vencido ejecuto");
+        } catch (IllegalStateException esperado) {
+            if (plazo.getPc() != 0 || plazo.getMar() != 0 || plazo.getRestante() != 5)
+                throw new AssertionError("Proceso vencido alterado");
+        }
+        Modelo.Proceso finPlazo = new Modelo.Proceso("Fin", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 3);
+        finPlazo.cambiarEstado(Modelo.EstadoProceso.TERMINADO, Modelo.MotivoBloqueo.NINGUNO);
+        finPlazo.descontarDeadline();
+        System.out.println("Deadline en TERMINADO: " + finPlazo.getDeadline() + " (esperado: 3)");
+        if (finPlazo.getDeadline() != 3) throw new AssertionError("Terminado perdio deadline");
+        System.out.println("Prueba de deadline y rechazo de ejecucion vencida: OK");
+        */
+
         /* Prueba de ejecucion y contexto verificada en consola.
         Modelo.Proceso ejecutable = new Modelo.Proceso("CPU", 1, Modelo.TipoProceso.CPU_BOUND, 0, 16, 2, 5);
         try {
