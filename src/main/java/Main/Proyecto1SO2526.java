@@ -13,6 +13,30 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de ReservaMemoria verificada en consola.
+        Modelo.ReservaMemoria reservaProceso = new Modelo.ReservaMemoria("proceso:1", 64);
+        Modelo.ReservaMemoria reservaBuffer = new Modelo.ReservaMemoria("buffer:1", 16);
+        System.out.println("Reserva proceso: " + reservaProceso.getPropietario() + ", " + reservaProceso.getCantidad() + " (esperado: proceso:1, 64)");
+        System.out.println("Reserva buffer: " + reservaBuffer.getPropietario() + ", " + reservaBuffer.getCantidad() + " (esperado: buffer:1, 16)");
+        if (!"proceso:1".equals(reservaProceso.getPropietario()) || reservaProceso.getCantidad() != 64
+                || !"buffer:1".equals(reservaBuffer.getPropietario()) || reservaBuffer.getCantidad() != 16)
+            throw new AssertionError("Datos de reserva incorrectos");
+        int reservasInvalidas = 0;
+        for (int casoReserva = 0; casoReserva < 5; casoReserva++) {
+            try {
+                new Modelo.ReservaMemoria(casoReserva == 0 ? null : casoReserva == 1 ? "" : casoReserva == 2 ? "  " : "P",
+                        casoReserva == 3 ? 0 : casoReserva == 4 ? -1 : 1);
+                throw new AssertionError("Reserva invalida aceptada");
+            } catch (IllegalArgumentException esperado) {
+                reservasInvalidas++;
+            }
+        }
+        if (reservasInvalidas != 5 || new Modelo.ReservaMemoria("minima", 1).getCantidad() != 1)
+            throw new AssertionError("Validacion de reserva incorrecta");
+        System.out.println("Reservas invalidas rechazadas: " + reservasInvalidas + " (esperado: 5)");
+        System.out.println("Prueba de ReservaMemoria: OK");
+        */
+
         /* Prueba de concurrencia de RAM verificada en consola.
         Modelo.Memoria ramConcurrente = new Modelo.Memoria(100);
         Thread[] usuariosRam = new Thread[8];
