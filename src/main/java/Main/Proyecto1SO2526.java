@@ -13,6 +13,313 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba integrada del modelo verificada en consola.
+        EDD.Cola<Modelo.Proceso> cargaModelo = new EDD.Cola<>();
+        Modelo.Proceso completo = new Modelo.Proceso("Completo", 1, Modelo.TipoProceso.CPU_BOUND, 0, 32, 2, 2);
+        Modelo.Proceso vencido = new Modelo.Proceso("Vencido", 2, Modelo.TipoProceso.CPU_BOUND, 1, 16, 3, 1);
+        Modelo.Proceso bloqueadoModelo = new Modelo.Proceso("Bloqueado", 2, Modelo.TipoProceso.IO_BOUND, 2, 16, 3, 3);
+        cargaModelo.agregar(completo);
+        cargaModelo.agregar(vencido);
+        cargaModelo.agregar(bloqueadoModelo);
+        if (cargaModelo.quitar() != completo || cargaModelo.quitar() != vencido || cargaModelo.quitar() != bloqueadoModelo)
+            throw new AssertionError("La cola altero el orden de los PCB");
+        completo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        completo.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        completo.ejecutarInstruccion();
+        completo.descontarDeadline();
+        completo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        completo.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        completo.ejecutarInstruccion();
+        completo.descontarDeadline();
+        if (completo.getRestante() == 0)
+            completo.cambiarEstado(Modelo.EstadoProceso.TERMINADO, Modelo.MotivoBloqueo.NINGUNO);
+        else if (completo.getDeadline() == 0)
+            throw new AssertionError("Se priorizo vencimiento sobre finalizacion");
+        if (completo.getEstado() != Modelo.EstadoProceso.TERMINADO || completo.getPc() != 2
+                || completo.getMar() != 2 || completo.getDeadline() != 0 || completo.getRestante() != 0)
+            throw new AssertionError("Finalizacion integrada incorrecta");
+        System.out.println("Finalizacion coincidente con deadline: TERMINADO, PC/MAR 2/2, restante/plazo 0/0");
+        vencido.descontarDeadline();
+        if (vencido.getDeadline() == 0)
+            vencido.cambiarEstado(Modelo.EstadoProceso.TERMINADO, Modelo.MotivoBloqueo.NINGUNO);
+        if (vencido.getRestante() != 3 || vencido.getPc() != 0 || vencido.getEstado() != Modelo.EstadoProceso.TERMINADO)
+            throw new AssertionError("Vencimiento en nuevos incorrecto");
+        System.out.println("Vencimiento en NUEVO: TERMINADO sin ejecutar instrucciones");
+        bloqueadoModelo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        bloqueadoModelo.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        bloqueadoModelo.ejecutarInstruccion();
+        bloqueadoModelo.descontarDeadline();
+        bloqueadoModelo.cambiarEstado(Modelo.EstadoProceso.BLOQUEADO, Modelo.MotivoBloqueo.ENTRADA_SALIDA);
+        bloqueadoModelo.descontarDeadline();
+        bloqueadoModelo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        if (bloqueadoModelo.getComputador() != 2 || bloqueadoModelo.getPc() != 1
+                || bloqueadoModelo.getMar() != 1 || bloqueadoModelo.getRestante() != 2
+                || bloqueadoModelo.getDeadline() != 1 || bloqueadoModelo.getMotivoBloqueo() != Modelo.MotivoBloqueo.NINGUNO)
+            throw new AssertionError("Despertar perdio el contexto");
+        System.out.println("Bloqueo y retorno a LISTO: contexto conservado, motivo NINGUNO");
+        if (completo.getId() == vencido.getId() || completo.getId() == bloqueadoModelo.getId()
+                || vencido.getId() == bloqueadoModelo.getId()) throw new AssertionError("IDs de carga repetidos");
+        System.out.println("Prueba integrada del modelo de procesos: OK");
+        */
+
+        /* Prueba de deadline verificada en consola.
+        Modelo.Proceso plazo = new Modelo.Proceso("Plazo", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 5, 2);
+        plazo.descontarDeadline();
+        System.out.println("Deadline en NUEVO: " + plazo.getDeadline() + " (esperado: 1)");
+        if (plazo.getDeadline() != 1) throw new AssertionError("No desconto en nuevos");
+        plazo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        plazo.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        plazo.cambiarEstado(Modelo.EstadoProceso.BLOQUEADO, Modelo.MotivoBloqueo.RED);
+        plazo.descontarDeadline();
+        plazo.descontarDeadline();
+        System.out.println("Deadline en BLOQUEADO sin negativos: " + plazo.getDeadline() + " (esperado: 0)");
+        if (plazo.getDeadline() != 0 || plazo.getDeadlineInicial() != 2) throw new AssertionError("Deadline incorrecto");
+        plazo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        plazo.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        try {
+            plazo.ejecutarInstruccion();
+            throw new AssertionError("Proceso vencido ejecuto");
+        } catch (IllegalStateException esperado) {
+            if (plazo.getPc() != 0 || plazo.getMar() != 0 || plazo.getRestante() != 5)
+                throw new AssertionError("Proceso vencido alterado");
+        }
+        Modelo.Proceso finPlazo = new Modelo.Proceso("Fin", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 3);
+        finPlazo.cambiarEstado(Modelo.EstadoProceso.TERMINADO, Modelo.MotivoBloqueo.NINGUNO);
+        finPlazo.descontarDeadline();
+        System.out.println("Deadline en TERMINADO: " + finPlazo.getDeadline() + " (esperado: 3)");
+        if (finPlazo.getDeadline() != 3) throw new AssertionError("Terminado perdio deadline");
+        System.out.println("Prueba de deadline y rechazo de ejecucion vencida: OK");
+        */
+
+        /* Prueba de ejecucion y contexto verificada en consola.
+        Modelo.Proceso ejecutable = new Modelo.Proceso("CPU", 1, Modelo.TipoProceso.CPU_BOUND, 0, 16, 2, 5);
+        try {
+            ejecutable.ejecutarInstruccion();
+            throw new AssertionError("Un proceso nuevo ejecuto");
+        } catch (IllegalStateException esperado) {
+            if (ejecutable.getPc() != 0 || ejecutable.getMar() != 0 || ejecutable.getRestante() != 2)
+                throw new AssertionError("El rechazo altero el contexto");
+        }
+        ejecutable.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        ejecutable.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        ejecutable.ejecutarInstruccion();
+        System.out.println("Primera instruccion PC/MAR/restante: " + ejecutable.getPc() + "/" + ejecutable.getMar() + "/" + ejecutable.getRestante() + " (esperado: 1/1/1)");
+        if (ejecutable.getPc() != 1 || ejecutable.getMar() != 1 || ejecutable.getRestante() != 1)
+            throw new AssertionError("Primera instruccion incorrecta");
+        ejecutable.cambiarEstado(Modelo.EstadoProceso.BLOQUEADO, Modelo.MotivoBloqueo.ENTRADA_SALIDA);
+        try {
+            ejecutable.ejecutarInstruccion();
+            throw new AssertionError("Un bloqueado ejecuto");
+        } catch (IllegalStateException esperado) {
+            if (ejecutable.getPc() != 1 || ejecutable.getRestante() != 1) throw new AssertionError("Bloqueado alterado");
+        }
+        ejecutable.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        ejecutable.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        ejecutable.ejecutarInstruccion();
+        try {
+            ejecutable.ejecutarInstruccion();
+            throw new AssertionError("Se ejecuto mas trabajo del declarado");
+        } catch (IllegalStateException esperado) {
+            if (ejecutable.getPc() != 2 || ejecutable.getMar() != 2 || ejecutable.getRestante() != 0)
+                throw new AssertionError("Fin de instrucciones incorrecto");
+        }
+        Modelo.Proceso terminadoCpu = new Modelo.Proceso("Fin", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        terminadoCpu.cambiarEstado(Modelo.EstadoProceso.TERMINADO, Modelo.MotivoBloqueo.NINGUNO);
+        try {
+            terminadoCpu.ejecutarInstruccion();
+            throw new AssertionError("Un terminado ejecuto");
+        } catch (IllegalStateException esperado) {
+            if (terminadoCpu.getPc() != 0 || terminadoCpu.getRestante() != 1) throw new AssertionError("Terminado alterado");
+        }
+        System.out.println("Ejecucion completa PC/MAR/restante: 2/2/0; nuevos, bloqueados, terminados y trabajo agotado rechazados");
+        System.out.println("Prueba de ejecucion y contexto: OK");
+        */
+
+        /* Prueba de transiciones y motivos verificada en consola.
+        Modelo.EstadoProceso[] estadosPrueba = Modelo.EstadoProceso.values();
+        int transicionesValidas = 0;
+        int transicionesRechazadas = 0;
+        for (Modelo.EstadoProceso origen : estadosPrueba) {
+            for (Modelo.EstadoProceso destino : estadosPrueba) {
+                Modelo.Proceso transicion = new Modelo.Proceso("T", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 2, 3);
+                if (origen != Modelo.EstadoProceso.NUEVO) transicion.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+                if (origen == Modelo.EstadoProceso.EJECUCION || origen == Modelo.EstadoProceso.BLOQUEADO)
+                    transicion.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+                if (origen == Modelo.EstadoProceso.BLOQUEADO)
+                    transicion.cambiarEstado(origen, Modelo.MotivoBloqueo.SEMAFORO);
+                if (origen == Modelo.EstadoProceso.TERMINADO)
+                    transicion.cambiarEstado(origen, Modelo.MotivoBloqueo.NINGUNO);
+                boolean esperado = switch (origen) {
+                    case NUEVO -> destino == Modelo.EstadoProceso.LISTO || destino == Modelo.EstadoProceso.TERMINADO;
+                    case LISTO -> destino == Modelo.EstadoProceso.EJECUCION || destino == Modelo.EstadoProceso.TERMINADO;
+                    case EJECUCION -> destino == Modelo.EstadoProceso.LISTO || destino == Modelo.EstadoProceso.BLOQUEADO || destino == Modelo.EstadoProceso.TERMINADO;
+                    case BLOQUEADO -> destino == Modelo.EstadoProceso.LISTO || destino == Modelo.EstadoProceso.TERMINADO;
+                    case TERMINADO -> false;
+                };
+                Modelo.MotivoBloqueo motivoAnterior = transicion.getMotivoBloqueo();
+                try {
+                    transicion.cambiarEstado(destino, destino == Modelo.EstadoProceso.BLOQUEADO ? Modelo.MotivoBloqueo.RED : Modelo.MotivoBloqueo.NINGUNO);
+                    if (!esperado || transicion.getEstado() != destino) throw new AssertionError("Transicion invalida aceptada");
+                    transicionesValidas++;
+                } catch (IllegalStateException rechazo) {
+                    if (esperado || transicion.getEstado() != origen || transicion.getMotivoBloqueo() != motivoAnterior)
+                        throw new AssertionError("Rechazo altero el contexto");
+                    transicionesRechazadas++;
+                }
+            }
+        }
+        Modelo.Proceso motivoInvalido = new Modelo.Proceso("M", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 2, 3);
+        for (int caso = 0; caso < 4; caso++) {
+            try {
+                motivoInvalido.cambiarEstado(caso == 0 ? null : caso == 3 ? Modelo.EstadoProceso.BLOQUEADO : Modelo.EstadoProceso.LISTO,
+                        caso == 1 ? null : caso == 2 ? Modelo.MotivoBloqueo.RED : Modelo.MotivoBloqueo.NINGUNO);
+                throw new AssertionError("Estado o motivo incoherente aceptado");
+            } catch (IllegalArgumentException esperado) {
+                if (motivoInvalido.getEstado() != Modelo.EstadoProceso.NUEVO || motivoInvalido.getMotivoBloqueo() != Modelo.MotivoBloqueo.NINGUNO)
+                    throw new AssertionError("Motivo invalido altero contexto");
+            }
+        }
+        System.out.println("Transiciones validas/rechazadas: " + transicionesValidas + "/" + transicionesRechazadas + " (esperado: 9/16)");
+        System.out.println("Motivos incoherentes y nulos rechazados sin alterar contexto: OK");
+        System.out.println("Prueba de transiciones: OK");
+        */
+
+        /* Prueba de validaciones del PCB verificada en consola.
+        Modelo.Proceso antesValidacion = new Modelo.Proceso("Valido", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        int rechazados = 0;
+        for (int caso = 0; caso < 8; caso++) {
+            try {
+                new Modelo.Proceso(caso == 0 ? null : caso == 1 ? "  " : "P",
+                        caso == 3 ? 0 : 1, caso == 2 ? null : Modelo.TipoProceso.CPU_BOUND,
+                        caso == 4 ? -1 : 0, caso == 5 ? 0 : 1, caso == 6 ? 0 : 1, caso == 7 ? 0 : 1);
+                throw new AssertionError("Se acepto el caso invalido " + caso);
+            } catch (IllegalArgumentException esperado) {
+                rechazados++;
+                System.out.println("Caso invalido " + caso + ": rechazado");
+            }
+        }
+        Modelo.Proceso despuesValidacion = new Modelo.Proceso("Valido", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        if (despuesValidacion.getId() != antesValidacion.getId() + 1 || rechazados != 8)
+            throw new AssertionError("Validacion consumio IDs o no rechazo atributos");
+        if (antesValidacion.getEstado() != Modelo.EstadoProceso.NUEVO || antesValidacion.getPc() != 0)
+            throw new AssertionError("Se altero un proceso existente");
+        System.out.println("Limites minimos validos y IDs sin consumir por errores: OK");
+        System.out.println("Prueba de validaciones del PCB: OK");
+        */
+
+        /* Prueba de IDs globales concurrentes verificada en consola.
+        long[][] ids = new long[4][100];
+        Thread[] creadores = new Thread[ids.length];
+        for (int i = 0; i < creadores.length; i++) {
+            final int fila = i;
+            creadores[i] = new Thread(() -> {
+                for (int j = 0; j < ids[fila].length; j++) {
+                    Modelo.Proceso procesoId = new Modelo.Proceso("P", fila + 1,
+                            Modelo.TipoProceso.CPU_BOUND, 0, 16, 10, 20);
+                    ids[fila][j] = procesoId.getId();
+                }
+            });
+            creadores[i].start();
+        }
+        try {
+            for (Thread creador : creadores) creador.join();
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de IDs interrumpida", interrupcion);
+        }
+        int cantidadIds = 0;
+        for (int i = 0; i < 400; i++) {
+            long actualId = ids[i / 100][i % 100];
+            if (actualId <= 0) throw new AssertionError("ID no generado");
+            for (int j = i + 1; j < 400; j++) {
+                if (actualId == ids[j / 100][j % 100]) throw new AssertionError("ID repetido");
+            }
+            cantidadIds++;
+        }
+        System.out.println("IDs globales unicos entre cuatro computadores: " + cantidadIds + " (esperado: 400)");
+        System.out.println("Prueba de IDs concurrentes: OK");
+        */
+
+        /* Prueba de PCB basico verificada en consola.
+        Modelo.Proceso pcb = new Modelo.Proceso("P1", 2, Modelo.TipoProceso.CPU_BOUND, 3, 64, 10, 20);
+        System.out.println("PCB: " + pcb.getNombre() + ", computador " + pcb.getComputador() + ", " + pcb.getTipo());
+        System.out.println("Prioridad/RAM/instrucciones: " + pcb.getPrioridad() + "/" + pcb.getMemoria() + "/" + pcb.getInstrucciones());
+        System.out.println("Estado: " + pcb.getEstado() + ", bloqueo: " + pcb.getMotivoBloqueo());
+        System.out.println("PC/MAR/restante/deadline: " + pcb.getPc() + "/" + pcb.getMar() + "/" + pcb.getRestante() + "/" + pcb.getDeadline());
+        if (!"P1".equals(pcb.getNombre()) || pcb.getComputador() != 2 || pcb.getTipo() != Modelo.TipoProceso.CPU_BOUND
+                || pcb.getPrioridad() != 3 || pcb.getMemoria() != 64 || pcb.getInstrucciones() != 10
+                || pcb.getEstado() != Modelo.EstadoProceso.NUEVO || pcb.getMotivoBloqueo() != Modelo.MotivoBloqueo.NINGUNO
+                || pcb.getPc() != 0 || pcb.getMar() != 0 || pcb.getRestante() != 10
+                || pcb.getDeadline() != 20 || pcb.getDeadlineInicial() != 20)
+            throw new AssertionError("PCB inicial incorrecto");
+        System.out.println("Prueba de PCB basico: OK");
+        */
+
+        /* Prueba de MotivoBloqueo verificada en consola.
+        String[] nombresMotivos = {"NINGUNO", "ENTRADA_SALIDA", "SEMAFORO", "RED"};
+        Modelo.MotivoBloqueo[] motivos = Modelo.MotivoBloqueo.values();
+        if (motivos.length != nombresMotivos.length) throw new AssertionError("Cantidad de motivos incorrecta");
+        for (int i = 0; i < motivos.length; i++) {
+            System.out.println("Motivo: " + motivos[i] + " (esperado: " + nombresMotivos[i] + ")");
+            if (!motivos[i].name().equals(nombresMotivos[i])
+                    || Modelo.MotivoBloqueo.valueOf(nombresMotivos[i]) != motivos[i])
+                throw new AssertionError("Motivo incorrecto");
+        }
+        System.out.println("Prueba de MotivoBloqueo: OK");
+        */
+
+        /* Prueba de PoliticaPlanificacion verificada en consola.
+        String[] nombresPoliticas = {"FCFS", "ROUND_ROBIN", "EDF", "PRIORIDADES"};
+        Modelo.PoliticaPlanificacion[] politicas = Modelo.PoliticaPlanificacion.values();
+        if (politicas.length != nombresPoliticas.length) throw new AssertionError("Cantidad de politicas incorrecta");
+        for (int i = 0; i < politicas.length; i++) {
+            System.out.println("Politica: " + politicas[i] + " (esperado: " + nombresPoliticas[i] + ")");
+            if (!politicas[i].name().equals(nombresPoliticas[i])
+                    || Modelo.PoliticaPlanificacion.valueOf(nombresPoliticas[i]) != politicas[i])
+                throw new AssertionError("Politica incorrecta");
+        }
+        System.out.println("Prueba de PoliticaPlanificacion: OK");
+        */
+
+        /* Prueba de ModoCPU verificada en consola.
+        String[] nombresModos = {"USUARIO", "SISTEMA_OPERATIVO"};
+        Modelo.ModoCPU[] modos = Modelo.ModoCPU.values();
+        if (modos.length != nombresModos.length) throw new AssertionError("Cantidad de modos incorrecta");
+        for (int i = 0; i < modos.length; i++) {
+            System.out.println("Modo: " + modos[i] + " (esperado: " + nombresModos[i] + ")");
+            if (!modos[i].name().equals(nombresModos[i])
+                    || Modelo.ModoCPU.valueOf(nombresModos[i]) != modos[i])
+                throw new AssertionError("Modo incorrecto");
+        }
+        System.out.println("Prueba de ModoCPU: OK");
+        */
+
+        /* Prueba de TipoProceso verificada en consola.
+        String[] nombresTipos = {"CPU_BOUND", "IO_BOUND", "PRODUCTOR", "CONSUMIDOR"};
+        Modelo.TipoProceso[] tipos = Modelo.TipoProceso.values();
+        if (tipos.length != nombresTipos.length) throw new AssertionError("Cantidad de tipos incorrecta");
+        for (int i = 0; i < tipos.length; i++) {
+            System.out.println("Tipo: " + tipos[i] + " (esperado: " + nombresTipos[i] + ")");
+            if (!tipos[i].name().equals(nombresTipos[i])
+                    || Modelo.TipoProceso.valueOf(nombresTipos[i]) != tipos[i])
+                throw new AssertionError("Tipo incorrecto");
+        }
+        System.out.println("Prueba de TipoProceso: OK");
+        */
+
+        /* Prueba de EstadoProceso verificada en consola.
+        String[] nombresEstados = {"NUEVO", "LISTO", "EJECUCION", "BLOQUEADO", "TERMINADO"};
+        Modelo.EstadoProceso[] estados = Modelo.EstadoProceso.values();
+        if (estados.length != nombresEstados.length) throw new AssertionError("Cantidad de estados incorrecta");
+        for (int i = 0; i < estados.length; i++) {
+            System.out.println("Estado: " + estados[i] + " (esperado: " + nombresEstados[i] + ")");
+            if (!estados[i].name().equals(nombresEstados[i])
+                    || Modelo.EstadoProceso.valueOf(nombresEstados[i]) != estados[i])
+                throw new AssertionError("Estado incorrecto");
+        }
+        System.out.println("Prueba de EstadoProceso: OK");
+        */
+
         /* Prueba final integrada de EDD verificada en consola.
         EDD.Cola<Integer> integrada = new EDD.Cola<>();
         if (!integrada.estaVacia() || integrada.getTamano() != 0
