@@ -13,6 +13,40 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de admision de nuevos a listos verificada en consola.
+        Sistema.Computador admisor = new Sistema.Computador(1, 100);
+        Sistema.Computador admisorOtro = new Sistema.Computador(2, 100);
+        Modelo.Proceso grandeAdmision = new Modelo.Proceso("Grande", 1, Modelo.TipoProceso.CPU_BOUND, 0, 101, 2, 10);
+        Modelo.Proceso primeroAdmision = new Modelo.Proceso("Primero", 1, Modelo.TipoProceso.CPU_BOUND, 0, 60, 2, 10);
+        Modelo.Proceso esperaAdmision = new Modelo.Proceso("Espera", 1, Modelo.TipoProceso.CPU_BOUND, 0, 50, 2, 10);
+        Modelo.Proceso ultimoAdmision = new Modelo.Proceso("Ultimo", 1, Modelo.TipoProceso.CPU_BOUND, 0, 40, 2, 10);
+        admisor.recibirProceso(grandeAdmision);
+        admisor.recibirProceso(primeroAdmision);
+        admisor.recibirProceso(esperaAdmision);
+        admisor.recibirProceso(ultimoAdmision);
+        int cantidadAdmitida = admisor.admitirProcesos();
+        Modelo.Proceso[] listosAdmision = admisor.getListos();
+        Modelo.Proceso[] nuevosAdmision = admisor.getNuevos();
+        System.out.println("Admitidos: " + cantidadAdmitida + " (esperado: 2)");
+        System.out.println("Listos: " + listosAdmision[0].getNombre() + ", " + listosAdmision[1].getNombre() + " (esperado: Primero, Ultimo)");
+        System.out.println("Nuevos pendientes: " + nuevosAdmision[0].getNombre() + ", " + nuevosAdmision[1].getNombre() + " (esperado: Grande, Espera)");
+        if (cantidadAdmitida != 2 || listosAdmision.length != 2 || nuevosAdmision.length != 2
+                || listosAdmision[0] != primeroAdmision || listosAdmision[1] != ultimoAdmision
+                || nuevosAdmision[0] != grandeAdmision || nuevosAdmision[1] != esperaAdmision)
+            throw new AssertionError("Orden de admision incorrecto");
+        if (primeroAdmision.getEstado() != Modelo.EstadoProceso.LISTO || ultimoAdmision.getEstado() != Modelo.EstadoProceso.LISTO
+                || grandeAdmision.getEstado() != Modelo.EstadoProceso.NUEVO || esperaAdmision.getEstado() != Modelo.EstadoProceso.NUEVO)
+            throw new AssertionError("Estados de admision incorrectos");
+        if (admisor.getMemoria().getUsada() != 100 || admisor.getMemoria().getLibre() != 0
+                || admisor.admitirProcesos() != 0 || admisor.getListos().length != 2)
+            throw new AssertionError("RAM o admision repetida incorrecta");
+        if (admisorOtro.admitirProcesos() != 0 || admisorOtro.getMemoria().getUsada() != 0
+                || admisorOtro.getNuevos().length != 0 || admisorOtro.getListos().length != 0)
+            throw new AssertionError("Se afecto otro computador");
+        System.out.println("RAM usada/libre: 100/0; segunda revision sin duplicados; otro computador intacto");
+        System.out.println("Prueba de admision de nuevos a listos: OK");
+        */
+
         /* Prueba de recepcion de procesos nuevos verificada en consola.
         Sistema.Computador receptorUno = new Sistema.Computador(1, 32);
         Sistema.Computador receptorDos = new Sistema.Computador(2, 64);

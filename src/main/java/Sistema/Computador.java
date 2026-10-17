@@ -4,6 +4,7 @@ import Modelo.Memoria;
 import Modelo.Proceso;
 import EDD.Cola;
 import Modelo.EstadoProceso;
+import Modelo.MotivoBloqueo;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -50,6 +51,33 @@ public class Computador {
         }
     }
 
+    /**
+     * Revisa una vez los nuevos y admite los que caben en RAM, en orden de llegada.
+     * Los que no caben permanecen en nuevos conservando su orden relativo.
+     * @return cantidad de procesos que pasaron a listos
+     */
+    public int admitirProcesos() {
+        mutex.acquireUninterruptibly();
+        try {
+            int admitidos = 0;
+            int pendientes = nuevos.getTamano();
+            for (int i = 0; i < pendientes; i++) {
+                Proceso proceso = nuevos.primero();
+                if (memoria.reservar("proceso:" + proceso.getId(), proceso.getMemoria())) {
+                    proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+                    nuevos.quitar();
+                    listos.agregar(proceso);
+                    admitidos++;
+                } else {
+                    nuevos.agregar(nuevos.quitar());
+                }
+            }
+            return admitidos;
+        } finally {
+            mutex.release();
+        }
+    }
+
     private boolean contiene(Cola<Proceso> cola, long idProceso) {
         for (Object elemento : cola.instantanea()) {
             if (((Proceso) elemento).getId() == idProceso) return true;
@@ -73,11 +101,16 @@ public class Computador {
     public Proceso[] getTerminados() { return copiarProcesos(terminados); }
 
     private Proceso[] copiarProcesos(Cola<Proceso> cola) {
-        Object[] elementos = cola.instantanea();
-        Proceso[] copia = new Proceso[elementos.length];
-        for (int i = 0; i < elementos.length; i++) {
-            copia[i] = (Proceso) elementos[i];
+        mutex.acquireUninterruptibly();
+        try {
+            Object[] elementos = cola.instantanea();
+            Proceso[] copia = new Proceso[elementos.length];
+            for (int i = 0; i < elementos.length; i++) {
+                copia[i] = (Proceso) elementos[i];
+            }
+            return copia;
+        } finally {
+            mutex.release();
         }
-        return copia;
     }
 }
