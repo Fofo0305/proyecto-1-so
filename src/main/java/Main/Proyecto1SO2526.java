@@ -13,6 +13,55 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba integrada del modelo verificada en consola.
+        EDD.Cola<Modelo.Proceso> cargaModelo = new EDD.Cola<>();
+        Modelo.Proceso completo = new Modelo.Proceso("Completo", 1, Modelo.TipoProceso.CPU_BOUND, 0, 32, 2, 2);
+        Modelo.Proceso vencido = new Modelo.Proceso("Vencido", 2, Modelo.TipoProceso.CPU_BOUND, 1, 16, 3, 1);
+        Modelo.Proceso bloqueadoModelo = new Modelo.Proceso("Bloqueado", 2, Modelo.TipoProceso.IO_BOUND, 2, 16, 3, 3);
+        cargaModelo.agregar(completo);
+        cargaModelo.agregar(vencido);
+        cargaModelo.agregar(bloqueadoModelo);
+        if (cargaModelo.quitar() != completo || cargaModelo.quitar() != vencido || cargaModelo.quitar() != bloqueadoModelo)
+            throw new AssertionError("La cola altero el orden de los PCB");
+        completo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        completo.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        completo.ejecutarInstruccion();
+        completo.descontarDeadline();
+        completo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        completo.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        completo.ejecutarInstruccion();
+        completo.descontarDeadline();
+        if (completo.getRestante() == 0)
+            completo.cambiarEstado(Modelo.EstadoProceso.TERMINADO, Modelo.MotivoBloqueo.NINGUNO);
+        else if (completo.getDeadline() == 0)
+            throw new AssertionError("Se priorizo vencimiento sobre finalizacion");
+        if (completo.getEstado() != Modelo.EstadoProceso.TERMINADO || completo.getPc() != 2
+                || completo.getMar() != 2 || completo.getDeadline() != 0 || completo.getRestante() != 0)
+            throw new AssertionError("Finalizacion integrada incorrecta");
+        System.out.println("Finalizacion coincidente con deadline: TERMINADO, PC/MAR 2/2, restante/plazo 0/0");
+        vencido.descontarDeadline();
+        if (vencido.getDeadline() == 0)
+            vencido.cambiarEstado(Modelo.EstadoProceso.TERMINADO, Modelo.MotivoBloqueo.NINGUNO);
+        if (vencido.getRestante() != 3 || vencido.getPc() != 0 || vencido.getEstado() != Modelo.EstadoProceso.TERMINADO)
+            throw new AssertionError("Vencimiento en nuevos incorrecto");
+        System.out.println("Vencimiento en NUEVO: TERMINADO sin ejecutar instrucciones");
+        bloqueadoModelo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        bloqueadoModelo.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        bloqueadoModelo.ejecutarInstruccion();
+        bloqueadoModelo.descontarDeadline();
+        bloqueadoModelo.cambiarEstado(Modelo.EstadoProceso.BLOQUEADO, Modelo.MotivoBloqueo.ENTRADA_SALIDA);
+        bloqueadoModelo.descontarDeadline();
+        bloqueadoModelo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        if (bloqueadoModelo.getComputador() != 2 || bloqueadoModelo.getPc() != 1
+                || bloqueadoModelo.getMar() != 1 || bloqueadoModelo.getRestante() != 2
+                || bloqueadoModelo.getDeadline() != 1 || bloqueadoModelo.getMotivoBloqueo() != Modelo.MotivoBloqueo.NINGUNO)
+            throw new AssertionError("Despertar perdio el contexto");
+        System.out.println("Bloqueo y retorno a LISTO: contexto conservado, motivo NINGUNO");
+        if (completo.getId() == vencido.getId() || completo.getId() == bloqueadoModelo.getId()
+                || vencido.getId() == bloqueadoModelo.getId()) throw new AssertionError("IDs de carga repetidos");
+        System.out.println("Prueba integrada del modelo de procesos: OK");
+        */
+
         /* Prueba de deadline verificada en consola.
         Modelo.Proceso plazo = new Modelo.Proceso("Plazo", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 5, 2);
         plazo.descontarDeadline();
