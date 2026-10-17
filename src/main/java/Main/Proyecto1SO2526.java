@@ -13,6 +13,29 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de validaciones del PCB verificada en consola.
+        Modelo.Proceso antesValidacion = new Modelo.Proceso("Valido", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        int rechazados = 0;
+        for (int caso = 0; caso < 8; caso++) {
+            try {
+                new Modelo.Proceso(caso == 0 ? null : caso == 1 ? "  " : "P",
+                        caso == 3 ? 0 : 1, caso == 2 ? null : Modelo.TipoProceso.CPU_BOUND,
+                        caso == 4 ? -1 : 0, caso == 5 ? 0 : 1, caso == 6 ? 0 : 1, caso == 7 ? 0 : 1);
+                throw new AssertionError("Se acepto el caso invalido " + caso);
+            } catch (IllegalArgumentException esperado) {
+                rechazados++;
+                System.out.println("Caso invalido " + caso + ": rechazado");
+            }
+        }
+        Modelo.Proceso despuesValidacion = new Modelo.Proceso("Valido", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        if (despuesValidacion.getId() != antesValidacion.getId() + 1 || rechazados != 8)
+            throw new AssertionError("Validacion consumio IDs o no rechazo atributos");
+        if (antesValidacion.getEstado() != Modelo.EstadoProceso.NUEVO || antesValidacion.getPc() != 0)
+            throw new AssertionError("Se altero un proceso existente");
+        System.out.println("Limites minimos validos y IDs sin consumir por errores: OK");
+        System.out.println("Prueba de validaciones del PCB: OK");
+        */
+
         /* Prueba de IDs globales concurrentes verificada en consola.
         long[][] ids = new long[4][100];
         Thread[] creadores = new Thread[ids.length];

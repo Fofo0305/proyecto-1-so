@@ -26,6 +26,15 @@ public class Proceso {
 
     public Proceso(String nombre, int computador, TipoProceso tipo, int prioridad,
                    int memoria, int instrucciones, int deadline) {
+        if (nombre == null || nombre.isBlank()) {
+            throw new IllegalArgumentException("El nombre es obligatorio");
+        }
+        if (tipo == null) {
+            throw new IllegalArgumentException("El tipo es obligatorio");
+        }
+        if (computador < 1 || prioridad < 0 || memoria < 1 || instrucciones < 1 || deadline < 1) {
+            throw new IllegalArgumentException("Los atributos del proceso estan fuera de rango");
+        }
         MUTEX_ID.acquireUninterruptibly();
         try {
             if (siguienteId == Long.MAX_VALUE) {
