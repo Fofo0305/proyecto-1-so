@@ -13,6 +13,39 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de IDs globales concurrentes verificada en consola.
+        long[][] ids = new long[4][100];
+        Thread[] creadores = new Thread[ids.length];
+        for (int i = 0; i < creadores.length; i++) {
+            final int fila = i;
+            creadores[i] = new Thread(() -> {
+                for (int j = 0; j < ids[fila].length; j++) {
+                    Modelo.Proceso procesoId = new Modelo.Proceso("P", fila + 1,
+                            Modelo.TipoProceso.CPU_BOUND, 0, 16, 10, 20);
+                    ids[fila][j] = procesoId.getId();
+                }
+            });
+            creadores[i].start();
+        }
+        try {
+            for (Thread creador : creadores) creador.join();
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de IDs interrumpida", interrupcion);
+        }
+        int cantidadIds = 0;
+        for (int i = 0; i < 400; i++) {
+            long actualId = ids[i / 100][i % 100];
+            if (actualId <= 0) throw new AssertionError("ID no generado");
+            for (int j = i + 1; j < 400; j++) {
+                if (actualId == ids[j / 100][j % 100]) throw new AssertionError("ID repetido");
+            }
+            cantidadIds++;
+        }
+        System.out.println("IDs globales unicos entre cuatro computadores: " + cantidadIds + " (esperado: 400)");
+        System.out.println("Prueba de IDs concurrentes: OK");
+        */
+
         /* Prueba de PCB basico verificada en consola.
         Modelo.Proceso pcb = new Modelo.Proceso("P1", 2, Modelo.TipoProceso.CPU_BOUND, 3, 64, 10, 20);
         System.out.println("PCB: " + pcb.getNombre() + ", computador " + pcb.getComputador() + ", " + pcb.getTipo());

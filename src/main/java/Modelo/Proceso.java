@@ -1,10 +1,15 @@
 package Modelo;
 
+import java.util.concurrent.Semaphore;
+
 /**
  * Bloque de control de un proceso monohilo.
  * @author Adolfo
  */
 public class Proceso {
+    private static final Semaphore MUTEX_ID = new Semaphore(1, true);
+    private static long siguienteId = 1;
+    private final long id;
     private final String nombre;
     private final int computador;
     private final TipoProceso tipo;
@@ -21,6 +26,15 @@ public class Proceso {
 
     public Proceso(String nombre, int computador, TipoProceso tipo, int prioridad,
                    int memoria, int instrucciones, int deadline) {
+        MUTEX_ID.acquireUninterruptibly();
+        try {
+            if (siguienteId == Long.MAX_VALUE) {
+                throw new IllegalStateException("Se agotaron los identificadores de proceso");
+            }
+            this.id = siguienteId++;
+        } finally {
+            MUTEX_ID.release();
+        }
         this.nombre = nombre;
         this.computador = computador;
         this.tipo = tipo;
@@ -36,6 +50,7 @@ public class Proceso {
         this.mar = 0;
     }
 
+    public long getId() { return id; }
     public String getNombre() { return nombre; }
     public int getComputador() { return computador; }
     public TipoProceso getTipo() { return tipo; }
