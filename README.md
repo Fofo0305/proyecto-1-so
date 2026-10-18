@@ -1,0 +1,40 @@
+# AvilaOS
+
+Simulador de un cluster con RAM independiente por computador, admision de procesos, CPU con FCFS y reloj global coordinado por semaforos.
+
+## Ejecutar en NetBeans
+
+1. Instalar y registrar JDK 22 en las plataformas Java de NetBeans.
+2. Abrir esta carpeta como proyecto Maven y seleccionar JDK 22 para el proyecto.
+3. Ejecutar `Main.Proyecto1SO2526`. La ventana se crea en el EDT de Swing.
+4. En Configuracion indicar al menos dos computadores, su RAM separada por comas y la duracion del ciclo. Aplicar la configuracion antes de crear procesos.
+5. Crear procesos CPU_BOUND en la pestaña de procesos y controlar el reloj con Iniciar, Pausar, Reanudar y Detener. Despues de detener, aplicar o cargar una configuracion para comenzar otra sesion.
+6. Consultar CPU, PCB, RAM y colas en la pestaña de computadores. Cerrar la ventana solicita el cierre del reloj fuera del EDT.
+
+El proyecto usa Java 22 y no necesita bibliotecas externas. Los archivos `.form` de cada panel se editan en el diseñador de NetBeans; la ventana principal ensambla estos paneles en tiempo de ejecucion.
+
+## Guardar y cargar
+
+Los botones de archivos guardan y leen CSV UTF-8 version 1. Se conserva la configuracion y la carga **inicial**: cargar reconstruye los procesos con PC y ciclo cero, nuevos identificadores y sus instrucciones y deadlines originales. No es una reanudacion del estado de ejecucion. El archivo completo se valida antes de reemplazar la sesion; detener el reloj antes de cargar.
+
+Los registros admitidos son `AVILAOS`, `CONFIG`, `COMPUTADOR`, `PROCESO` y `BUFFER`. Los nombres pueden contener comas, comillas y saltos de linea mediante el escape CSV. Los buffers cargados reservan una unidad de RAM por elemento en su anfitrion; sus registros son metadatos y no ejecutan productor/consumidor.
+
+## Integracion
+
+- `Modelo`: PCB, configuracion, definiciones iniciales y vistas inmutables.
+- `EDD`: cola enlazada propia protegida por semaforo.
+- `Sistema.Computador`: admision, CPU, colas, deadlines y liberacion/readmision de RAM al terminar.
+- `Sistema.RelojGlobal`: coordina un avance por computador y ciclo; propaga fallos y cierra trabajadores.
+- `Sistema.ControladorSimulacion`: construye y controla sesiones sin depender de Swing.
+- `Interfaces`: formularios y lectura de vistas. Las operaciones que esperan trabajadores o acceden a archivos se realizan fuera del EDT.
+- `Persistencia`: codec CSV y validacion de cargas iniciales, independientes de las ventanas.
+
+Las vistas son coherentes por computador. Durante un ciclo en curso, dos computadores pueden mostrar ciclos diferentes hasta que ambos confirmen su avance. No modificar las colas de un computador desde la GUI: usar las operaciones del controlador y del computador.
+
+La implementacion ejecuta CPU_BOUND con FCFS. Quantum y latencia se validan y conservan como configuracion para integraciones posteriores; no activan Round Robin, comunicaciones ni cambios de contexto simulados. IO, productor/consumidor, politicas avanzadas y metricas corresponden a otros modulos y no deben enviarse a esta CPU como si fueran CPU_BOUND.
+
+## Pruebas y ramas
+
+Las pruebas recientes estan comentadas en `Main.Proyecto1SO2526.java`, con prints y comprobaciones mediante `AssertionError`. Para repetir una, desactivar temporalmente el lanzamiento de la ventana, activar su bloque, compilar y ejecutar; restaurar despues el lanzamiento y el comentario. Las salidas y archivos temporales se escriben en `target`, ignorado por Git.
+
+Las ramas locales del domingo dependen en este orden: `feature/interfaz-configuracion` → `feature/visualizacion-computadores` → `feature/persistencia`. Se deben revisar e integrar respetando ese orden. La documentacion describe estos componentes; no sustituye el informe ni el UML de la entrega completa.
