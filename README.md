@@ -21,6 +21,8 @@ En Simulacion en vivo, el selector permite enfocar un computador. Las tarjetas m
 
 La configuracion explica la RAM por equipo y la duracion del ciclo; destaca el campo que debe corregirse antes de aplicar. Los parametros de integracion se despliegan bajo demanda. El resumen de computadores muestra CPU activas, procesos en espera, terminados y RAM total sin reemplazar las lecturas individuales de cada equipo.
 
+La ventana abre dentro del area util de la pantalla, sin maximizar. Los controles del reloj usan dos filas; los formularios se pueden recorrer verticalmente y las colas se distribuyen en dos columnas cuando el ancho es reducido. Procesos comparte el estilo y las ayudas de Configuracion. FCFS es la unica politica ejecutable: Round Robin, EDF y Prioridades figuran como pendientes, sin simular su ejecucion.
+
 Los botones de archivos guardan y leen CSV UTF-8 version 1. Se conserva la configuracion y la carga **inicial**: cargar reconstruye los procesos con PC y ciclo cero, nuevos identificadores y sus instrucciones y deadlines originales. No es una reanudacion del estado de ejecucion. El archivo completo se valida antes de reemplazar la sesion; detener el reloj antes de cargar.
 
 Los registros admitidos son `AVILAOS`, `CONFIG`, `COMPUTADOR`, `PROCESO` y `BUFFER`. Los nombres pueden contener comas, comillas y saltos de linea mediante el escape CSV. Los buffers cargados reservan una unidad de RAM por elemento en su anfitrion; sus registros son metadatos y no ejecutan productor/consumidor.

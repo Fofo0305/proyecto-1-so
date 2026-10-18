@@ -62,36 +62,36 @@ public class PanelConfiguracion extends javax.swing.JPanel {
         setLayout(new java.awt.BorderLayout(0, 20));
         setBackground(new java.awt.Color(246, 248, 252));
         setBorder(javax.swing.BorderFactory.createEmptyBorder(24, 28, 24, 28));
-        introduccion = new javax.swing.JLabel("<html><span style='font-size:22px'>Prepara tu simulacion</span><br><br>Define los computadores y su memoria. Luego crea procesos o carga el ejemplo para comenzar.</html>");
+        introduccion = new javax.swing.JLabel("<html><span style='font-size:22px'>Prepara tu simulacion</span><br><br>Define la memoria y la velocidad.<br>Crea procesos o carga el ejemplo para comenzar.</html>");
         introduccion.setForeground(new java.awt.Color(30, 49, 77));
         add(introduccion, java.awt.BorderLayout.NORTH);
         formulario = new javax.swing.JPanel(new java.awt.GridBagLayout());
         formulario.setOpaque(false);
         etiquetaCantidad = new javax.swing.JLabel("<html><b>Computadores</b><br><span style='color:#637089'>Al menos dos equipos independientes</span></html>");
-        campoCantidad = new javax.swing.JTextField("2", 20);
-        etiquetaRam = new javax.swing.JLabel("<html><b>Memoria por computador</b><br><span style='color:#637089'>Una cantidad por equipo, separada por comas</span></html>");
-        campoRam = new javax.swing.JTextField("128,128", 20);
-        etiquetaCiclo = new javax.swing.JLabel("<html><b>Velocidad de simulacion</b><br><span style='color:#637089'>Milisegundos por ciclo · mayor valor = mas lento</span></html>");
-        campoCiclo = new javax.swing.JTextField("700", 20);
+        campoCantidad = new javax.swing.JTextField("2", 12);
+        etiquetaRam = new javax.swing.JLabel("<html><b>Memoria por computador</b><br><span style='color:#637089'>Ejemplo para dos equipos: 64,96</span></html>");
+        campoRam = new javax.swing.JTextField("128,128", 12);
+        etiquetaCiclo = new javax.swing.JLabel("<html><b>Velocidad de simulacion</b><br><span style='color:#637089'>Milisegundos por ciclo<br>Mayor valor = mas lento</span></html>");
+        campoCiclo = new javax.swing.JTextField("700", 12);
         etiquetaPolitica = new javax.swing.JLabel("Orden de ejecucion");
-        valorPolitica = new javax.swing.JLabel("FCFS · primero en llegar, primero en ejecutar");
+        valorPolitica = new javax.swing.JLabel("<html><b>FCFS · disponible</b><br>Primero en llegar, primero en ejecutar<br><span style='color:#637089'>Round Robin, EDF y Prioridades:<br>pendientes de implementacion</span></html>");
         opciones = new javax.swing.JCheckBox("Mostrar parametros de integracion"); opciones.setOpaque(false);
         avanzados = new javax.swing.JPanel(new java.awt.GridBagLayout()); avanzados.setOpaque(false);
-        etiquetaQuantum = new javax.swing.JLabel("Quantum inicial (se conserva para integracion)");
-        campoQuantum = new javax.swing.JTextField("4", 20);
-        etiquetaLatencia = new javax.swing.JLabel("Latencia de red en ciclos (se conserva para integracion)");
-        campoLatencia = new javax.swing.JTextField("0", 20);
-        aviso = new javax.swing.JLabel("<html>FCFS esta disponible. Quantum y latencia no activan otros modulos.<br>Aplicar la configuracion inicia una sesion nueva; detenga primero el reloj si esta activo.</html>");
+        etiquetaQuantum = new javax.swing.JLabel("Quantum inicial");
+        campoQuantum = new javax.swing.JTextField("4", 12);
+        etiquetaLatencia = new javax.swing.JLabel("Latencia de red (ciclos)");
+        campoLatencia = new javax.swing.JTextField("0", 12);
+        aviso = new javax.swing.JLabel("<html>Quantum y latencia se guardan para los modulos pendientes.<br>Aplicar crea una sesion nueva.<br>Deten el reloj antes de cambiar la configuracion.</html>");
         aviso.setForeground(new java.awt.Color(93, 108, 130));
         java.awt.GridBagConstraints c;
 c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=0; c.anchor=java.awt.GridBagConstraints.WEST; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(etiquetaCantidad,c);
-c = new java.awt.GridBagConstraints(); c.gridx=1; c.gridy=0; c.anchor=java.awt.GridBagConstraints.WEST; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(campoCantidad,c);
+c = new java.awt.GridBagConstraints(); c.gridx=1; c.gridy=0; c.anchor=java.awt.GridBagConstraints.WEST; c.weightx=1; c.fill=java.awt.GridBagConstraints.HORIZONTAL; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(campoCantidad,c);
 c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=1; c.anchor=java.awt.GridBagConstraints.WEST; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(etiquetaRam,c);
-c = new java.awt.GridBagConstraints(); c.gridx=1; c.gridy=1; c.anchor=java.awt.GridBagConstraints.WEST; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(campoRam,c);
+c = new java.awt.GridBagConstraints(); c.gridx=1; c.gridy=1; c.anchor=java.awt.GridBagConstraints.WEST; c.weightx=1; c.fill=java.awt.GridBagConstraints.HORIZONTAL; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(campoRam,c);
 c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=2; c.anchor=java.awt.GridBagConstraints.WEST; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(etiquetaCiclo,c);
-c = new java.awt.GridBagConstraints(); c.gridx=1; c.gridy=2; c.anchor=java.awt.GridBagConstraints.WEST; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(campoCiclo,c);
+c = new java.awt.GridBagConstraints(); c.gridx=1; c.gridy=2; c.anchor=java.awt.GridBagConstraints.WEST; c.weightx=1; c.fill=java.awt.GridBagConstraints.HORIZONTAL; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(campoCiclo,c);
 c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=3; c.anchor=java.awt.GridBagConstraints.WEST; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(etiquetaPolitica,c);
-c = new java.awt.GridBagConstraints(); c.gridx=1; c.gridy=3; c.anchor=java.awt.GridBagConstraints.WEST; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(valorPolitica,c);        c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=4; c.gridwidth=2; c.anchor=java.awt.GridBagConstraints.WEST; c.insets=new java.awt.Insets(0,0,14,0); formulario.add(opciones,c);
+c = new java.awt.GridBagConstraints(); c.gridx=1; c.gridy=3; c.anchor=java.awt.GridBagConstraints.WEST; c.weightx=1; c.fill=java.awt.GridBagConstraints.HORIZONTAL; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(valorPolitica,c);        c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=4; c.gridwidth=2; c.anchor=java.awt.GridBagConstraints.WEST; c.insets=new java.awt.Insets(0,0,14,0); formulario.add(opciones,c);
         c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=5; c.gridwidth=2; c.anchor=java.awt.GridBagConstraints.WEST; formulario.add(avanzados,c);
         c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=0; c.insets=new java.awt.Insets(0,0,12,24); c.anchor=java.awt.GridBagConstraints.WEST; avanzados.add(etiquetaQuantum,c);
         c = new java.awt.GridBagConstraints(); c.gridx=1; c.gridy=0; c.insets=new java.awt.Insets(0,0,12,0); avanzados.add(campoQuantum,c);
@@ -107,7 +107,7 @@ c = new java.awt.GridBagConstraints(); c.gridx=1; c.gridy=3; c.anchor=java.awt.G
         etiquetaCantidad.setLabelFor(campoCantidad); etiquetaRam.setLabelFor(campoRam); etiquetaCiclo.setLabelFor(campoCiclo);
         for (javax.swing.JTextField campo : new javax.swing.JTextField[] {campoCantidad, campoRam, campoCiclo, campoQuantum, campoLatencia}) {
             campo.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 14));
-            campo.setMargin(new java.awt.Insets(8, 10, 8, 10));
+            campo.setMargin(new java.awt.Insets(6, 8, 6, 8));
         }
     }// </editor-fold>//GEN-END:initComponents
 
