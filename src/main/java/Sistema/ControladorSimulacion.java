@@ -3,6 +3,7 @@ package Sistema;
 import Modelo.Configuracion;
 import Modelo.Proceso;
 import Modelo.TipoProceso;
+import Modelo.VistaComputador;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -126,6 +127,17 @@ public class ControladorSimulacion implements AutoCloseable {
         mutex.acquireUninterruptibly();
         try { return computadores == null ? new Computador[0] : computadores.clone(); }
         finally { mutex.release(); }
+    }
+
+    /** Captura las vistas sin exponer procesos mutables a la interfaz. */
+    public VistaComputador[] consultarVistas() {
+        mutex.acquireUninterruptibly();
+        try {
+            if (computadores == null) return new VistaComputador[0];
+            VistaComputador[] vistas = new VistaComputador[computadores.length];
+            for (int i = 0; i < vistas.length; i++) vistas[i] = computadores[i].consultarVista();
+            return vistas;
+        } finally { mutex.release(); }
     }
 
     public long getCiclo() {

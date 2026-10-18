@@ -7,6 +7,7 @@ import Modelo.EstadoProceso;
 import Modelo.MotivoBloqueo;
 import Modelo.ModoCPU;
 import Modelo.TipoProceso;
+import Modelo.VistaComputador;
 import Planificacion.Politica;
 import Planificacion.FCFS;
 import java.util.concurrent.Semaphore;
@@ -192,6 +193,35 @@ public class Computador implements ComponenteReloj {
             if (((Proceso) elemento).getId() == idProceso) return true;
         }
         return false;
+    }
+
+    /** Captura CPU, colas y RAM bajo el mismo bloqueo del núcleo. */
+    public VistaComputador consultarVista() {
+        mutex.acquireUninterruptibly();
+        try {
+            int[] ram = memoria.instantanea();
+            Proceso actual = cpu.getActual();
+            return new VistaComputador(id, ultimoCiclo, cpu.getModo(), ram[0], ram[1],
+                    actual == null ? "Sin proceso" : describirProceso(actual),
+                    describirCola(nuevos), describirCola(listos), describirCola(bloqueados), describirCola(terminados));
+        } finally { mutex.release(); }
+    }
+
+    private String describirCola(Cola<Proceso> cola) {
+        StringBuilder texto = new StringBuilder();
+        for (Object elemento : cola.instantanea()) {
+            if (!texto.isEmpty()) texto.append('\n');
+            texto.append(describirProceso((Proceso) elemento));
+        }
+        return texto.isEmpty() ? "Vacia" : texto.toString();
+    }
+
+    private String describirProceso(Proceso proceso) {
+        return "P" + proceso.getId() + " " + proceso.getNombre() + " | computador=" + proceso.getComputador()
+                + " | " + proceso.getTipo() + " | " + proceso.getEstado() + " | prioridad=" + proceso.getPrioridad()
+                + " | RAM=" + proceso.getMemoria() + " | deadline=" + proceso.getDeadline()
+                + " | restante=" + proceso.getRestante() + " | PC=" + proceso.getPc() + " | MAR=" + proceso.getMar()
+                + " | bloqueo=" + proceso.getMotivoBloqueo();
     }
 
     public int getId() { return id; }
