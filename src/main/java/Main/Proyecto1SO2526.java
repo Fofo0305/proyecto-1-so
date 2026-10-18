@@ -13,6 +13,39 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de reconstruccion de carga verificada en consola.
+        try (Sistema.ControladorSimulacion cargaControlador = new Sistema.ControladorSimulacion()) {
+            Modelo.CargaInicial cargaControladorPrueba = new Modelo.CargaInicial(new Modelo.Configuracion(new int[] {64, 64}, 5, 4, 0),
+                    new Modelo.DefinicionProceso[] {new Modelo.DefinicionProceso("Original", 1, 0, 64, 1, 20)},
+                    new Modelo.DefinicionBuffer[] {new Modelo.DefinicionBuffer("B", 16, 2)});
+            cargaControlador.cargarCarga(cargaControladorPrueba);
+            if (cargaControlador.getComputadores()[1].getMemoria().getUsada() != 16
+                    || cargaControlador.getCargaInicial().getBuffers().length != 1)
+                throw new AssertionError("Carga no reservo RAM de buffer");
+            cargaControlador.iniciar();
+            long limiteCarga = System.nanoTime() + 2_000_000_000L;
+            while (cargaControlador.getCiclo() < 2 && System.nanoTime() < limiteCarga) Thread.sleep(5);
+            cargaControlador.pausar();
+            Modelo.CargaInicial exportadaCarga = cargaControlador.getCargaInicial();
+            if (exportadaCarga.getProcesos()[0].instrucciones() != 1 || exportadaCarga.getProcesos()[0].deadline() != 20)
+                throw new AssertionError("Se guardo contexto consumido");
+            try {
+                cargaControlador.cargarCarga(exportadaCarga);
+                throw new AssertionError("Se reemplazo simulacion activa");
+            } catch (IllegalStateException esperado) { }
+            cargaControlador.detener();
+            cargaControlador.cargarCarga(exportadaCarga);
+            if (cargaControlador.getCiclo() != 0 || cargaControlador.getComputadores()[0].getListos()[0].getPc() != 0
+                    || cargaControlador.getComputadores()[0].getListos()[0].getDeadline() != 20)
+                throw new AssertionError("No se reconstruyo carga inicial");
+            System.out.println("Carga del controlador: buffer reserva RAM; exportacion conserva atributos originales; reconstruccion en ciclo/PC cero: OK");
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de carga interrumpida", interrupcion);
+        }
+        System.out.println("Prueba de reconstruccion de carga inicial: OK");
+        */
+
         /* Prueba de archivo CSV verificada en consola.
         try {
             String nombreArchivoPrueba = "CPU, \"Avila\"\nlinea dos";
