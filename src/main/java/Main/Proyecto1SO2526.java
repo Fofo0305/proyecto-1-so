@@ -13,6 +13,42 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de configuracion de ejemplo verificada en consola.
+        try (Sistema.ControladorSimulacion ejemploControl = new Sistema.ControladorSimulacion()) {
+            Modelo.CargaInicial cargaEjemplo = Ejemplos.ConfiguracionInicial.crear();
+            Modelo.CargaInicial csvEjemplo = Persistencia.ArchivoConfiguracion.cargar(java.nio.file.Path.of("ejemplos", "cluster-inicial.csv"));
+            if (!java.util.Arrays.equals(cargaEjemplo.getProcesos(), csvEjemplo.getProcesos())
+                    || !java.util.Arrays.equals(cargaEjemplo.getBuffers(), csvEjemplo.getBuffers())
+                    || !java.util.Arrays.equals(cargaEjemplo.getConfiguracion().getRam(), csvEjemplo.getConfiguracion().getRam())
+                    || cargaEjemplo.getConfiguracion().getDuracionMs() != csvEjemplo.getConfiguracion().getDuracionMs())
+                throw new AssertionError("Ejemplo Java y CSV diferentes");
+            Interfaces.PanelArchivos[] ejemploPanel = new Interfaces.PanelArchivos[1];
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                ejemploPanel[0] = new Interfaces.PanelArchivos(ejemploControl, carga -> {
+                    if (!javax.swing.SwingUtilities.isEventDispatchThread()) throw new AssertionError("Callback fuera EDT");
+                });
+                ejemploPanel[0].cargarEjemplo();
+            });
+            String[] estadoEjemplo = {""};
+            long limiteEjemplo = System.nanoTime() + 2_000_000_000L;
+            do {
+                javax.swing.SwingUtilities.invokeAndWait(() -> estadoEjemplo[0] = ejemploPanel[0].getResultado());
+                if (estadoEjemplo[0].startsWith("Ejemplo listo")) break;
+                Thread.sleep(5);
+            } while (System.nanoTime() < limiteEjemplo);
+            if (!estadoEjemplo[0].startsWith("Ejemplo listo")) throw new AssertionError("No cargo ejemplo: " + estadoEjemplo[0]);
+            Sistema.Computador[] equiposEjemplo = ejemploControl.getComputadores();
+            if (equiposEjemplo[0].getNuevos().length != 1 || equiposEjemplo[0].getListos().length != 2)
+                throw new AssertionError("Ejemplo no demuestra espera por RAM");
+            for (int cicloEjemplo = 1; cicloEjemplo <= 20; cicloEjemplo++)
+                for (Sistema.Computador equipoEjemplo : equiposEjemplo) equipoEjemplo.avanzarCiclo(cicloEjemplo);
+            if (equiposEjemplo[0].getTerminados().length != 3 || equiposEjemplo[1].getTerminados().length != 2
+                    || equiposEjemplo[0].getMemoria().getUsada() != 8 || equiposEjemplo[1].getMemoria().getUsada() != 0)
+                throw new AssertionError("Ejemplo no termina o pierde reserva del buffer");
+            System.out.println("Ejemplo Java/CSV y boton: dos computadores, cinco procesos, espera RAM, readmision y buffer de 8 unidades: OK");
+        } catch (java.io.IOException | java.lang.reflect.InvocationTargetException error) { throw new IllegalStateException(error); }
+        catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new IllegalStateException(error); }
+        */
         /* Prueba de colas graficas verificada en consola.
         Sistema.Computador graficoUno = new Sistema.Computador(1, 64);
         Sistema.Computador graficoDos = new Sistema.Computador(2, 64);

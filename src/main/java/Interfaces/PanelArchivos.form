@@ -9,6 +9,7 @@
   <SubComponents>
     <Component class="javax.swing.JButton" name="guardar"><Properties><Property name="text" type="java.lang.String" value="Guardar carga inicial CSV"/></Properties></Component>
     <Component class="javax.swing.JButton" name="cargar"><Properties><Property name="text" type="java.lang.String" value="Cargar configuracion CSV"/></Properties></Component>
+    <Component class="javax.swing.JButton" name="ejemplo"><Properties><Property name="text" type="java.lang.String" value="Cargar ejemplo"/></Properties></Component>
     <Component class="javax.swing.JLabel" name="resultado"><Properties><Property name="text" type="java.lang.String" value="Sin archivo"/></Properties></Component>
   </SubComponents>
 </Form>

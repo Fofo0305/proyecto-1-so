@@ -21,6 +21,7 @@ public class PanelArchivos extends javax.swing.JPanel {
         initComponents();
         guardar.addActionListener(evento -> seleccionar(true));
         cargar.addActionListener(evento -> seleccionar(false));
+        ejemplo.addActionListener(evento -> cargarEjemplo());
     }
 
     private void seleccionar(boolean escritura) {
@@ -40,7 +41,7 @@ public class PanelArchivos extends javax.swing.JPanel {
     /** Recibe una ruta elegida; no espera por disco ni por el núcleo en EDT. */
     public void procesarArchivo(Path ruta, boolean escritura) {
         if (controlador == null || ruta == null) { resultado.setText("Archivo y controlador obligatorios"); return; }
-        guardar.setEnabled(false); cargar.setEnabled(false);
+        guardar.setEnabled(false); cargar.setEnabled(false); ejemplo.setEnabled(false);
         resultado.setText(escritura ? "Guardando..." : "Cargando...");
         Thread trabajador = new Thread(() -> {
             try {
@@ -55,7 +56,7 @@ public class PanelArchivos extends javax.swing.JPanel {
             } catch (java.io.IOException | RuntimeException error) {
                 javax.swing.SwingUtilities.invokeLater(() -> resultado.setText("Error: " + error.getMessage()));
             } finally {
-                javax.swing.SwingUtilities.invokeLater(() -> { guardar.setEnabled(true); cargar.setEnabled(true); });
+                javax.swing.SwingUtilities.invokeLater(() -> { guardar.setEnabled(true); cargar.setEnabled(true); ejemplo.setEnabled(true); });
             }
         }, "Archivo-configuracion");
         trabajador.setDaemon(true);
@@ -64,18 +65,44 @@ public class PanelArchivos extends javax.swing.JPanel {
 
     public String getResultado() { return resultado.getText(); }
 
+    /** Construye el ejemplo fuera del EDT y lo carga mediante el mismo controlador. */
+    public void cargarEjemplo() {
+        if (controlador == null) { resultado.setText("Sin controlador"); return; }
+        guardar.setEnabled(false); cargar.setEnabled(false); ejemplo.setEnabled(false);
+        resultado.setText("Cargando ejemplo...");
+        Thread trabajador = new Thread(() -> {
+            try {
+                CargaInicial carga = Ejemplos.ConfiguracionInicial.crear();
+                controlador.cargarCarga(carga);
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    alCargar.accept(carga);
+                    resultado.setText("Ejemplo listo · pulse Iniciar");
+                });
+            } catch (RuntimeException error) {
+                javax.swing.SwingUtilities.invokeLater(() -> resultado.setText("Error: " + error.getMessage()));
+            } finally {
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    guardar.setEnabled(true); cargar.setEnabled(true); ejemplo.setEnabled(true);
+                });
+            }
+        }, "Cargar-ejemplo");
+        trabajador.setDaemon(true); trabajador.start();
+    }
+
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
-        guardar = new javax.swing.JButton(); cargar = new javax.swing.JButton(); resultado = new javax.swing.JLabel();
+        guardar = new javax.swing.JButton(); cargar = new javax.swing.JButton(); ejemplo = new javax.swing.JButton(); resultado = new javax.swing.JLabel();
         setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
         guardar.setText("Guardar carga inicial CSV"); add(guardar);
         cargar.setText("Cargar configuracion CSV"); add(cargar);
+        ejemplo.setText("Cargar ejemplo"); add(ejemplo);
         resultado.setText("Sin archivo"); add(resultado);
     }// </editor-fold>//GEN-END:initComponents
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton guardar;
     private javax.swing.JButton cargar;
+    private javax.swing.JButton ejemplo;
     private javax.swing.JLabel resultado;
     // End of variables declaration//GEN-END:variables
 }
