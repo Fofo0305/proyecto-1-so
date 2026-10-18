@@ -1,12 +1,15 @@
 package Interfaces;
 
+import javax.swing.*;
+import java.awt.*;
+
 import Sistema.ControladorSimulacion;
 
 /**
  * Controles del reloj. Las operaciones del núcleo se ejecutan fuera del EDT.
  * @author Adolfo
  */
-public class PanelControles extends javax.swing.JPanel {
+public class PanelControles extends JPanel {
     private final ControladorSimulacion controlador;
 
     public PanelControles() { this(null); }
@@ -44,7 +47,7 @@ public class PanelControles extends javax.swing.JPanel {
                 mensaje = error.getMessage();
             }
             final String texto = mensaje;
-            javax.swing.SwingUtilities.invokeLater(() -> { resultado.setText(texto); habilitar(true); });
+            SwingUtilities.invokeLater(() -> { resultado.setText(texto); habilitar(true); });
         }, "Control-simulacion");
         trabajador.setDaemon(true);
         trabajador.start();
@@ -56,6 +59,10 @@ public class PanelControles extends javax.swing.JPanel {
     }
 
     public void mostrarDuracion(int duracionMs) { ciclo.setText(Integer.toString(duracionMs)); }
+    public void prepararSesion(int duracionMs) {
+        mostrarDuracion(duracionMs);
+        resultado.setText("Preparado");
+    }
     public String getDuracionMostrada() { return ciclo.getText(); }
     public String getResultado() { return resultado.getText(); }
 
