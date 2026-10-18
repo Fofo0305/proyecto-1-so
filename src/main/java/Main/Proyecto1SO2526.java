@@ -13,6 +13,35 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de CPU y modos verificada en consola.
+        Sistema.CPU cpuPrueba = new Sistema.CPU();
+        cpuPrueba.avanzarCiclo(1);
+        if (cpuPrueba.getModo() != Modelo.ModoCPU.SISTEMA_OPERATIVO) throw new AssertionError("Modo en reposo incorrecto");
+        Modelo.Proceso cpuProceso = new Modelo.Proceso("CPU", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 2, 10);
+        cpuProceso.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        cpuPrueba.asignar(cpuProceso);
+        cpuPrueba.avanzarCiclo(2);
+        if (cpuProceso.getPc() != 1 || cpuProceso.getMar() != 1 || cpuProceso.getRestante() != 1
+                || cpuPrueba.getModo() != Modelo.ModoCPU.USUARIO) throw new AssertionError("Instruccion de CPU incorrecta");
+        try {
+            cpuPrueba.avanzarCiclo(2);
+            throw new AssertionError("Ciclo repetido aceptado");
+        } catch (IllegalArgumentException esperado) { }
+        if (cpuProceso.getPc() != 1) throw new AssertionError("Se ejecuto dos veces el ciclo");
+        cpuPrueba.avanzarCiclo(3);
+        if (cpuProceso.getPc() != 2 || cpuPrueba.retirar() != cpuProceso || cpuPrueba.getActual() != null)
+            throw new AssertionError("Retiro de contexto incorrecto");
+        Modelo.Proceso ioCpu = new Modelo.Proceso("IO", 1, Modelo.TipoProceso.IO_BOUND, 0, 1, 1, 10);
+        ioCpu.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        try {
+            cpuPrueba.asignar(ioCpu);
+            throw new AssertionError("IO ejecutado sin modulo de entrada/salida");
+        } catch (IllegalArgumentException esperado) { }
+        cpuPrueba.avanzarCiclo(4);
+        System.out.println("CPU: una instruccion por ciclo, PC/MAR 2/2, contexto retirado y modo sistema en reposo");
+        System.out.println("Prueba de CPU y modos: OK");
+        */
+
         /* Prueba de politica y FCFS verificada en consola.
         Planificacion.Politica politicaFcfs = new Planificacion.FCFS();
         EDD.Cola<Modelo.Proceso> listosFcfs = new EDD.Cola<>();
