@@ -13,6 +13,31 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de controlador y ensamblado verificada en consola.
+        try (Sistema.ControladorSimulacion controladorPrueba = new Sistema.ControladorSimulacion()) {
+            if (controladorPrueba.getComputadores().length != 0) throw new AssertionError("Cluster prematuro");
+            Modelo.Configuracion inicialControlador = new Modelo.Configuracion(new int[] {64, 128}, 20, 3, 0);
+            controladorPrueba.configurar(inicialControlador);
+            Sistema.Computador[] computadoresPrueba = controladorPrueba.getComputadores();
+            if (computadoresPrueba.length != 2 || computadoresPrueba[0].getId() != 1 || computadoresPrueba[1].getId() != 2
+                    || computadoresPrueba[0].getMemoria().getCapacidad() != 64 || computadoresPrueba[1].getMemoria().getCapacidad() != 128
+                    || controladorPrueba.getCiclo() != 0 || controladorPrueba.getConfiguracion() != inicialControlador)
+                throw new AssertionError("Ensamblado de cluster incorrecto");
+            computadoresPrueba[0] = null;
+            if (controladorPrueba.getComputadores()[0] == null) throw new AssertionError("Arreglo interno expuesto");
+            try {
+                controladorPrueba.configurar(null);
+                throw new AssertionError("Configuracion nula aceptada");
+            } catch (IllegalArgumentException esperado) {
+                if (controladorPrueba.getConfiguracion() != inicialControlador) throw new AssertionError("Se perdio configuracion anterior");
+            }
+            controladorPrueba.configurar(new Modelo.Configuracion(new int[] {32, 64, 96}, 10, 2, 1));
+            if (controladorPrueba.getComputadores().length != 3) throw new AssertionError("No reemplazo cluster");
+            System.out.println("Controlador: cluster de dos computadores y reemplazo por tres con RAM independiente: OK");
+        }
+        System.out.println("Prueba de ensamblado y cierre del controlador: OK");
+        */
+
         /* Prueba de configuracion del cluster verificada en consola.
         int[] ramConfiguracion = {64, 128};
         Modelo.Configuracion configuracionPrueba = new Modelo.Configuracion(ramConfiguracion, 100, 4, 2);
