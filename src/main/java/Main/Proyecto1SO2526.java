@@ -13,6 +13,44 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de ejecucion FCFS integrada verificada en consola.
+        Sistema.Computador flujoCpu = new Sistema.Computador(1, 64);
+        Modelo.Proceso flujoA = new Modelo.Proceso("A", 1, Modelo.TipoProceso.CPU_BOUND, 0, 64, 2, 2);
+        Modelo.Proceso flujoB = new Modelo.Proceso("B", 1, Modelo.TipoProceso.CPU_BOUND, 0, 32, 1, 5);
+        Modelo.Proceso flujoVence = new Modelo.Proceso("Vence", 1, Modelo.TipoProceso.CPU_BOUND, 0, 100, 1, 1);
+        flujoCpu.recibirProceso(flujoA);
+        flujoCpu.recibirProceso(flujoB);
+        flujoCpu.recibirProceso(flujoVence);
+        flujoCpu.avanzarCiclo(1);
+        if (flujoA.getPc() != 1 || flujoA.getDeadline() != 1 || flujoB.getDeadline() != 4
+                || flujoVence.getEstado() != Modelo.EstadoProceso.TERMINADO || flujoCpu.getProcesoEnCPU() != flujoA)
+            throw new AssertionError("Primer ciclo o vencimiento incorrecto");
+        flujoCpu.avanzarCiclo(2);
+        if (flujoA.getRestante() != 0 || flujoA.getEstado() != Modelo.EstadoProceso.TERMINADO
+                || flujoB.getEstado() != Modelo.EstadoProceso.LISTO || flujoB.getDeadline() != 3
+                || flujoCpu.getMemoria().getUsada() != 32) throw new AssertionError("Finalizacion o readmision incorrecta");
+        flujoCpu.avanzarCiclo(3);
+        if (flujoB.getPc() != 1 || flujoCpu.getTerminados().length != 3 || flujoCpu.getMemoria().getUsada() != 0)
+            throw new AssertionError("Flujo FCFS incompleto");
+        try {
+            flujoCpu.avanzarCiclo(3);
+            throw new AssertionError("Ciclo duplicado aceptado");
+        } catch (IllegalArgumentException esperado) { }
+        Sistema.Computador segundoFlujo = new Sistema.Computador(2, 32);
+        segundoFlujo.avanzarCiclo(1);
+        if (segundoFlujo.getUltimoCiclo() != 1 || segundoFlujo.getModoCPU() != Modelo.ModoCPU.SISTEMA_OPERATIVO)
+            throw new AssertionError("Computador vacio incorrecto");
+        Sistema.Computador tiposFlujo = new Sistema.Computador(3, 32);
+        tiposFlujo.recibirProceso(new Modelo.Proceso("IO", 3, Modelo.TipoProceso.IO_BOUND, 0, 1, 1, 2));
+        try {
+            tiposFlujo.avanzarCiclo(1);
+            throw new AssertionError("Tipo no implementado aceptado");
+        } catch (UnsupportedOperationException esperado) { }
+        System.out.println("FCFS integrado: A ejecuta dos ciclos, B espera RAM y ejecuta despues, Vence termina en nuevos");
+        System.out.println("Plazos una vez por ciclo y RAM final 0: OK");
+        System.out.println("Prueba de ejecucion FCFS por computador: OK");
+        */
+
         /* Prueba de CPU y modos verificada en consola.
         Sistema.CPU cpuPrueba = new Sistema.CPU();
         cpuPrueba.avanzarCiclo(1);

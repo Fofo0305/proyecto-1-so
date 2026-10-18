@@ -5,6 +5,10 @@ import Modelo.Proceso;
 import EDD.Cola;
 import Modelo.EstadoProceso;
 import Modelo.MotivoBloqueo;
+import Modelo.ModoCPU;
+import Modelo.TipoProceso;
+import Planificacion.Politica;
+import Planificacion.FCFS;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -19,6 +23,9 @@ public class Computador {
     private final Cola<Proceso> listos = new Cola<>();
     private final Cola<Proceso> bloqueados = new Cola<>();
     private final Cola<Proceso> terminados = new Cola<>();
+    private final CPU cpu = new CPU();
+    private final Politica politica = new FCFS();
+    private long ultimoCiclo;
 
     public Computador(int id, int capacidadRam) {
         if (id < 1) {
@@ -42,7 +49,8 @@ public class Computador {
                 throw new IllegalArgumentException("El proceso debe ser nuevo y pertenecer a este computador");
             }
             if (contiene(nuevos, proceso.getId()) || contiene(listos, proceso.getId())
-                    || contiene(bloqueados, proceso.getId()) || contiene(terminados, proceso.getId())) {
+                    || contiene(bloqueados, proceso.getId()) || contiene(terminados, proceso.getId())
+                    || cpu.getActual() == proceso) {
                 throw new IllegalArgumentException("El proceso ya pertenece al computador");
             }
             nuevos.agregar(proceso);
@@ -94,22 +102,81 @@ public class Computador {
         }
         mutex.acquireUninterruptibly();
         try {
-            if (contiene(terminados, proceso.getId())) return false;
-            if (!contiene(nuevos, proceso.getId()) && !contiene(listos, proceso.getId())
-                    && !contiene(bloqueados, proceso.getId())) {
-                throw new IllegalArgumentException("El proceso no esta registrado en el computador");
-            }
-            proceso.cambiarEstado(EstadoProceso.TERMINADO, MotivoBloqueo.NINGUNO);
-            retirar(nuevos, proceso.getId());
-            retirar(listos, proceso.getId());
-            retirar(bloqueados, proceso.getId());
-            memoria.liberar("proceso:" + proceso.getId());
-            terminados.agregar(proceso);
+            boolean resultado = terminarRegistrado(proceso);
             admitirPendientes();
-            return true;
+            return resultado;
         } finally {
             mutex.release();
         }
+    }
+
+    private boolean terminarRegistrado(Proceso proceso) {
+        if (contiene(terminados, proceso.getId())) return false;
+        if (!contiene(nuevos, proceso.getId()) && !contiene(listos, proceso.getId())
+                && !contiene(bloqueados, proceso.getId()) && cpu.getActual() != proceso)
+            throw new IllegalArgumentException("El proceso no esta registrado en el computador");
+        proceso.cambiarEstado(EstadoProceso.TERMINADO, MotivoBloqueo.NINGUNO);
+        retirar(nuevos, proceso.getId());
+        retirar(listos, proceso.getId());
+        retirar(bloqueados, proceso.getId());
+        if (cpu.getActual() == proceso) cpu.retirar();
+        memoria.liberar("proceso:" + proceso.getId());
+        terminados.agregar(proceso);
+        return true;
+    }
+
+    /** Ejecuta una instrucción FCFS y descuenta una vez todos los plazos del ciclo. */
+    public void avanzarCiclo(long ciclo) {
+        mutex.acquireUninterruptibly();
+        try {
+            if (ciclo != ultimoCiclo + 1) throw new IllegalArgumentException("El ciclo debe ser consecutivo");
+            for (Object elemento : nuevos.instantanea()) validarTipoEjecucion((Proceso) elemento);
+            for (Object elemento : listos.instantanea()) validarTipoEjecucion((Proceso) elemento);
+            admitirPendientes();
+            Object[][] colasCiclo = {nuevos.instantanea(), listos.instantanea(), bloqueados.instantanea()};
+            Proceso anterior = cpu.getActual();
+            if (anterior == null) {
+                Proceso seleccionado = politica.seleccionar(listos);
+                if (seleccionado != null) cpu.asignar(seleccionado);
+            }
+            cpu.avanzarCiclo(ciclo);
+            for (Object[] cola : colasCiclo)
+                for (Object elemento : cola) ((Proceso) elemento).descontarDeadline();
+            if (anterior != null) anterior.descontarDeadline();
+            Proceso ejecutado = cpu.getActual();
+            if (ejecutado != null && ejecutado.getRestante() == 0) terminarRegistrado(ejecutado);
+            for (Object[] cola : colasCiclo) {
+                for (Object elemento : cola) {
+                    Proceso proceso = (Proceso) elemento;
+                    if (proceso.getEstado() != EstadoProceso.TERMINADO && proceso.getDeadline() == 0)
+                        terminarRegistrado(proceso);
+                }
+            }
+            if (anterior != null && anterior.getEstado() != EstadoProceso.TERMINADO && anterior.getDeadline() == 0)
+                terminarRegistrado(anterior);
+            admitirPendientes();
+            ultimoCiclo = ciclo;
+        } finally { mutex.release(); }
+    }
+
+    private void validarTipoEjecucion(Proceso proceso) {
+        if (proceso.getTipo() != TipoProceso.CPU_BOUND)
+            throw new UnsupportedOperationException("Este flujo solo ejecuta CPU_BOUND; falta el modulo de " + proceso.getTipo());
+    }
+
+    public Proceso getProcesoEnCPU() {
+        mutex.acquireUninterruptibly();
+        try { return cpu.getActual(); } finally { mutex.release(); }
+    }
+
+    public ModoCPU getModoCPU() {
+        mutex.acquireUninterruptibly();
+        try { return cpu.getModo(); } finally { mutex.release(); }
+    }
+
+    public long getUltimoCiclo() {
+        mutex.acquireUninterruptibly();
+        try { return ultimoCiclo; } finally { mutex.release(); }
     }
 
     private void retirar(Cola<Proceso> cola, long idProceso) {
