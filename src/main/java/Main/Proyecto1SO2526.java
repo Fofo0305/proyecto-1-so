@@ -13,6 +13,41 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de configuracion desde ventana verificada en consola.
+        Interfaces.VentanaPrincipal[] ventanaConfiguracion = new Interfaces.VentanaPrincipal[1];
+        try {
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                ventanaConfiguracion[0] = new Interfaces.VentanaPrincipal();
+                ventanaConfiguracion[0].setVisible(true);
+                ventanaConfiguracion[0].getPanelConfiguracion().mostrarConfiguracion(new Modelo.Configuracion(new int[] {64, 96}, 10, 2, 0));
+                ventanaConfiguracion[0].aplicarConfiguracion();
+            });
+            long limiteVentana = System.nanoTime() + 2_000_000_000L;
+            while (ventanaConfiguracion[0].getControlador().getConfiguracion() == null && System.nanoTime() < limiteVentana) Thread.sleep(5);
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                if (ventanaConfiguracion[0].getControlador().getComputadores().length != 2
+                        || ventanaConfiguracion[0].getControlador().getComputadores()[1].getMemoria().getCapacidad() != 96)
+                    throw new AssertionError("La ventana no configuro el controlador");
+                javax.swing.JTextField campoInvalidoVentana = (javax.swing.JTextField) ventanaConfiguracion[0].getPanelConfiguracion().getComponent(1);
+                campoInvalidoVentana.setText("no-numero");
+                ventanaConfiguracion[0].aplicarConfiguracion();
+                if (!ventanaConfiguracion[0].getEstado().contains("enteros")) throw new AssertionError("Error no mostrado");
+                System.out.println("Ventana: cluster construido fuera de EDT y error de entrada visible: OK");
+            });
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de configuracion interrumpida", interrupcion);
+        } catch (java.lang.reflect.InvocationTargetException errorVentana) {
+            throw new IllegalStateException("Fallo de configuracion grafica", errorVentana.getCause());
+        } finally {
+            if (ventanaConfiguracion[0] != null) {
+                ventanaConfiguracion[0].getControlador().close();
+                javax.swing.SwingUtilities.invokeLater(ventanaConfiguracion[0]::dispose);
+            }
+        }
+        System.out.println("Prueba de configuracion desde ventana principal: OK");
+        */
+
         /* Prueba de panel configuracion verificada en consola.
         try {
             javax.swing.SwingUtilities.invokeAndWait(() -> {

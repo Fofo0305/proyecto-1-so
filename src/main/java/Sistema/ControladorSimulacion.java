@@ -13,12 +13,14 @@ public class ControladorSimulacion implements AutoCloseable {
     private Configuracion configuracion;
     private Computador[] computadores;
     private RelojGlobal reloj;
+    private boolean cerrado;
 
     /** Reemplaza la simulación únicamente si el reloj anterior está detenido o no iniciado. */
     public void configurar(Configuracion nueva) {
         if (nueva == null) throw new IllegalArgumentException("La configuracion es obligatoria");
         mutex.acquireUninterruptibly();
         try {
+            if (cerrado) throw new IllegalStateException("El controlador esta cerrado");
             if (reloj != null && reloj.estaActivo())
                 throw new IllegalStateException("Detenga la simulacion antes de cambiar la configuracion");
             int[] capacidades = nueva.getRam();
@@ -53,6 +55,9 @@ public class ControladorSimulacion implements AutoCloseable {
     @Override
     public void close() {
         mutex.acquireUninterruptibly();
-        try { if (reloj != null) reloj.close(); } finally { mutex.release(); }
+        try {
+            cerrado = true;
+            if (reloj != null) reloj.close();
+        } finally { mutex.release(); }
     }
 }
