@@ -13,6 +13,29 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de carga inicial verificada en consola.
+        Modelo.DefinicionProceso[] definicionesPrueba = {new Modelo.DefinicionProceso("Inicial", 1, 0, 32, 3, 10)};
+        Modelo.DefinicionBuffer[] buffersPrueba = {new Modelo.DefinicionBuffer("B1", 16, 2)};
+        Modelo.CargaInicial cargaPrueba = new Modelo.CargaInicial(new Modelo.Configuracion(new int[] {64, 64}, 100, 4, 2), definicionesPrueba, buffersPrueba);
+        definicionesPrueba[0] = null;
+        cargaPrueba.getBuffers()[0] = null;
+        Modelo.Proceso restauradoPrueba = cargaPrueba.getProcesos()[0].crearProceso();
+        if (restauradoPrueba.getPc() != 0 || restauradoPrueba.getEstado() != Modelo.EstadoProceso.NUEVO
+                || cargaPrueba.getBuffers()[0].capacidad() != 16) throw new AssertionError("Carga inicial mutable o con contexto vivo");
+        try {
+            new Modelo.CargaInicial(cargaPrueba.getConfiguracion(), cargaPrueba.getProcesos(),
+                    new Modelo.DefinicionBuffer[] {new Modelo.DefinicionBuffer("Exceso", 65, 2)});
+            throw new AssertionError("Buffers sin RAM aceptados");
+        } catch (IllegalArgumentException esperado) { }
+        try {
+            new Modelo.CargaInicial(cargaPrueba.getConfiguracion(), new Modelo.DefinicionProceso[] {
+                    new Modelo.DefinicionProceso("Inexistente", 3, 0, 1, 1, 1)}, cargaPrueba.getBuffers());
+            throw new AssertionError("Proceso sin computador aceptado");
+        } catch (IllegalArgumentException esperado) { }
+        System.out.println("Carga inicial: copias aisladas, proceso reconstruido NUEVO/PC0, metadatos buffer y rangos: OK");
+        System.out.println("Prueba de modelos para persistencia: OK");
+        */
+
         /* Prueba integrada de interfaz verificada en consola.
         Interfaces.VentanaPrincipal[] interfazIntegrada = new Interfaces.VentanaPrincipal[1];
         try {
