@@ -52,8 +52,18 @@ public class PanelComputadores extends javax.swing.JPanel {
     /** Actualiza solo componentes Swing a partir de vistas inmutables ya capturadas. */
     public void mostrarVistas(VistaComputador[] vistas, String estado, long ciclo) {
         ultimasVistas = vistas.clone();
-        cabecera.setText("<html>Ciclo global: " + ciclo + " | " + estado.replace("&", "&amp;").replace("<", "&lt;")
-                + "<br><span style='font-size:10px;font-weight:normal'>Nuevos → RAM disponible → Listos → CPU → Terminados · Bloqueados: espera de recurso</span></html>");
+        cabecera.setText("Ciclo global: " + ciclo + " | " + estado);
+        int nuevos = 0, listos = 0, activos = 0, terminados = 0;
+        long ramUsada = 0, ramTotal = 0;
+        for (VistaComputador vista : vistas) {
+            nuevos += vista.colaNuevos().length; listos += vista.colaListos().length;
+            activos += vista.procesoCPU() == null ? 0 : 1; terminados += vista.colaTerminados().length;
+            ramUsada += vista.usada(); ramTotal += (long) vista.usada() + vista.libre();
+        }
+        resumen.setText(vistas.length == 0 ? "Comienza en Configuracion: carga el ejemplo o prepara tu cluster."
+                : "Cluster · " + vistas.length + " equipos    |    CPU activas " + activos
+                + "    |    Esperan RAM " + nuevos + "    |    Listos " + listos
+                + "    |    Terminados " + terminados + "    |    RAM " + ramUsada + "/" + ramTotal);
         StringBuilder contenido = new StringBuilder();
         for (VistaComputador vista : vistas) {
             contenido.append("COMPUTADOR ").append(vista.id()).append(" | ciclo ").append(vista.ciclo())
@@ -73,7 +83,7 @@ public class PanelComputadores extends javax.swing.JPanel {
                 detalle.add(paneles[i]);
                 detalle.add(javax.swing.Box.createVerticalStrut(16));
             }
-            if (vistas.length == 0) detalle.add(new javax.swing.JLabel("Configure el cluster para observar CPU, RAM y colas."));
+            if (vistas.length == 0) detalle.add(crearBienvenida());
         }
         if (selector.getItemCount() != vistas.length + 1) {
             ajustandoSelector = true;
@@ -109,6 +119,18 @@ public class PanelComputadores extends javax.swing.JPanel {
 
     public String getDetalle() { return textoDetalle; }
     public String getCabecera() { return cabecera.getText(); }
+    public String getResumen() { return resumen.getText(); }
+
+    private javax.swing.JLabel crearBienvenida() {
+        javax.swing.JLabel mensaje = new javax.swing.JLabel("<html><h1>Tu cluster, de un vistazo</h1>"
+                + "1. Abre Configuracion y pulsa Cargar ejemplo.<br><br>"
+                + "2. Pulsa Iniciar para ver avanzar los procesos.<br><br>"
+                + "3. Usa Pausar para explorar las colas y los detalles.<br><br>"
+                + "Cada computador mostrara su CPU, memoria y procesos en tiempo real.</html>");
+        mensaje.setForeground(new java.awt.Color(64, 83, 111));
+        mensaje.setBorder(javax.swing.BorderFactory.createEmptyBorder(48, 32, 48, 32));
+        return mensaje;
+    }
 
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -119,11 +141,16 @@ public class PanelComputadores extends javax.swing.JPanel {
         opciones = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
         selector = new javax.swing.JComboBox<>();
         detalles = new javax.swing.JCheckBox("Detalles PCB");
+        resumen = new javax.swing.JLabel("Comienza en Configuracion: carga el ejemplo o prepara tu cluster.");
+        resumen.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 0, 8, 0));
+        resumen.setForeground(new java.awt.Color(82, 101, 127));
         selector.addItem("Todos los computadores");
         selector.setToolTipText("Enfocar un computador o ver el cluster completo");
         opciones.add(selector); opciones.add(detalles);
         herramientas.add(cabecera, java.awt.BorderLayout.CENTER);
         herramientas.add(opciones, java.awt.BorderLayout.EAST);
+        herramientas.add(resumen, java.awt.BorderLayout.SOUTH);
+        herramientas.setOpaque(false); opciones.setOpaque(false); detalles.setOpaque(false);
         setLayout(new java.awt.BorderLayout(8, 8));
         cabecera.setText("Ciclo global: 0 | Sin configurar"); add(herramientas, java.awt.BorderLayout.NORTH);
         setPreferredSize(new java.awt.Dimension(1140, 640));
@@ -133,7 +160,7 @@ public class PanelComputadores extends javax.swing.JPanel {
         cabecera.setForeground(new java.awt.Color(26, 46, 75));
         detalle.setLayout(new javax.swing.BoxLayout(detalle, javax.swing.BoxLayout.Y_AXIS));
         detalle.setBackground(new java.awt.Color(242, 246, 251));
-        detalle.add(new javax.swing.JLabel("Configure el cluster para observar CPU, RAM y colas."));
+        detalle.add(crearBienvenida());
         desplazamiento.setBorder(null);
         desplazamiento.getVerticalScrollBar().setUnitIncrement(24);
         desplazamiento.setViewportView(detalle);
@@ -148,5 +175,6 @@ public class PanelComputadores extends javax.swing.JPanel {
     private javax.swing.JPanel opciones;
     private javax.swing.JComboBox<String> selector;
     private javax.swing.JCheckBox detalles;
+    private javax.swing.JLabel resumen;
     // End of variables declaration//GEN-END:variables
 }

@@ -13,6 +13,41 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de configuracion amigable verificada en consola.
+        try {
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                Interfaces.PanelConfiguracion panelAmigable = new Interfaces.PanelConfiguracion();
+                javax.swing.JFrame ventanaAmigable = new javax.swing.JFrame("Configuracion del cluster");
+                try {
+                    ventanaAmigable.setContentPane(panelAmigable); ventanaAmigable.setSize(1080, 640); ventanaAmigable.setVisible(true);
+                    javax.swing.JPanel formularioAmigable = (javax.swing.JPanel) panelAmigable.getComponent(1);
+                    javax.swing.JTextField cicloAmigable = null;
+                    javax.swing.JCheckBox opcionesAmigable = null;
+                    for (java.awt.Component componenteAmigable : formularioAmigable.getComponents()) {
+                        if (componenteAmigable instanceof javax.swing.JTextField campoAmigable && "ciclo".equals(campoAmigable.getName())) cicloAmigable = campoAmigable;
+                        if (componenteAmigable instanceof javax.swing.JCheckBox casillaAmigable) opcionesAmigable = casillaAmigable;
+                    }
+                    if (cicloAmigable == null || opcionesAmigable == null) throw new AssertionError("Faltan campos o opciones");
+                    cicloAmigable.setText("0");
+                    try { panelAmigable.leerConfiguracion(); throw new AssertionError("Ciclo cero aceptado"); }
+                    catch (IllegalArgumentException esperado) {
+                        if (!esperado.getMessage().contains("Duracion") || !(cicloAmigable.getBorder() instanceof javax.swing.border.LineBorder))
+                            throw new AssertionError("No explica ni destaca el campo invalido");
+                    }
+                    panelAmigable.mostrarConfiguracion(new Modelo.Configuracion(new int[] {64, 96}, 700, 4, 0));
+                    if (panelAmigable.leerConfiguracion().getDuracionMs() != 700) throw new AssertionError("Cambio de campos altera valores");
+                    opcionesAmigable.doClick(); opcionesAmigable.doClick(); ventanaAmigable.validate();
+                    java.awt.image.BufferedImage imagenAmigable = new java.awt.image.BufferedImage(ventanaAmigable.getWidth(), ventanaAmigable.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
+                    java.awt.Graphics2D pincelAmigable = imagenAmigable.createGraphics();
+                    try { ventanaAmigable.printAll(pincelAmigable); } finally { pincelAmigable.dispose(); }
+                    try { javax.imageio.ImageIO.write(imagenAmigable, "png", new java.io.File("target/configuracion-amigable.png")); }
+                    catch (java.io.IOException error) { throw new IllegalStateException(error); }
+                } finally { ventanaAmigable.dispose(); }
+            });
+            System.out.println("Configuracion amigable: parametros opcionales, validacion del ciclo con campo destacado y valores 64/96 a 700 ms: OK");
+        } catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new IllegalStateException(error); }
+        catch (java.lang.reflect.InvocationTargetException error) { throw new IllegalStateException(error.getCause()); }
+        */
         /* Prueba de scroll estable verificada en consola.
         Sistema.Computador equipoScroll = new Sistema.Computador(1, 64);
         for (int procesoScroll = 0; procesoScroll < 16; procesoScroll++)
@@ -111,6 +146,7 @@ public class Proyecto1SO2526 {
             javax.swing.SwingUtilities.invokeAndWait(() -> {
                 Interfaces.PanelComputadores panelGrafico = new Interfaces.PanelComputadores();
                 panelGrafico.mostrarVistas(graficas, "Pausado · inspeccion del ciclo", 1);
+                if (!panelGrafico.getResumen().contains("Esperan RAM 1") || !panelGrafico.getResumen().contains("Terminados 1")) throw new AssertionError("Resumen no coincide con las colas");
                 if (panelGrafico.getComputadoresVisibles() != 2) throw new AssertionError("No muestra el cluster");
                 panelGrafico.seleccionarComputador(1);
                 if (panelGrafico.getComputadoresVisibles() != 1) throw new AssertionError("Filtro no enfoca computador");

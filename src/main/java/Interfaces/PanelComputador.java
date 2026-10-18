@@ -126,6 +126,7 @@ public class PanelComputador extends JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
         setLayout(new BorderLayout(12, 12));
-        setPreferredSize(new Dimension(1080, 360));
+        setPreferredSize(new Dimension(1080, 420));
+        setMinimumSize(new Dimension(0, 420));
     }// </editor-fold>//GEN-END:initComponents
 }

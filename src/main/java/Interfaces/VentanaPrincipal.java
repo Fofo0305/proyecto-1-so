@@ -27,7 +27,10 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         javax.swing.JPanel contenido = new javax.swing.JPanel(new java.awt.BorderLayout(12, 12));
         contenido.setBorder(javax.swing.BorderFactory.createEmptyBorder(16, 16, 16, 16));
         javax.swing.JPanel configuracion = new javax.swing.JPanel(new java.awt.BorderLayout(8, 8));
-        configuracion.add(panelConfiguracion, java.awt.BorderLayout.CENTER);
+        javax.swing.JScrollPane desplazamientoConfig = new javax.swing.JScrollPane(panelConfiguracion);
+        desplazamientoConfig.setBorder(null);
+        desplazamientoConfig.getVerticalScrollBar().setUnitIncrement(20);
+        configuracion.add(desplazamientoConfig, java.awt.BorderLayout.CENTER);
         configuracion.add(botonConfigurar, java.awt.BorderLayout.SOUTH);
         configuracion.add(panelArchivos, java.awt.BorderLayout.NORTH);
         javax.swing.JPanel procesos = new javax.swing.JPanel(new java.awt.BorderLayout(8, 8));
@@ -66,6 +69,15 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         pie.add(panelControles, java.awt.BorderLayout.NORTH);
         pie.add(estado, java.awt.BorderLayout.SOUTH);
         getContentPane().add(pie, java.awt.BorderLayout.SOUTH);
+        titulo.setText("AvilaOS  /  Simulador de procesos");
+        titulo.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 20));
+        titulo.setForeground(new java.awt.Color(30, 49, 77));
+        titulo.setBorder(javax.swing.BorderFactory.createEmptyBorder(18, 16, 4, 16));
+        botonConfigurar.setText("Crear cluster y abrir simulacion");
+        botonConfigurar.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 14));
+        botonConfigurar.setMargin(new java.awt.Insets(10, 16, 10, 16));
+        botonConfigurar.setToolTipText("Reemplaza la sesion actual con los datos del formulario");
+        estado.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 16, 10, 16));
         botonConfigurar.addActionListener(evento -> aplicarConfiguracion());
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
