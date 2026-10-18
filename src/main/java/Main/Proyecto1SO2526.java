@@ -13,6 +13,37 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de controles de reloj verificada en consola.
+        Sistema.Computador automaticoUno = new Sistema.Computador(1, 32);
+        Sistema.Computador automaticoDos = new Sistema.Computador(2, 32);
+        try (Sistema.RelojGlobal automatico = new Sistema.RelojGlobal(new Sistema.ComponenteReloj[] {automaticoUno, automaticoDos})) {
+            automatico.setDuracionMs(5);
+            automatico.iniciar();
+            long limiteAutomatico = System.nanoTime() + 2_000_000_000L;
+            while (automatico.getCiclo() < 3 && System.nanoTime() < limiteAutomatico) Thread.sleep(2);
+            automatico.pausar();
+            long pausaCiclo = automatico.getCiclo();
+            Thread.sleep(30);
+            if (pausaCiclo < 3 || automatico.getCiclo() != pausaCiclo
+                    || automaticoUno.getUltimoCiclo() != pausaCiclo || automaticoDos.getUltimoCiclo() != pausaCiclo)
+                throw new AssertionError("Pausa no consistente");
+            automatico.setDuracionMs(2);
+            automatico.reanudar();
+            limiteAutomatico = System.nanoTime() + 2_000_000_000L;
+            while (automatico.getCiclo() <= pausaCiclo && System.nanoTime() < limiteAutomatico) Thread.sleep(2);
+            automatico.pausar();
+            if (automatico.getCiclo() <= pausaCiclo || automatico.getDuracionMs() != 2)
+                throw new AssertionError("El reloj no reanudo");
+            automatico.detener();
+            if (automatico.estaActivo() || automatico.getError() != null) throw new AssertionError("Motor no cerro limpiamente");
+            System.out.println("Reloj automatico: pausa estable, reanudacion, cambio de duracion y cierre sin hilos activos: OK");
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba automatica interrumpida", interrupcion);
+        }
+        System.out.println("Prueba de controles de reloj: OK");
+        */
+
         /* Prueba de reloj global por ciclos verificada en consola.
         Sistema.Computador relojUno = new Sistema.Computador(1, 32);
         Sistema.Computador relojDos = new Sistema.Computador(2, 32);
