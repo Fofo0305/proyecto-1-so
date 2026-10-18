@@ -10,8 +10,15 @@ public class PanelComputador extends JPanel {
     private static final Color FONDO = new Color(242, 246, 251);
     private static final Color AZUL = new Color(42, 99, 195);
     private boolean mostrarPCB;
-    private final JScrollPane[] colasVisibles = new JScrollPane[4];
-    private int indiceCola;
+    private final JLabel nombre = new JLabel();
+    private final JProgressBar ram = new JProgressBar();
+    private final JPanel cpu = new JPanel(new BorderLayout(10, 0));
+    private final JLabel[] titulos = new JLabel[4];
+    private final JPanel[] tarjetasCola = new JPanel[4];
+    private final VistaProceso[][] procesosAnteriores = new VistaProceso[4][];
+    private final boolean[] detallesAnteriores = new boolean[4];
+    private final String[] nombresCola = {"NUEVOS", "LISTOS", "BLOQUEADOS", "TERMINADOS"};
+    private final Color[] colores = {new Color(174, 112, 24), AZUL, new Color(135, 80, 171), new Color(29, 126, 101)};
 
     public void mostrarDetalles(boolean valor) { mostrarPCB = valor; }
 
@@ -20,61 +27,66 @@ public class PanelComputador extends JPanel {
         setBackground(Color.WHITE);
         setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(212, 222, 235)),
                 BorderFactory.createEmptyBorder(16, 16, 16, 16)));
-    }
-
-    public void mostrar(VistaComputador vista) {
-        int[] posiciones = new int[4];
-        for (int i = 0; i < 4; i++) if (colasVisibles[i] != null)
-            posiciones[i] = colasVisibles[i].getVerticalScrollBar().getValue();
-        indiceCola = 0;
-        removeAll();
-        JPanel resumen = new JPanel(new BorderLayout(12, 8));
-        resumen.setOpaque(false);
-        JLabel nombre = new JLabel("Computador " + vista.id() + "   /   FCFS   /   ciclo " + vista.ciclo());
-        nombre.setFont(new Font("SansSerif", Font.BOLD, 18));
-        nombre.setForeground(new Color(26, 46, 75));
+        JPanel resumen = new JPanel(new BorderLayout(12, 8)); resumen.setOpaque(false);
+        nombre.setFont(new Font("SansSerif", Font.BOLD, 18)); nombre.setForeground(new Color(26, 46, 75));
         resumen.add(nombre, BorderLayout.WEST);
-        int capacidad = vista.usada() + vista.libre();
-        JProgressBar ram = new JProgressBar(0, capacidad);
-        ram.setValue(vista.usada()); ram.setStringPainted(true);
-        ram.setString("RAM  " + vista.usada() + " / " + capacidad + "  ·  libre " + vista.libre());
-        ram.setForeground(vista.libre() == 0 ? new Color(214, 137, 39) : AZUL);
-        ram.setPreferredSize(new Dimension(300, 26));
+        ram.setStringPainted(true); ram.setPreferredSize(new Dimension(300, 26));
         resumen.add(ram, BorderLayout.EAST);
         JPanel cuerpo = new JPanel(new BorderLayout(12, 12)); cuerpo.setOpaque(false);
-        JPanel cpu = new JPanel(new BorderLayout(10, 0));
         cpu.setBackground(new Color(229, 239, 255));
         cpu.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        cuerpo.add(cpu, BorderLayout.NORTH);
+        JPanel colas = new JPanel(new GridLayout(1, 4, 12, 0)); colas.setOpaque(false);
+        String[] ayudas = {"Esperan RAM", "FIFO · el primero pasa a CPU", "Esperan un recurso", "Salieron de ejecucion"};
+        for (int i = 0; i < 4; i++) colas.add(crearCola(i, ayudas[i]));
+        cuerpo.add(colas, BorderLayout.CENTER);
+        add(resumen, BorderLayout.NORTH); add(cuerpo, BorderLayout.CENTER);
+    }
+
+    /** Conserva los scrolls y sus modelos durante el refresco del PCB. */
+    public void mostrar(VistaComputador vista) {
+        nombre.setText("Computador " + vista.id() + "   /   FCFS   /   ciclo " + vista.ciclo());
+        int capacidad = vista.usada() + vista.libre();
+        ram.setMaximum(capacidad); ram.setValue(vista.usada());
+        ram.setString("RAM  " + vista.usada() + " / " + capacidad + "  ·  libre " + vista.libre());
+        ram.setForeground(vista.libre() == 0 ? new Color(214, 137, 39) : AZUL);
+        cpu.removeAll();
         JLabel tituloCPU = new JLabel("CPU  ·  " + vista.modo());
         tituloCPU.setFont(new Font("SansSerif", Font.BOLD, 15)); tituloCPU.setForeground(AZUL);
         cpu.add(tituloCPU, BorderLayout.WEST);
         if (vista.procesoCPU() == null) cpu.add(new JLabel("Libre · esperando un proceso listo"), BorderLayout.CENTER);
         else cpu.add(tarjeta(vista.procesoCPU(), AZUL), BorderLayout.CENTER);
-        cuerpo.add(cpu, BorderLayout.NORTH);
-        JPanel colas = new JPanel(new GridLayout(1, 4, 12, 0)); colas.setOpaque(false);
-        colas.add(cola("NUEVOS", "Esperan RAM", vista.colaNuevos(), new Color(174, 112, 24)));
-        colas.add(cola("LISTOS", "FIFO · el primero pasa a CPU", vista.colaListos(), AZUL));
-        colas.add(cola("BLOQUEADOS", "Esperan un recurso", vista.colaBloqueados(), new Color(135, 80, 171)));
-        colas.add(cola("TERMINADOS", "Salieron de ejecucion", vista.colaTerminados(), new Color(29, 126, 101)));
-        cuerpo.add(colas, BorderLayout.CENTER);
-        add(resumen, BorderLayout.NORTH); add(cuerpo, BorderLayout.CENTER);
+        actualizarCola(0, vista.colaNuevos()); actualizarCola(1, vista.colaListos());
+        actualizarCola(2, vista.colaBloqueados()); actualizarCola(3, vista.colaTerminados());
         revalidate(); repaint();
-        for (int i = 0; i < 4; i++) {
-            final JScrollPane colaActual = colasVisibles[i];
-            final int posicion = posiciones[i];
-            SwingUtilities.invokeLater(() -> colaActual.getVerticalScrollBar().setValue(posicion));
-        }
     }
 
-    private JPanel cola(String titulo, String ayuda, VistaProceso[] procesos, Color color) {
+    private JPanel crearCola(int indice, String ayuda) {
         JPanel columna = new JPanel(new BorderLayout(0, 8)); columna.setBackground(FONDO);
         columna.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         JPanel cabecera = new JPanel(new GridLayout(2, 1, 0, 4)); cabecera.setOpaque(false);
-        JLabel etiqueta = new JLabel(titulo + "   " + procesos.length);
-        etiqueta.setFont(new Font("SansSerif", Font.BOLD, 13)); etiqueta.setForeground(color);
-        cabecera.add(etiqueta); JLabel pista = new JLabel(ayuda); pista.setFont(new Font("SansSerif", Font.PLAIN, 11)); cabecera.add(pista);
+        titulos[indice] = new JLabel(nombresCola[indice] + "   0");
+        titulos[indice].setFont(new Font("SansSerif", Font.BOLD, 13)); titulos[indice].setForeground(colores[indice]);
+        cabecera.add(titulos[indice]); JLabel pista = new JLabel(ayuda); pista.setFont(new Font("SansSerif", Font.PLAIN, 11)); cabecera.add(pista);
         columna.add(cabecera, BorderLayout.NORTH);
         JPanel tarjetas = new JPanel(); tarjetas.setLayout(new BoxLayout(tarjetas, BoxLayout.Y_AXIS)); tarjetas.setOpaque(false);
+        tarjetasCola[indice] = tarjetas;
+        JScrollPane desplazamiento = new JScrollPane(tarjetas);
+        desplazamiento.setName("cola-" + nombresCola[indice]);
+        desplazamiento.setBorder(null); desplazamiento.getViewport().setBackground(FONDO);
+        desplazamiento.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        desplazamiento.getVerticalScrollBar().setUnitIncrement(16);
+        columna.add(desplazamiento, BorderLayout.CENTER);
+        return columna;
+    }
+
+    private void actualizarCola(int indice, VistaProceso[] procesos) {
+        if (java.util.Arrays.equals(procesosAnteriores[indice], procesos) && detallesAnteriores[indice] == mostrarPCB) return;
+        procesosAnteriores[indice] = procesos;
+        detallesAnteriores[indice] = mostrarPCB;
+        titulos[indice].setText(nombresCola[indice] + "   " + procesos.length);
+        JPanel tarjetas = tarjetasCola[indice];
+        tarjetas.removeAll();
         if (procesos.length == 0) {
             JLabel vacia = new JLabel("Sin procesos"); vacia.setForeground(new Color(113, 127, 147)); tarjetas.add(vacia);
         }
@@ -82,19 +94,12 @@ public class PanelComputador extends JPanel {
             JLabel orden = new JLabel((i + 1) + (i == 0 ? " · Frente de cola" : " · Siguiente"));
             orden.setAlignmentX(LEFT_ALIGNMENT);
             orden.setMaximumSize(new Dimension(Integer.MAX_VALUE, 18));
-            orden.setFont(new Font("SansSerif", Font.PLAIN, 10)); orden.setForeground(color);
+            orden.setFont(new Font("SansSerif", Font.PLAIN, 10)); orden.setForeground(colores[indice]);
             tarjetas.add(orden); tarjetas.add(Box.createVerticalStrut(3));
-            tarjetas.add(tarjeta(procesos[i], color)); tarjetas.add(Box.createVerticalStrut(8));
+            tarjetas.add(tarjeta(procesos[i], colores[indice])); tarjetas.add(Box.createVerticalStrut(8));
         }
-        JScrollPane desplazamiento = new JScrollPane(tarjetas);
-        desplazamiento.setBorder(null); desplazamiento.getViewport().setBackground(FONDO);
-        desplazamiento.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        desplazamiento.getVerticalScrollBar().setUnitIncrement(16);
-        colasVisibles[indiceCola++] = desplazamiento;
-        columna.add(desplazamiento, BorderLayout.CENTER);
-        return columna;
+        tarjetas.revalidate(); tarjetas.repaint();
     }
-
     private JPanel tarjeta(VistaProceso proceso, Color color) {
         JPanel tarjeta = new JPanel(new BorderLayout(0, 5)); tarjeta.setBackground(Color.WHITE);
         tarjeta.setAlignmentX(LEFT_ALIGNMENT);
