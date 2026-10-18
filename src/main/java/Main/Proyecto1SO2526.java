@@ -13,6 +13,35 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba integrada de admision verificada en consola.
+        Sistema.Computador integracionUno = new Sistema.Computador(1, 64);
+        Sistema.Computador integracionDos = new Sistema.Computador(2, 64);
+        Modelo.Proceso inicialIntegracion = new Modelo.Proceso("Inicial", 1, Modelo.TipoProceso.CPU_BOUND, 0, 64, 1, 10);
+        Modelo.Proceso pendienteIntegracion = new Modelo.Proceso("Pendiente", 1, Modelo.TipoProceso.CPU_BOUND, 0, 32, 1, 10);
+        Modelo.Proceso independienteIntegracion = new Modelo.Proceso("Independiente", 2, Modelo.TipoProceso.CPU_BOUND, 0, 64, 1, 10);
+        integracionUno.recibirProceso(inicialIntegracion);
+        integracionUno.recibirProceso(pendienteIntegracion);
+        integracionDos.recibirProceso(independienteIntegracion);
+        if (integracionUno.admitirProcesos() != 1 || integracionDos.admitirProcesos() != 1
+                || integracionUno.getNuevos()[0] != pendienteIntegracion)
+            throw new AssertionError("Admision inicial integrada incorrecta");
+        inicialIntegracion.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        inicialIntegracion.ejecutarInstruccion();
+        integracionUno.terminarProceso(inicialIntegracion);
+        if (integracionUno.getNuevos().length != 0 || integracionUno.getListos()[0] != pendienteIntegracion
+                || integracionUno.getTerminados()[0] != inicialIntegracion || integracionUno.getMemoria().getUsada() != 32
+                || integracionDos.getListos()[0] != independienteIntegracion || integracionDos.getMemoria().getUsada() != 64)
+            throw new AssertionError("Liberacion o independencia de computadores incorrecta");
+        pendienteIntegracion.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        pendienteIntegracion.ejecutarInstruccion();
+        integracionUno.terminarProceso(pendienteIntegracion);
+        if (integracionUno.getMemoria().getUsada() != 0 || integracionUno.getTerminados().length != 2)
+            throw new AssertionError("Cierre de admision incorrecto");
+        System.out.println("Admision integrada: pendiente admitido al liberar RAM; segundo computador intacto");
+        System.out.println("Computador 1 RAM usada/terminados: 0/2 (verificado)");
+        System.out.println("Prueba integrada de admision con dos computadores: OK");
+        */
+
         /* Prueba de terminacion y readmision verificada en consola.
         Sistema.Computador finComputador = new Sistema.Computador(1, 100);
         Modelo.Proceso ocupadoFin = new Modelo.Proceso("Ocupa", 1, Modelo.TipoProceso.CPU_BOUND, 0, 80, 1, 10);
