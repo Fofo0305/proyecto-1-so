@@ -18,6 +18,8 @@ public class PanelComputador extends JPanel {
     private final VistaProceso[][] procesosAnteriores = new VistaProceso[4][];
     private final boolean[] detallesAnteriores = new boolean[4];
     private final String[] nombresCola = {"NUEVOS", "LISTOS", "BLOQUEADOS", "TERMINADOS"};
+    private final JPanel colas = new JPanel(new GridLayout(1, 4, 12, 12));
+    private boolean compacto;
     private final Color[] colores = {new Color(174, 112, 24), AZUL, new Color(135, 80, 171), new Color(29, 126, 101)};
 
     public void mostrarDetalles(boolean valor) { mostrarPCB = valor; }
@@ -36,11 +38,24 @@ public class PanelComputador extends JPanel {
         cpu.setBackground(new Color(229, 239, 255));
         cpu.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
         cuerpo.add(cpu, BorderLayout.NORTH);
-        JPanel colas = new JPanel(new GridLayout(1, 4, 12, 0)); colas.setOpaque(false);
+        colas.setOpaque(false);
         String[] ayudas = {"Esperan RAM", "FIFO · el primero pasa a CPU", "Esperan un recurso", "Salieron de ejecucion"};
         for (int i = 0; i < 4; i++) colas.add(crearCola(i, ayudas[i]));
         cuerpo.add(colas, BorderLayout.CENTER);
         add(resumen, BorderLayout.NORTH); add(cuerpo, BorderLayout.CENTER);
+    }
+
+    @Override public void doLayout() {
+        boolean ajustar = getWidth() > 0 && getWidth() < 900;
+        if (ajustar != compacto) {
+            compacto = ajustar;
+            GridLayout rejilla = (GridLayout) colas.getLayout();
+            rejilla.setRows(compacto ? 2 : 1); rejilla.setColumns(compacto ? 2 : 4);
+            int altura = compacto ? 680 : 420;
+            setPreferredSize(new Dimension(1080, altura)); setMinimumSize(new Dimension(0, altura));
+            revalidate();
+        }
+        super.doLayout();
     }
 
     /** Conserva los scrolls y sus modelos durante el refresco del PCB. */

@@ -34,7 +34,10 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         configuracion.add(botonConfigurar, java.awt.BorderLayout.SOUTH);
         configuracion.add(panelArchivos, java.awt.BorderLayout.NORTH);
         javax.swing.JPanel procesos = new javax.swing.JPanel(new java.awt.BorderLayout(8, 8));
-        procesos.add(panelProceso, java.awt.BorderLayout.CENTER);
+        javax.swing.JScrollPane desplazamientoProcesos = new javax.swing.JScrollPane(panelProceso);
+        desplazamientoProcesos.setBorder(null);
+        desplazamientoProcesos.getVerticalScrollBar().setUnitIncrement(20);
+        procesos.add(desplazamientoProcesos, java.awt.BorderLayout.CENTER);
         javax.swing.JButton botonCrear = new javax.swing.JButton("Crear proceso CPU-bound");
         procesos.add(botonCrear, java.awt.BorderLayout.SOUTH);
         botonCrear.addActionListener(evento -> {
@@ -88,6 +91,12 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             }
         });
         pack();
+        java.awt.Rectangle pantalla = getGraphicsConfiguration().getBounds();
+        java.awt.Insets margenes = java.awt.Toolkit.getDefaultToolkit().getScreenInsets(getGraphicsConfiguration());
+        int anchoDisponible = pantalla.width - margenes.left - margenes.right;
+        int altoDisponible = pantalla.height - margenes.top - margenes.bottom;
+        setSize(Math.min(1050, Math.max(320, anchoDisponible - 64)),
+                Math.min(760, Math.max(320, altoDisponible - 64)));
         setLocationRelativeTo(null);
     }
 
@@ -129,6 +138,8 @@ public class VentanaPrincipal extends javax.swing.JFrame {
     }
 
     public PanelConfiguracion getPanelConfiguracion() { return panelConfiguracion; }
+    public PanelProceso getPanelProceso() { return panelProceso; }
+    public void mostrarProcesos() { pestanas.setSelectedIndex(1); }
     private void mostrarSimulacion() { pestanas.setSelectedComponent(panelComputadores); }
     public Sistema.ControladorSimulacion getControlador() { return controlador; }
     public String getEstado() { return estado.getText(); }

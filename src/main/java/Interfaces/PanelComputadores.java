@@ -136,7 +136,7 @@ public class PanelComputadores extends javax.swing.JPanel {
     private void initComponents() {
         cabecera = new javax.swing.JLabel();
         desplazamiento = new javax.swing.JScrollPane();
-        detalle = new javax.swing.JPanel();
+        detalle = new ContenidoComputadores();
         herramientas = new javax.swing.JPanel(new java.awt.BorderLayout(12, 8));
         opciones = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
         selector = new javax.swing.JComboBox<>();
