@@ -13,6 +13,58 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba integrada de interfaz verificada en consola.
+        Interfaces.VentanaPrincipal[] interfazIntegrada = new Interfaces.VentanaPrincipal[1];
+        try {
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                interfazIntegrada[0] = new Interfaces.VentanaPrincipal();
+                interfazIntegrada[0].setVisible(true);
+                interfazIntegrada[0].getPanelConfiguracion().mostrarConfiguracion(new Modelo.Configuracion(new int[] {32, 64}, 10, 4, 0));
+                interfazIntegrada[0].aplicarConfiguracion();
+            });
+            Sistema.ControladorSimulacion interfazControlador = interfazIntegrada[0].getControlador();
+            long limiteInterfaz = System.nanoTime() + 2_000_000_000L;
+            while (interfazControlador.getConfiguracion() == null && System.nanoTime() < limiteInterfaz) Thread.sleep(5);
+            Modelo.Proceso interfazA = interfazControlador.crearProceso("Primero", 1, 0, 32, 2, 20);
+            Modelo.Proceso interfazB = interfazControlador.crearProceso("Espera RAM", 1, 1, 32, 2, 20);
+            interfazControlador.crearProceso("Otro computador", 2, 0, 32, 3, 20);
+            if (interfazB.getEstado() != Modelo.EstadoProceso.NUEVO) throw new AssertionError("No hubo espera por RAM");
+            javax.swing.SwingUtilities.invokeAndWait(() -> interfazIntegrada[0].getPanelControles().ejecutarAccion("iniciar"));
+            limiteInterfaz = System.nanoTime() + 2_000_000_000L;
+            while (interfazControlador.getCiclo() < 4 && System.nanoTime() < limiteInterfaz) Thread.sleep(5);
+            interfazControlador.pausar();
+            Modelo.VistaComputador[] vistaInterfaz = interfazControlador.consultarVistas();
+            if (interfazA.getEstado() != Modelo.EstadoProceso.TERMINADO || interfazB.getEstado() != Modelo.EstadoProceso.TERMINADO
+                    || vistaInterfaz[0].usada() != 0 || vistaInterfaz[1].usada() != 0)
+                throw new AssertionError("Flujo grafico integrado no completo procesos");
+            long cicloInterfaz = interfazControlador.getCiclo();
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                interfazIntegrada[0].getPanelComputadores().mostrarVistas(vistaInterfaz, "Pausado", cicloInterfaz);
+                if (!interfazIntegrada[0].getPanelComputadores().getDetalle().contains("Espera RAM"))
+                    throw new AssertionError("Vista no refleja proceso readmitido");
+                java.awt.image.BufferedImage imagenInterfaz = new java.awt.image.BufferedImage(interfazIntegrada[0].getWidth(), interfazIntegrada[0].getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
+                java.awt.Graphics2D pincelInterfaz = imagenInterfaz.createGraphics();
+                try { interfazIntegrada[0].printAll(pincelInterfaz); }
+                finally { pincelInterfaz.dispose(); }
+                try { javax.imageio.ImageIO.write(imagenInterfaz, "png", new java.io.File("target/interfaz-verificada.png")); }
+                catch (java.io.IOException errorImagen) { throw new IllegalStateException(errorImagen); }
+            });
+            System.out.println("Interfaz integrada: configuracion, espera RAM, FCFS en dos computadores y vista final: OK");
+            System.out.println("Representacion de ventana guardada en target/interfaz-verificada.png");
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba integrada interrumpida", interrupcion);
+        } catch (java.lang.reflect.InvocationTargetException errorIntegracion) {
+            throw new IllegalStateException("Fallo de interfaz integrada", errorIntegracion.getCause());
+        } finally {
+            if (interfazIntegrada[0] != null) {
+                interfazIntegrada[0].getControlador().close();
+                javax.swing.SwingUtilities.invokeLater(interfazIntegrada[0]::dispose);
+            }
+        }
+
+        */
+
         /* Prueba de panel computadores verificada en consola.
         Sistema.Computador graficoPrueba = new Sistema.Computador(1, 64);
         graficoPrueba.recibirProceso(new Modelo.Proceso("Visual", 1, Modelo.TipoProceso.CPU_BOUND, 3, 32, 3, 10));
