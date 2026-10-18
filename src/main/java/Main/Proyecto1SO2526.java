@@ -13,6 +13,36 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de formulario de procesos verificada en consola.
+        Interfaces.PanelProceso[] panelProcesoPrueba = new Interfaces.PanelProceso[1];
+        try (Sistema.ControladorSimulacion controladorPanelProceso = new Sistema.ControladorSimulacion()) {
+            controladorPanelProceso.configurar(new Modelo.Configuracion(new int[] {32, 64}, 100, 4, 0));
+            try {
+                javax.swing.SwingUtilities.invokeAndWait(() -> panelProcesoPrueba[0] = new Interfaces.PanelProceso());
+                String[][] camposPanel = new String[1][];
+                javax.swing.SwingUtilities.invokeAndWait(() -> camposPanel[0] = panelProcesoPrueba[0].leerCampos());
+                Modelo.Proceso procesoDesdePanel = Interfaces.PanelProceso.crearProceso(controladorPanelProceso, camposPanel[0]);
+                Modelo.Proceso esperaDesdePanel = Interfaces.PanelProceso.crearProceso(controladorPanelProceso, camposPanel[0]);
+                if (procesoDesdePanel.getEstado() != Modelo.EstadoProceso.LISTO || esperaDesdePanel.getEstado() != Modelo.EstadoProceso.NUEVO)
+                    throw new AssertionError("Formulario no respeta admision");
+                camposPanel[0][1] = "texto";
+                try {
+                    Interfaces.PanelProceso.crearProceso(controladorPanelProceso, camposPanel[0]);
+                    throw new AssertionError("Texto numerico invalido aceptado");
+                } catch (IllegalArgumentException esperado) { }
+                if (controladorPanelProceso.getComputadores()[0].getNuevos().length != 1)
+                    throw new AssertionError("Entrada invalida altero cola");
+            } catch (InterruptedException interrupcion) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Prueba de formulario interrumpida", interrupcion);
+            } catch (java.lang.reflect.InvocationTargetException falloPanel) {
+                throw new IllegalStateException("Fallo de formulario", falloPanel.getCause());
+            }
+            System.out.println("Formulario de procesos: captura EDT, creacion fuera EDT, listo y espera RAM, texto invalido rechazado: OK");
+        }
+        System.out.println("Prueba de PanelProceso desde main: OK");
+        */
+
         /* Prueba de creacion manual de procesos verificada en consola.
         try (Sistema.ControladorSimulacion creacionPrueba = new Sistema.ControladorSimulacion()) {
             try {

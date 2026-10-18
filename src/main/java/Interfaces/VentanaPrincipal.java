@@ -7,6 +7,7 @@ package Interfaces;
 public class VentanaPrincipal extends javax.swing.JFrame {
     private final Sistema.ControladorSimulacion controlador = new Sistema.ControladorSimulacion();
     private final PanelConfiguracion panelConfiguracion = new PanelConfiguracion();
+    private final PanelProceso panelProceso = new PanelProceso();
     private final javax.swing.JButton botonConfigurar = new javax.swing.JButton("Aplicar configuracion");
     private final javax.swing.JLabel estado = new javax.swing.JLabel("Configure el cluster para comenzar");
 
@@ -16,8 +17,35 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         getContentPane().setLayout(new java.awt.BorderLayout(12, 12));
         javax.swing.JPanel contenido = new javax.swing.JPanel(new java.awt.BorderLayout(12, 12));
         contenido.setBorder(javax.swing.BorderFactory.createEmptyBorder(16, 16, 16, 16));
-        contenido.add(panelConfiguracion, java.awt.BorderLayout.CENTER);
-        contenido.add(botonConfigurar, java.awt.BorderLayout.SOUTH);
+        javax.swing.JTabbedPane pestanas = new javax.swing.JTabbedPane();
+        javax.swing.JPanel configuracion = new javax.swing.JPanel(new java.awt.BorderLayout(8, 8));
+        configuracion.add(panelConfiguracion, java.awt.BorderLayout.CENTER);
+        configuracion.add(botonConfigurar, java.awt.BorderLayout.SOUTH);
+        javax.swing.JPanel procesos = new javax.swing.JPanel(new java.awt.BorderLayout(8, 8));
+        procesos.add(panelProceso, java.awt.BorderLayout.CENTER);
+        javax.swing.JButton botonCrear = new javax.swing.JButton("Crear proceso CPU-bound");
+        procesos.add(botonCrear, java.awt.BorderLayout.SOUTH);
+        botonCrear.addActionListener(evento -> {
+            botonCrear.setEnabled(false);
+            final String[] campos = panelProceso.leerCampos();
+            // Se leen los campos en EDT; el acceso al núcleo se traslada a un trabajador.
+            Thread trabajo = new Thread(() -> {
+                try {
+                    Modelo.Proceso creado = PanelProceso.crearProceso(controlador, campos);
+                    javax.swing.SwingUtilities.invokeLater(() -> estado.setText("Proceso " + creado.getId() + " creado: " + creado.getEstado()));
+                } catch (Exception error) {
+                    Throwable causa = error instanceof java.lang.reflect.InvocationTargetException ? error.getCause() : error;
+                    javax.swing.SwingUtilities.invokeLater(() -> estado.setText(causa.getMessage()));
+                } finally {
+                    javax.swing.SwingUtilities.invokeLater(() -> botonCrear.setEnabled(true));
+                }
+            }, "Crear-proceso");
+            trabajo.setDaemon(true);
+            trabajo.start();
+        });
+        pestanas.addTab("Configuracion", configuracion);
+        pestanas.addTab("Procesos", procesos);
+        contenido.add(pestanas, java.awt.BorderLayout.CENTER);
         getContentPane().add(titulo, java.awt.BorderLayout.NORTH);
         getContentPane().add(contenido, java.awt.BorderLayout.CENTER);
         getContentPane().add(estado, java.awt.BorderLayout.SOUTH);
