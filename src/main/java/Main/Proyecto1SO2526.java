@@ -11,6 +11,30 @@ package Main;
 public class Proyecto1SO2526 {
 
     public static void main(String[] args) {
+        javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
+
+        /* Prueba de ventana principal verificada en consola.
+        try {
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                Interfaces.VentanaPrincipal ventanaPrueba = new Interfaces.VentanaPrincipal();
+                try {
+                    ventanaPrueba.setVisible(true);
+                    System.out.println("Ventana visible: " + ventanaPrueba.isShowing() + " (esperado: true)");
+                    System.out.println("Titulo: " + ventanaPrueba.getTitle());
+                    if (!ventanaPrueba.isShowing() || !"AvilaOS - Simulador distribuido".equals(ventanaPrueba.getTitle())
+                            || ventanaPrueba.getContentPane().getComponentCount() != 1)
+                        throw new AssertionError("Ventana inicial incorrecta");
+                } finally { ventanaPrueba.dispose(); }
+                System.out.println("Ventana liberada: " + !ventanaPrueba.isDisplayable() + " (esperado: true)");
+            });
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de ventana interrumpida", interrupcion);
+        } catch (java.lang.reflect.InvocationTargetException errorVentana) {
+            throw new IllegalStateException("Fallo de ventana", errorVentana.getCause());
+        }
+        System.out.println("Prueba de ventana principal desde main: OK");
+        */
 
 /* Prueba integrada de admision FCFS y reloj verificada en consola.
         Sistema.Computador globalUno = new Sistema.Computador(1, 32);
