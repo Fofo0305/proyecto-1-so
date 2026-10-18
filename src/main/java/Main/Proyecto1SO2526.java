@@ -13,6 +13,23 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de vistas de computador verificada en consola.
+        Sistema.Computador computadorVista = new Sistema.Computador(1, 64);
+        Modelo.Proceso procesoVista = new Modelo.Proceso("Visible", 1, Modelo.TipoProceso.CPU_BOUND, 2, 32, 3, 10);
+        computadorVista.recibirProceso(procesoVista);
+        Modelo.VistaComputador vistaAntes = computadorVista.consultarVista();
+        computadorVista.avanzarCiclo(1);
+        Modelo.VistaComputador vistaDespues = computadorVista.consultarVista();
+        if (vistaAntes.ciclo() != 0 || !vistaAntes.nuevos().contains("Visible") || vistaAntes.usada() != 0
+                || vistaDespues.ciclo() != 1 || vistaDespues.usada() != 32 || vistaDespues.libre() != 32
+                || !vistaDespues.cpu().contains("PC=1") || !vistaDespues.cpu().contains("deadline=9")
+                || !vistaDespues.cpu().contains("prioridad=2") || !"Vacia".equals(vistaDespues.nuevos()))
+            throw new AssertionError("Vista de PCB o RAM incorrecta");
+        if (!vistaAntes.nuevos().contains("NUEVO")) throw new AssertionError("La vista anterior cambio");
+        System.out.println("Vista consistente: CPU Visible PC=1 deadline=9 prioridad=2 RAM 32/32; vista previa inmutable: OK");
+        System.out.println("Prueba de lectura para visualizacion: OK");
+        */
+
         /* Prueba de botones de simulacion verificada en consola.
         try (Sistema.ControladorSimulacion botonesControlador = new Sistema.ControladorSimulacion()) {
             botonesControlador.configurar(new Modelo.Configuracion(new int[] {32, 32}, 5, 4, 0));
