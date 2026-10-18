@@ -1,17 +1,167 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <Form version="1.3" maxVersion="1.9" type="org.netbeans.modules.form.forminfo.JPanelFormInfo">
-<AuxValues><AuxValue name="FormSettings_generateFQN" type="java.lang.Boolean" value="true"/><AuxValue name="FormSettings_variablesLocal" type="java.lang.Boolean" value="false"/><AuxValue name="FormSettings_variablesModifier" type="java.lang.Integer" value="2"/></AuxValues>
-<Layout class="org.netbeans.modules.form.compat2.layouts.DesignGridLayout"><Property name="rows" type="int" value="6"/><Property name="columns" type="int" value="2"/><Property name="horizontalGap" type="int" value="8"/><Property name="verticalGap" type="int" value="8"/></Layout>
-<SubComponents><Component class="javax.swing.JLabel" name="etiquetaNombre"><Properties><Property name="text" type="java.lang.String" value="Nombre (tipo CPU-bound)"/></Properties></Component>
-<Component class="javax.swing.JTextField" name="campoNombre"><Properties><Property name="text" type="java.lang.String" value="Proceso"/></Properties></Component>
-<Component class="javax.swing.JLabel" name="etiquetaComputador"><Properties><Property name="text" type="java.lang.String" value="Computador asignado (ID desde 1)"/></Properties></Component>
-<Component class="javax.swing.JTextField" name="campoComputador"><Properties><Property name="text" type="java.lang.String" value="1"/></Properties></Component>
-<Component class="javax.swing.JLabel" name="etiquetaInstrucciones"><Properties><Property name="text" type="java.lang.String" value="Instrucciones (positivo)"/></Properties></Component>
-<Component class="javax.swing.JTextField" name="campoInstrucciones"><Properties><Property name="text" type="java.lang.String" value="10"/></Properties></Component>
-<Component class="javax.swing.JLabel" name="etiquetaMemoria"><Properties><Property name="text" type="java.lang.String" value="Memoria requerida (unidades de RAM)"/></Properties></Component>
-<Component class="javax.swing.JTextField" name="campoMemoria"><Properties><Property name="text" type="java.lang.String" value="32"/></Properties></Component>
-<Component class="javax.swing.JLabel" name="etiquetaPrioridad"><Properties><Property name="text" type="java.lang.String" value="Prioridad (0 o mayor)"/></Properties></Component>
-<Component class="javax.swing.JTextField" name="campoPrioridad"><Properties><Property name="text" type="java.lang.String" value="0"/></Properties></Component>
-<Component class="javax.swing.JLabel" name="etiquetaDeadline"><Properties><Property name="text" type="java.lang.String" value="Deadline relativo (ciclos positivos)"/></Properties></Component>
-<Component class="javax.swing.JTextField" name="campoDeadline"><Properties><Property name="text" type="java.lang.String" value="50"/></Properties></Component>
-</SubComponents></Form>
+  <AuxValues>
+    <AuxValue name="FormSettings_generateFQN" type="java.lang.Boolean" value="true" />
+  </AuxValues>
+  <Layout class="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout">
+    <Property name="verticalGap" type="int" value="12" />
+  </Layout>
+  <SubComponents>
+    <Component class="javax.swing.JLabel" name="introduccion">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;span style='font-size:20px'&gt;Crea un proceso&lt;/span&gt;&lt;br&gt;Elige su computador y sus recursos.&lt;br&gt;Si no hay RAM libre, esperara en Nuevos hasta poder entrar.&lt;/html&gt;" />
+      </Properties>
+      <Constraints>
+        <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout" value="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout$BorderConstraintsDescription">
+          <BorderConstraints direction="North" />
+        </Constraint>
+      </Constraints>
+    </Component>
+    <Container class="javax.swing.JPanel" name="formulario">
+      <Constraints>
+        <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout" value="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout$BorderConstraintsDescription">
+          <BorderConstraints direction="Center" />
+        </Constraint>
+      </Constraints>
+      <Layout class="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" />
+      <SubComponents>
+        <Component class="javax.swing.JLabel" name="etiquetaNombre">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Nombre&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;Identifica la tarea&lt;/span&gt;&lt;/html&gt;" />
+          </Properties>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
+              <GridBagConstraints gridX="0" gridY="0" gridWidth="1" gridHeight="1" fill="0" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="8" insetsRight="18" anchor="17" weightX="0.0" weightY="0.0" />
+            </Constraint>
+          </Constraints>
+        </Component>
+        <Component class="javax.swing.JTextField" name="campoNombre">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="Proceso" />
+            <Property name="columns" type="int" value="12" />
+          </Properties>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
+              <GridBagConstraints gridX="1" gridY="0" gridWidth="1" gridHeight="1" fill="2" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="8" insetsRight="18" anchor="17" weightX="1.0" weightY="0.0" />
+            </Constraint>
+          </Constraints>
+        </Component>
+        <Component class="javax.swing.JLabel" name="etiquetaComputador">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Computador&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;ID del equipo, desde 1&lt;/span&gt;&lt;/html&gt;" />
+          </Properties>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
+              <GridBagConstraints gridX="0" gridY="1" gridWidth="1" gridHeight="1" fill="0" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="8" insetsRight="18" anchor="17" weightX="0.0" weightY="0.0" />
+            </Constraint>
+          </Constraints>
+        </Component>
+        <Component class="javax.swing.JTextField" name="campoComputador">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="1" />
+            <Property name="columns" type="int" value="12" />
+          </Properties>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
+              <GridBagConstraints gridX="1" gridY="1" gridWidth="1" gridHeight="1" fill="2" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="8" insetsRight="18" anchor="17" weightX="1.0" weightY="0.0" />
+            </Constraint>
+          </Constraints>
+        </Component>
+        <Component class="javax.swing.JLabel" name="etiquetaInstrucciones">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Instrucciones&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;Cantidad de ciclos de CPU&lt;/span&gt;&lt;/html&gt;" />
+          </Properties>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
+              <GridBagConstraints gridX="0" gridY="2" gridWidth="1" gridHeight="1" fill="0" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="8" insetsRight="18" anchor="17" weightX="0.0" weightY="0.0" />
+            </Constraint>
+          </Constraints>
+        </Component>
+        <Component class="javax.swing.JTextField" name="campoInstrucciones">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="10" />
+            <Property name="columns" type="int" value="12" />
+          </Properties>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
+              <GridBagConstraints gridX="1" gridY="2" gridWidth="1" gridHeight="1" fill="2" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="8" insetsRight="18" anchor="17" weightX="1.0" weightY="0.0" />
+            </Constraint>
+          </Constraints>
+        </Component>
+        <Component class="javax.swing.JLabel" name="etiquetaMemoria">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Memoria&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;Unidades de RAM necesarias&lt;/span&gt;&lt;/html&gt;" />
+          </Properties>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
+              <GridBagConstraints gridX="0" gridY="3" gridWidth="1" gridHeight="1" fill="0" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="8" insetsRight="18" anchor="17" weightX="0.0" weightY="0.0" />
+            </Constraint>
+          </Constraints>
+        </Component>
+        <Component class="javax.swing.JTextField" name="campoMemoria">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="32" />
+            <Property name="columns" type="int" value="12" />
+          </Properties>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
+              <GridBagConstraints gridX="1" gridY="3" gridWidth="1" gridHeight="1" fill="2" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="8" insetsRight="18" anchor="17" weightX="1.0" weightY="0.0" />
+            </Constraint>
+          </Constraints>
+        </Component>
+        <Component class="javax.swing.JLabel" name="etiquetaPrioridad">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Prioridad&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;Entero desde 0&lt;/span&gt;&lt;/html&gt;" />
+          </Properties>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
+              <GridBagConstraints gridX="0" gridY="4" gridWidth="1" gridHeight="1" fill="0" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="8" insetsRight="18" anchor="17" weightX="0.0" weightY="0.0" />
+            </Constraint>
+          </Constraints>
+        </Component>
+        <Component class="javax.swing.JTextField" name="campoPrioridad">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="0" />
+            <Property name="columns" type="int" value="12" />
+          </Properties>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
+              <GridBagConstraints gridX="1" gridY="4" gridWidth="1" gridHeight="1" fill="2" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="8" insetsRight="18" anchor="17" weightX="1.0" weightY="0.0" />
+            </Constraint>
+          </Constraints>
+        </Component>
+        <Component class="javax.swing.JLabel" name="etiquetaDeadline">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Plazo (deadline)&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;Ciclos disponibles desde su llegada&lt;/span&gt;&lt;/html&gt;" />
+          </Properties>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
+              <GridBagConstraints gridX="0" gridY="5" gridWidth="1" gridHeight="1" fill="0" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="8" insetsRight="18" anchor="17" weightX="0.0" weightY="0.0" />
+            </Constraint>
+          </Constraints>
+        </Component>
+        <Component class="javax.swing.JTextField" name="campoDeadline">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="50" />
+            <Property name="columns" type="int" value="12" />
+          </Properties>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
+              <GridBagConstraints gridX="1" gridY="5" gridWidth="1" gridHeight="1" fill="2" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="8" insetsRight="18" anchor="17" weightX="1.0" weightY="0.0" />
+            </Constraint>
+          </Constraints>
+        </Component>
+      </SubComponents>
+    </Container>
+    <Component class="javax.swing.JLabel" name="tipo">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="Tipo disponible: CPU-bound · ejecuta instrucciones en la CPU" />
+      </Properties>
+      <Constraints>
+        <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout" value="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout$BorderConstraintsDescription">
+          <BorderConstraints direction="South" />
+        </Constraint>
+      </Constraints>
+    </Component>
+  </SubComponents>
+</Form>

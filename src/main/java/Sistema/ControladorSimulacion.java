@@ -4,6 +4,10 @@ import Modelo.Configuracion;
 import Modelo.Proceso;
 import Modelo.TipoProceso;
 import Modelo.VistaComputador;
+import Modelo.CargaInicial;
+import Modelo.DefinicionProceso;
+import Modelo.DefinicionBuffer;
+import EDD.Cola;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -19,18 +23,35 @@ public class ControladorSimulacion implements AutoCloseable {
     private boolean cerrado;
     private boolean pausado;
     private boolean detenido;
+    private Cola<DefinicionProceso> cargaProcesos = new Cola<>();
+    private DefinicionBuffer[] cargaBuffers = new DefinicionBuffer[0];
 
     /** Reemplaza la simulación únicamente si el reloj anterior está detenido o no iniciado. */
     public void configurar(Configuracion nueva) {
-        if (nueva == null) throw new IllegalArgumentException("La configuracion es obligatoria");
+        cargarCarga(new CargaInicial(nueva, new DefinicionProceso[0], new DefinicionBuffer[0]));
+    }
+
+    /** Valida y construye la carga completa antes de reemplazar la sesión anterior. */
+    public void cargarCarga(CargaInicial carga) {
+        if (carga == null) throw new IllegalArgumentException("La carga es obligatoria");
         mutex.acquireUninterruptibly();
         try {
             if (cerrado) throw new IllegalStateException("El controlador esta cerrado");
             if (reloj != null && reloj.estaActivo())
                 throw new IllegalStateException("Detenga la simulacion antes de cambiar la configuracion");
+            Configuracion nueva = carga.getConfiguracion();
             int[] capacidades = nueva.getRam();
             Computador[] nuevos = new Computador[capacidades.length];
             for (int i = 0; i < nuevos.length; i++) nuevos[i] = new Computador(i + 1, capacidades[i]);
+            for (DefinicionBuffer buffer : carga.getBuffers())
+                if (!nuevos[buffer.anfitrion() - 1].getMemoria().reservar("buffer:" + buffer.nombre(), buffer.capacidad()))
+                    throw new IllegalArgumentException("No hay RAM para el buffer " + buffer.nombre());
+            Cola<DefinicionProceso> definiciones = new Cola<>();
+            for (DefinicionProceso definicion : carga.getProcesos()) {
+                nuevos[definicion.computador() - 1].recibirProceso(definicion.crearProceso());
+                definiciones.agregar(definicion);
+            }
+            for (Computador computador : nuevos) computador.admitirProcesos();
             RelojGlobal nuevoReloj = new RelojGlobal(nuevos);
             nuevoReloj.setDuracionMs(nueva.getDuracionMs());
             if (reloj != null) reloj.close();
@@ -39,6 +60,8 @@ public class ControladorSimulacion implements AutoCloseable {
             reloj = nuevoReloj;
             pausado = false;
             detenido = false;
+            cargaProcesos = definiciones;
+            cargaBuffers = carga.getBuffers();
         } finally { mutex.release(); }
     }
 
@@ -53,10 +76,24 @@ public class ControladorSimulacion implements AutoCloseable {
             Computador destino = computadores[computador - 1];
             if (memoria > destino.getMemoria().getCapacidad())
                 throw new IllegalArgumentException("La memoria del proceso supera la RAM total del computador");
-            Proceso proceso = new Proceso(nombre, computador, TipoProceso.CPU_BOUND, prioridad, memoria, instrucciones, deadline);
+            DefinicionProceso definicion = new DefinicionProceso(nombre, computador, prioridad, memoria, instrucciones, deadline);
+            Proceso proceso = definicion.crearProceso();
             destino.recibirProceso(proceso);
             destino.admitirProcesos();
+            cargaProcesos.agregar(definicion);
             return proceso;
+        } finally { mutex.release(); }
+    }
+
+    /** Devuelve atributos iniciales; nunca guarda PC, estado o deadline ya consumido. */
+    public CargaInicial getCargaInicial() {
+        mutex.acquireUninterruptibly();
+        try {
+            if (configuracion == null) throw new IllegalStateException("Configure primero el cluster");
+            Object[] elementos = cargaProcesos.instantanea();
+            DefinicionProceso[] definiciones = new DefinicionProceso[elementos.length];
+            for (int i = 0; i < elementos.length; i++) definiciones[i] = (DefinicionProceso) elementos[i];
+            return new CargaInicial(configuracion, definiciones, cargaBuffers);
         } finally { mutex.release(); }
     }
 

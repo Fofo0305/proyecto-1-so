@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Form version="1.3" maxVersion="1.9" type="org.netbeans.modules.form.forminfo.JPanelFormInfo">
+  <AuxValues>
+    <AuxValue name="FormSettings_generateFQN" type="java.lang.Boolean" value="true"/>
+    <AuxValue name="FormSettings_variablesLocal" type="java.lang.Boolean" value="false"/>
+    <AuxValue name="FormSettings_variablesModifier" type="java.lang.Integer" value="2"/>
+  </AuxValues>
+  <Layout class="org.netbeans.modules.form.compat2.layouts.DesignFlowLayout"><Property name="alignment" type="int" value="0"/></Layout>
+  <SubComponents>
+    <Component class="javax.swing.JButton" name="guardar"><Properties><Property name="text" type="java.lang.String" value="Guardar CSV"/></Properties></Component>
+    <Component class="javax.swing.JButton" name="cargar"><Properties><Property name="text" type="java.lang.String" value="Abrir CSV"/></Properties></Component>
+    <Component class="javax.swing.JButton" name="ejemplo"><Properties><Property name="text" type="java.lang.String" value="Cargar ejemplo"/></Properties></Component>
+    <Component class="javax.swing.JLabel" name="resultado"><Properties><Property name="text" type="java.lang.String" value="Sin archivo"/></Properties></Component>
+  </SubComponents>
+</Form>
