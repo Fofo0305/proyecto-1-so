@@ -10,6 +10,11 @@ public class VentanaPrincipal extends javax.swing.JFrame {
     private final PanelProceso panelProceso = new PanelProceso();
     private final PanelControles panelControles = new PanelControles(controlador);
     private final PanelComputadores panelComputadores = new PanelComputadores(controlador);
+    private final PanelArchivos panelArchivos = new PanelArchivos(controlador, carga -> {
+        panelConfiguracion.mostrarConfiguracion(carga.getConfiguracion());
+        panelControles.mostrarDuracion(carga.getConfiguracion().getDuracionMs());
+        panelComputadores.actualizar();
+    });
     private final javax.swing.JButton botonConfigurar = new javax.swing.JButton("Aplicar configuracion");
     private final javax.swing.JLabel estado = new javax.swing.JLabel("Configure el cluster para comenzar");
 
@@ -23,6 +28,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         javax.swing.JPanel configuracion = new javax.swing.JPanel(new java.awt.BorderLayout(8, 8));
         configuracion.add(panelConfiguracion, java.awt.BorderLayout.CENTER);
         configuracion.add(botonConfigurar, java.awt.BorderLayout.SOUTH);
+        configuracion.add(panelArchivos, java.awt.BorderLayout.NORTH);
         javax.swing.JPanel procesos = new javax.swing.JPanel(new java.awt.BorderLayout(8, 8));
         procesos.add(panelProceso, java.awt.BorderLayout.CENTER);
         javax.swing.JButton botonCrear = new javax.swing.JButton("Crear proceso CPU-bound");
@@ -103,6 +109,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
     public String getEstado() { return estado.getText(); }
     public PanelControles getPanelControles() { return panelControles; }
     public PanelComputadores getPanelComputadores() { return panelComputadores; }
+    public PanelArchivos getPanelArchivos() { return panelArchivos; }
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents

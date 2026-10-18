@@ -13,6 +13,47 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de archivos desde interfaz verificada en consola.
+        try (Sistema.ControladorSimulacion archivoPanelControl = new Sistema.ControladorSimulacion()) {
+            archivoPanelControl.configurar(new Modelo.Configuracion(new int[] {64, 128}, 100, 4, 0));
+            archivoPanelControl.crearProceso("Persistido", 2, 1, 32, 3, 20);
+            java.nio.file.Path archivoPanelRuta = java.nio.file.Path.of("target", "panel-archivo.csv");
+            Interfaces.PanelArchivos[] archivoPanel = new Interfaces.PanelArchivos[1];
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                archivoPanel[0] = new Interfaces.PanelArchivos(archivoPanelControl, carga -> {
+                    if (!javax.swing.SwingUtilities.isEventDispatchThread()) throw new AssertionError("Callback fuera EDT");
+                });
+                archivoPanel[0].procesarArchivo(archivoPanelRuta, true);
+            });
+            String[] resultadoArchivoPanel = {""};
+            long limiteArchivoPanel = System.nanoTime() + 2_000_000_000L;
+            do {
+                javax.swing.SwingUtilities.invokeAndWait(() -> resultadoArchivoPanel[0] = archivoPanel[0].getResultado());
+                if (resultadoArchivoPanel[0].startsWith("Guardado:")) break;
+                Thread.sleep(5);
+            } while (System.nanoTime() < limiteArchivoPanel);
+            if (!resultadoArchivoPanel[0].startsWith("Guardado:")) throw new AssertionError("No guardo desde panel: " + resultadoArchivoPanel[0]);
+            archivoPanelControl.configurar(new Modelo.Configuracion(new int[] {16, 16}, 10, 2, 0));
+            javax.swing.SwingUtilities.invokeAndWait(() -> archivoPanel[0].procesarArchivo(archivoPanelRuta, false));
+            limiteArchivoPanel = System.nanoTime() + 2_000_000_000L;
+            do {
+                javax.swing.SwingUtilities.invokeAndWait(() -> resultadoArchivoPanel[0] = archivoPanel[0].getResultado());
+                if (resultadoArchivoPanel[0].startsWith("Cargado:")) break;
+                Thread.sleep(5);
+            } while (System.nanoTime() < limiteArchivoPanel);
+            if (!resultadoArchivoPanel[0].startsWith("Cargado:") || archivoPanelControl.getConfiguracion().getRam()[1] != 128
+                    || !"Persistido".equals(archivoPanelControl.getCargaInicial().getProcesos()[0].nombre()))
+                throw new AssertionError("Carga desde panel incorrecta");
+            System.out.println("Panel de archivos: guardar/cargar en trabajador, callback EDT y carga reconstruida: OK");
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de archivos interrumpida", interrupcion);
+        } catch (java.lang.reflect.InvocationTargetException errorPanelArchivo) {
+            throw new IllegalStateException("Error de panel de archivos", errorPanelArchivo.getCause());
+        }
+        System.out.println("Prueba de persistencia desde interfaz: OK");
+        */
+
         /* Prueba de reconstruccion de carga verificada en consola.
         try (Sistema.ControladorSimulacion cargaControlador = new Sistema.ControladorSimulacion()) {
             Modelo.CargaInicial cargaControladorPrueba = new Modelo.CargaInicial(new Modelo.Configuracion(new int[] {64, 64}, 5, 4, 0),
