@@ -203,8 +203,23 @@ public class Computador implements ComponenteReloj {
             Proceso actual = cpu.getActual();
             return new VistaComputador(id, ultimoCiclo, cpu.getModo(), ram[0], ram[1],
                     actual == null ? "Sin proceso" : describirProceso(actual),
-                    describirCola(nuevos), describirCola(listos), describirCola(bloqueados), describirCola(terminados));
+                    describirCola(nuevos), describirCola(listos), describirCola(bloqueados), describirCola(terminados),
+                    actual == null ? null : vistaProceso(actual), vistasCola(nuevos), vistasCola(listos),
+                    vistasCola(bloqueados), vistasCola(terminados));
         } finally { mutex.release(); }
+    }
+
+    private Modelo.VistaProceso vistaProceso(Proceso proceso) {
+        return new Modelo.VistaProceso(proceso.getId(), proceso.getNombre(), proceso.getMemoria(),
+                proceso.getPrioridad(), proceso.getDeadline(), proceso.getRestante(), proceso.getPc(),
+                proceso.getMar(), proceso.getEstado());
+    }
+
+    private Modelo.VistaProceso[] vistasCola(Cola<Proceso> cola) {
+        Object[] elementos = cola.instantanea();
+        Modelo.VistaProceso[] vistas = new Modelo.VistaProceso[elementos.length];
+        for (int i = 0; i < elementos.length; i++) vistas[i] = vistaProceso((Proceso) elementos[i]);
+        return vistas;
     }
 
     private String describirCola(Cola<Proceso> cola) {

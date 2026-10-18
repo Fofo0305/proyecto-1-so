@@ -18,14 +18,7 @@
       <Constraints><Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout" value="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout$BorderConstraintsDescription"><BorderConstraints direction="Center"/></Constraint></Constraints>
       <Layout class="org.netbeans.modules.form.compat2.layouts.support.JScrollPaneSupportLayout"/>
       <SubComponents>
-        <Component class="javax.swing.JTextArea" name="detalle">
-          <Properties>
-            <Property name="editable" type="boolean" value="false"/>
-            <Property name="columns" type="int" value="80"/>
-            <Property name="rows" type="int" value="22"/>
-            <Property name="text" type="java.lang.String" value="Configure el cluster para observar sus computadores."/>
-          </Properties>
-        </Component>
+        <Container class="javax.swing.JPanel" name="detalle"><Layout class="org.netbeans.modules.form.compat2.layouts.DesignBoxLayout"/></Container>
       </SubComponents>
     </Container>
   </SubComponents>

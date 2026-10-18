@@ -17,6 +17,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
     });
     private final javax.swing.JButton botonConfigurar = new javax.swing.JButton("Aplicar configuracion");
     private final javax.swing.JLabel estado = new javax.swing.JLabel("Configure el cluster para comenzar");
+    private final javax.swing.JTabbedPane pestanas = new javax.swing.JTabbedPane();
 
     public VentanaPrincipal() {
         initComponents();
@@ -24,7 +25,6 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         getContentPane().setLayout(new java.awt.BorderLayout(12, 12));
         javax.swing.JPanel contenido = new javax.swing.JPanel(new java.awt.BorderLayout(12, 12));
         contenido.setBorder(javax.swing.BorderFactory.createEmptyBorder(16, 16, 16, 16));
-        javax.swing.JTabbedPane pestanas = new javax.swing.JTabbedPane();
         javax.swing.JPanel configuracion = new javax.swing.JPanel(new java.awt.BorderLayout(8, 8));
         configuracion.add(panelConfiguracion, java.awt.BorderLayout.CENTER);
         configuracion.add(botonConfigurar, java.awt.BorderLayout.SOUTH);
@@ -40,7 +40,11 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             Thread trabajo = new Thread(() -> {
                 try {
                     Modelo.Proceso creado = PanelProceso.crearProceso(controlador, campos);
-                    javax.swing.SwingUtilities.invokeLater(() -> estado.setText("Proceso " + creado.getId() + " creado: " + creado.getEstado()));
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        estado.setText("Proceso " + creado.getId() + " creado: " + creado.getEstado());
+                        pestanas.setSelectedComponent(panelComputadores);
+                        panelComputadores.actualizar();
+                    });
                 } catch (Exception error) {
                     Throwable causa = error instanceof java.lang.reflect.InvocationTargetException ? error.getCause() : error;
                     javax.swing.SwingUtilities.invokeLater(() -> estado.setText(causa.getMessage()));
@@ -53,7 +57,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         });
         pestanas.addTab("Configuracion", configuracion);
         pestanas.addTab("Procesos", procesos);
-        pestanas.addTab("Computadores", panelComputadores);
+        pestanas.addTab("Simulacion en vivo", panelComputadores);
         contenido.add(pestanas, java.awt.BorderLayout.CENTER);
         getContentPane().add(titulo, java.awt.BorderLayout.NORTH);
         getContentPane().add(contenido, java.awt.BorderLayout.CENTER);
@@ -99,7 +103,11 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             final boolean actualizarControles = aplicada;
             javax.swing.SwingUtilities.invokeLater(() -> {
                 estado.setText(resultado);
-                if (actualizarControles) panelControles.mostrarDuracion(configuracion.getDuracionMs());
+                if (actualizarControles) {
+                    panelControles.mostrarDuracion(configuracion.getDuracionMs());
+                    pestanas.setSelectedComponent(panelComputadores);
+                    panelComputadores.actualizar();
+                }
                 botonConfigurar.setEnabled(true);
             });
         }, "Configurar-cluster");

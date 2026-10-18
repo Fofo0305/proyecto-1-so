@@ -13,6 +13,42 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de colas graficas verificada en consola.
+        Sistema.Computador graficoUno = new Sistema.Computador(1, 64);
+        Sistema.Computador graficoDos = new Sistema.Computador(2, 64);
+        graficoUno.recibirProceso(new Modelo.Proceso("Compilar", 1, Modelo.TipoProceso.CPU_BOUND, 1, 32, 8, 30));
+        graficoUno.recibirProceso(new Modelo.Proceso("Exportar", 1, Modelo.TipoProceso.CPU_BOUND, 2, 32, 4, 30));
+        graficoUno.recibirProceso(new Modelo.Proceso("Esperando memoria", 1, Modelo.TipoProceso.CPU_BOUND, 0, 32, 3, 30));
+        graficoDos.recibirProceso(new Modelo.Proceso("Calculo", 2, Modelo.TipoProceso.CPU_BOUND, 0, 16, 1, 30));
+        graficoDos.recibirProceso(new Modelo.Proceso("Reporte", 2, Modelo.TipoProceso.CPU_BOUND, 1, 32, 6, 30));
+        graficoUno.avanzarCiclo(1); graficoDos.avanzarCiclo(1);
+        Modelo.VistaComputador[] graficas = {graficoUno.consultarVista(), graficoDos.consultarVista()};
+        if (graficas[0].procesoCPU() == null || graficas[0].colaNuevos().length != 1
+                || graficas[0].colaListos().length != 1 || graficas[1].colaTerminados().length != 1)
+            throw new AssertionError("No se capturaron las distintas colas");
+        Modelo.VistaProceso[] copiaGrafica = graficas[0].colaListos(); copiaGrafica[0] = null;
+        if (graficas[0].colaListos()[0] == null) throw new AssertionError("Vista expone arreglo mutable");
+        try {
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                Interfaces.PanelComputadores panelGrafico = new Interfaces.PanelComputadores();
+                panelGrafico.mostrarVistas(graficas, "Pausado · inspeccion del ciclo", 1);
+                javax.swing.JFrame ventanaGrafica = new javax.swing.JFrame("Simulacion grafica");
+                try {
+                    ventanaGrafica.setContentPane(panelGrafico); ventanaGrafica.setSize(1200, 1000); ventanaGrafica.setVisible(true);
+                    ventanaGrafica.validate();
+                    if (!panelGrafico.getDetalle().contains("Esperando memoria") || !panelGrafico.getDetalle().contains("Calculo"))
+                        throw new AssertionError("Vista pierde procesos");
+                    java.awt.image.BufferedImage imagenGrafica = new java.awt.image.BufferedImage(1200, 1000, java.awt.image.BufferedImage.TYPE_INT_RGB);
+                    java.awt.Graphics2D pincelGrafico = imagenGrafica.createGraphics();
+                    try { ventanaGrafica.printAll(pincelGrafico); } finally { pincelGrafico.dispose(); }
+                    try { javax.imageio.ImageIO.write(imagenGrafica, "png", new java.io.File("target/colas-graficas.png")); }
+                    catch (java.io.IOException error) { throw new IllegalStateException(error); }
+                } finally { ventanaGrafica.dispose(); }
+            });
+        } catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new IllegalStateException(error); }
+        catch (java.lang.reflect.InvocationTargetException error) { throw new IllegalStateException(error.getCause()); }
+        System.out.println("Colas graficas: CPU activa, nuevos esperando RAM, listos FIFO, terminados y copias aisladas: OK");
+        */
         /* Prueba de configuracion rechazada verificada en consola.
         Interfaces.VentanaPrincipal[] rechazoVentana = new Interfaces.VentanaPrincipal[1];
         try {
