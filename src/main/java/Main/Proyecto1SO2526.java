@@ -13,6 +13,39 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de panel configuracion verificada en consola.
+        try {
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                Interfaces.PanelConfiguracion panelConfiguracionPrueba = new Interfaces.PanelConfiguracion();
+                if (panelConfiguracionPrueba.leerConfiguracion().getCantidadComputadores() != 2)
+                    throw new AssertionError("Cantidad inicial incorrecta");
+                panelConfiguracionPrueba.mostrarConfiguracion(new Modelo.Configuracion(new int[] {32, 64, 96}, 50, 2, 1));
+                Modelo.Configuracion lecturaPanel = panelConfiguracionPrueba.leerConfiguracion();
+                if (lecturaPanel.getCantidadComputadores() != 3 || lecturaPanel.getRam()[2] != 96
+                        || lecturaPanel.getDuracionMs() != 50 || lecturaPanel.getQuantum() != 2 || lecturaPanel.getLatencia() != 1)
+                    throw new AssertionError("El panel no conserva parametros");
+                javax.swing.JTextField campoCantidadPrueba = (javax.swing.JTextField) panelConfiguracionPrueba.getComponent(1);
+                campoCantidadPrueba.setText("texto");
+                try {
+                    panelConfiguracionPrueba.leerConfiguracion();
+                    throw new AssertionError("Texto invalido aceptado");
+                } catch (IllegalArgumentException esperado) { }
+                campoCantidadPrueba.setText("2");
+                try {
+                    panelConfiguracionPrueba.leerConfiguracion();
+                    throw new AssertionError("Cantidad no coincide con RAM");
+                } catch (IllegalArgumentException esperado) { }
+                System.out.println("Panel de configuracion: carga/lectura de tres computadores, numeros invalidos y RAM incoherente: OK");
+            });
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de panel interrumpida", interrupcion);
+        } catch (java.lang.reflect.InvocationTargetException errorPanel) {
+            throw new IllegalStateException("Fallo de panel", errorPanel.getCause());
+        }
+        System.out.println("Prueba de PanelConfiguracion en EDT: OK");
+        */
+
         /* Prueba de controlador y ensamblado verificada en consola.
         try (Sistema.ControladorSimulacion controladorPrueba = new Sistema.ControladorSimulacion()) {
             if (controladorPrueba.getComputadores().length != 0) throw new AssertionError("Cluster prematuro");
