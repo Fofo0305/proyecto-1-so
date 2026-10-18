@@ -13,6 +13,35 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de archivo CSV verificada en consola.
+        try {
+            String nombreArchivoPrueba = "CPU, \"Avila\"\nlinea dos";
+            Modelo.CargaInicial archivoCargaPrueba = new Modelo.CargaInicial(new Modelo.Configuracion(new int[] {64, 128}, 25, 3, 2),
+                    new Modelo.DefinicionProceso[] {new Modelo.DefinicionProceso(nombreArchivoPrueba, 2, 1, 32, 10, 20)},
+                    new Modelo.DefinicionBuffer[] {new Modelo.DefinicionBuffer("Buffer, 1", 16, 1)});
+            java.nio.file.Path rutaArchivoPrueba = java.nio.file.Path.of("target", "carga-prueba.csv");
+            Persistencia.ArchivoConfiguracion.guardar(rutaArchivoPrueba, archivoCargaPrueba);
+            Modelo.CargaInicial leidaArchivoPrueba = Persistencia.ArchivoConfiguracion.cargar(rutaArchivoPrueba);
+            if (!nombreArchivoPrueba.equals(leidaArchivoPrueba.getProcesos()[0].nombre())
+                    || leidaArchivoPrueba.getConfiguracion().getRam()[1] != 128
+                    || leidaArchivoPrueba.getConfiguracion().getQuantum() != 3 || leidaArchivoPrueba.getConfiguracion().getLatencia() != 2
+                    || !"Buffer, 1".equals(leidaArchivoPrueba.getBuffers()[0].nombre()))
+                throw new AssertionError("Guardar/cargar perdio atributos");
+            java.nio.file.Files.writeString(java.nio.file.Path.of("target", "carga-invalida.csv"),
+                    Persistencia.Csv.registro("AVILAOS", "1") + Persistencia.Csv.registro("DESCONOCIDO", "1"));
+            try {
+                Persistencia.ArchivoConfiguracion.cargar(java.nio.file.Path.of("target", "carga-invalida.csv"));
+                throw new AssertionError("Archivo corrupto aceptado");
+            } catch (IllegalArgumentException esperado) {
+                if (!esperado.getMessage().contains("Linea 2")) throw new AssertionError("Diagnostico sin linea correcta");
+            }
+            System.out.println("CSV UTF-8: configuracion, procesos multilínea y buffers preservados; archivo corrupto rechazado: OK");
+        } catch (java.io.IOException errorArchivo) {
+            throw new IllegalStateException("Fallo de prueba de archivo", errorArchivo);
+        }
+        System.out.println("Prueba de guardar y cargar configuracion CSV: OK");
+        */
+
         /* Prueba de CSV verificada en consola.
         String nombreCsvPrueba = "Proceso, con \"comillas\"\ny salto";
         String textoCsvPrueba = Persistencia.Csv.registro("PROCESO", nombreCsvPrueba, "") + Persistencia.Csv.registro("FIN", "2");
