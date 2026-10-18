@@ -13,6 +13,96 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de ejecucion FCFS integrada verificada en consola.
+        Sistema.Computador flujoCpu = new Sistema.Computador(1, 64);
+        Modelo.Proceso flujoA = new Modelo.Proceso("A", 1, Modelo.TipoProceso.CPU_BOUND, 0, 64, 2, 2);
+        Modelo.Proceso flujoB = new Modelo.Proceso("B", 1, Modelo.TipoProceso.CPU_BOUND, 0, 32, 1, 5);
+        Modelo.Proceso flujoVence = new Modelo.Proceso("Vence", 1, Modelo.TipoProceso.CPU_BOUND, 0, 100, 1, 1);
+        flujoCpu.recibirProceso(flujoA);
+        flujoCpu.recibirProceso(flujoB);
+        flujoCpu.recibirProceso(flujoVence);
+        flujoCpu.avanzarCiclo(1);
+        if (flujoA.getPc() != 1 || flujoA.getDeadline() != 1 || flujoB.getDeadline() != 4
+                || flujoVence.getEstado() != Modelo.EstadoProceso.TERMINADO || flujoCpu.getProcesoEnCPU() != flujoA)
+            throw new AssertionError("Primer ciclo o vencimiento incorrecto");
+        flujoCpu.avanzarCiclo(2);
+        if (flujoA.getRestante() != 0 || flujoA.getEstado() != Modelo.EstadoProceso.TERMINADO
+                || flujoB.getEstado() != Modelo.EstadoProceso.LISTO || flujoB.getDeadline() != 3
+                || flujoCpu.getMemoria().getUsada() != 32) throw new AssertionError("Finalizacion o readmision incorrecta");
+        flujoCpu.avanzarCiclo(3);
+        if (flujoB.getPc() != 1 || flujoCpu.getTerminados().length != 3 || flujoCpu.getMemoria().getUsada() != 0)
+            throw new AssertionError("Flujo FCFS incompleto");
+        try {
+            flujoCpu.avanzarCiclo(3);
+            throw new AssertionError("Ciclo duplicado aceptado");
+        } catch (IllegalArgumentException esperado) { }
+        Sistema.Computador segundoFlujo = new Sistema.Computador(2, 32);
+        segundoFlujo.avanzarCiclo(1);
+        if (segundoFlujo.getUltimoCiclo() != 1 || segundoFlujo.getModoCPU() != Modelo.ModoCPU.SISTEMA_OPERATIVO)
+            throw new AssertionError("Computador vacio incorrecto");
+        Sistema.Computador tiposFlujo = new Sistema.Computador(3, 32);
+        tiposFlujo.recibirProceso(new Modelo.Proceso("IO", 3, Modelo.TipoProceso.IO_BOUND, 0, 1, 1, 2));
+        try {
+            tiposFlujo.avanzarCiclo(1);
+            throw new AssertionError("Tipo no implementado aceptado");
+        } catch (UnsupportedOperationException esperado) { }
+        System.out.println("FCFS integrado: A ejecuta dos ciclos, B espera RAM y ejecuta despues, Vence termina en nuevos");
+        System.out.println("Plazos una vez por ciclo y RAM final 0: OK");
+        System.out.println("Prueba de ejecucion FCFS por computador: OK");
+        */
+
+        /* Prueba de CPU y modos verificada en consola.
+        Sistema.CPU cpuPrueba = new Sistema.CPU();
+        cpuPrueba.avanzarCiclo(1);
+        if (cpuPrueba.getModo() != Modelo.ModoCPU.SISTEMA_OPERATIVO) throw new AssertionError("Modo en reposo incorrecto");
+        Modelo.Proceso cpuProceso = new Modelo.Proceso("CPU", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 2, 10);
+        cpuProceso.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        cpuPrueba.asignar(cpuProceso);
+        cpuPrueba.avanzarCiclo(2);
+        if (cpuProceso.getPc() != 1 || cpuProceso.getMar() != 1 || cpuProceso.getRestante() != 1
+                || cpuPrueba.getModo() != Modelo.ModoCPU.USUARIO) throw new AssertionError("Instruccion de CPU incorrecta");
+        try {
+            cpuPrueba.avanzarCiclo(2);
+            throw new AssertionError("Ciclo repetido aceptado");
+        } catch (IllegalArgumentException esperado) { }
+        if (cpuProceso.getPc() != 1) throw new AssertionError("Se ejecuto dos veces el ciclo");
+        cpuPrueba.avanzarCiclo(3);
+        if (cpuProceso.getPc() != 2 || cpuPrueba.retirar() != cpuProceso || cpuPrueba.getActual() != null)
+            throw new AssertionError("Retiro de contexto incorrecto");
+        Modelo.Proceso ioCpu = new Modelo.Proceso("IO", 1, Modelo.TipoProceso.IO_BOUND, 0, 1, 1, 10);
+        ioCpu.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        try {
+            cpuPrueba.asignar(ioCpu);
+            throw new AssertionError("IO ejecutado sin modulo de entrada/salida");
+        } catch (IllegalArgumentException esperado) { }
+        cpuPrueba.avanzarCiclo(4);
+        System.out.println("CPU: una instruccion por ciclo, PC/MAR 2/2, contexto retirado y modo sistema en reposo");
+        System.out.println("Prueba de CPU y modos: OK");
+        */
+
+        /* Prueba de politica y FCFS verificada en consola.
+        Planificacion.Politica politicaFcfs = new Planificacion.FCFS();
+        EDD.Cola<Modelo.Proceso> listosFcfs = new EDD.Cola<>();
+        Modelo.Proceso primeroFcfs = new Modelo.Proceso("Primero", 1, Modelo.TipoProceso.CPU_BOUND, 5, 1, 3, 10);
+        Modelo.Proceso segundoFcfs = new Modelo.Proceso("Segundo", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 2, 5);
+        primeroFcfs.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        segundoFcfs.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        listosFcfs.agregar(primeroFcfs);
+        listosFcfs.agregar(segundoFcfs);
+        if (politicaFcfs.seleccionar(listosFcfs) != primeroFcfs || politicaFcfs.seleccionar(listosFcfs) != segundoFcfs
+                || politicaFcfs.seleccionar(listosFcfs) != null)
+            throw new AssertionError("FCFS no respeto el orden de llegada");
+        if (primeroFcfs.getPc() != 0 || primeroFcfs.getRestante() != 3 || primeroFcfs.getEstado() != Modelo.EstadoProceso.LISTO
+                || segundoFcfs.getPc() != 0 || segundoFcfs.getRestante() != 2)
+            throw new AssertionError("La politica modifico el contexto");
+        try {
+            politicaFcfs.seleccionar(null);
+            throw new AssertionError("Cola nula aceptada");
+        } catch (IllegalArgumentException esperado) { }
+        System.out.println("Seleccion FCFS: Primero, Segundo, null; contexto sin ejecutar: OK");
+        System.out.println("Prueba de contrato de politica y FCFS: OK");
+        */
+
         /* Prueba integrada de admision verificada en consola.
         Sistema.Computador integracionUno = new Sistema.Computador(1, 64);
         Sistema.Computador integracionDos = new Sistema.Computador(2, 64);
