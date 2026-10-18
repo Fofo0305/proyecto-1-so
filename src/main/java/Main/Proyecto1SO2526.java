@@ -13,6 +13,195 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba integrada de admision verificada en consola.
+        Sistema.Computador integracionUno = new Sistema.Computador(1, 64);
+        Sistema.Computador integracionDos = new Sistema.Computador(2, 64);
+        Modelo.Proceso inicialIntegracion = new Modelo.Proceso("Inicial", 1, Modelo.TipoProceso.CPU_BOUND, 0, 64, 1, 10);
+        Modelo.Proceso pendienteIntegracion = new Modelo.Proceso("Pendiente", 1, Modelo.TipoProceso.CPU_BOUND, 0, 32, 1, 10);
+        Modelo.Proceso independienteIntegracion = new Modelo.Proceso("Independiente", 2, Modelo.TipoProceso.CPU_BOUND, 0, 64, 1, 10);
+        integracionUno.recibirProceso(inicialIntegracion);
+        integracionUno.recibirProceso(pendienteIntegracion);
+        integracionDos.recibirProceso(independienteIntegracion);
+        if (integracionUno.admitirProcesos() != 1 || integracionDos.admitirProcesos() != 1
+                || integracionUno.getNuevos()[0] != pendienteIntegracion)
+            throw new AssertionError("Admision inicial integrada incorrecta");
+        inicialIntegracion.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        inicialIntegracion.ejecutarInstruccion();
+        integracionUno.terminarProceso(inicialIntegracion);
+        if (integracionUno.getNuevos().length != 0 || integracionUno.getListos()[0] != pendienteIntegracion
+                || integracionUno.getTerminados()[0] != inicialIntegracion || integracionUno.getMemoria().getUsada() != 32
+                || integracionDos.getListos()[0] != independienteIntegracion || integracionDos.getMemoria().getUsada() != 64)
+            throw new AssertionError("Liberacion o independencia de computadores incorrecta");
+        pendienteIntegracion.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        pendienteIntegracion.ejecutarInstruccion();
+        integracionUno.terminarProceso(pendienteIntegracion);
+        if (integracionUno.getMemoria().getUsada() != 0 || integracionUno.getTerminados().length != 2)
+            throw new AssertionError("Cierre de admision incorrecto");
+        System.out.println("Admision integrada: pendiente admitido al liberar RAM; segundo computador intacto");
+        System.out.println("Computador 1 RAM usada/terminados: 0/2 (verificado)");
+        System.out.println("Prueba integrada de admision con dos computadores: OK");
+        */
+
+        /* Prueba de terminacion y readmision verificada en consola.
+        Sistema.Computador finComputador = new Sistema.Computador(1, 100);
+        Modelo.Proceso ocupadoFin = new Modelo.Proceso("Ocupa", 1, Modelo.TipoProceso.CPU_BOUND, 0, 80, 1, 10);
+        Modelo.Proceso esperaFin = new Modelo.Proceso("Espera", 1, Modelo.TipoProceso.CPU_BOUND, 0, 50, 1, 10);
+        Modelo.Proceso grandeFin = new Modelo.Proceso("Grande", 1, Modelo.TipoProceso.CPU_BOUND, 0, 101, 1, 10);
+        finComputador.getMemoria().reservar("buffer:1", 20);
+        finComputador.recibirProceso(ocupadoFin);
+        finComputador.recibirProceso(esperaFin);
+        finComputador.recibirProceso(grandeFin);
+        if (finComputador.admitirProcesos() != 1 || finComputador.getMemoria().getUsada() != 100)
+            throw new AssertionError("Preparacion de terminacion incorrecta");
+        ocupadoFin.cambiarEstado(Modelo.EstadoProceso.EJECUCION, Modelo.MotivoBloqueo.NINGUNO);
+        ocupadoFin.ejecutarInstruccion();
+        if (!finComputador.terminarProceso(ocupadoFin)) throw new AssertionError("No termino el proceso");
+        System.out.println("Tras terminar: listos=" + finComputador.getListos()[0].getNombre()
+                + ", nuevos=" + finComputador.getNuevos()[0].getNombre()
+                + ", terminados=" + finComputador.getTerminados()[0].getNombre()
+                + " (esperado: Espera, Grande, Ocupa)");
+        System.out.println("RAM usada/libre tras readmitir: " + finComputador.getMemoria().getUsada()
+                + "/" + finComputador.getMemoria().getLibre() + " (esperado: 70/30)");
+        if (ocupadoFin.getEstado() != Modelo.EstadoProceso.TERMINADO || esperaFin.getEstado() != Modelo.EstadoProceso.LISTO
+                || finComputador.getListos().length != 1 || finComputador.getListos()[0] != esperaFin
+                || finComputador.getNuevos().length != 1 || finComputador.getNuevos()[0] != grandeFin
+                || finComputador.getTerminados().length != 1 || finComputador.getTerminados()[0] != ocupadoFin
+                || finComputador.getMemoria().getUsada() != 70)
+            throw new AssertionError("Terminacion no libero RAM o no admitio pendientes");
+        if (finComputador.terminarProceso(ocupadoFin) || finComputador.getTerminados().length != 1
+                || finComputador.getMemoria().getUsada() != 70)
+            throw new AssertionError("Terminacion repetida altero RAM o colas");
+        if (!finComputador.terminarProceso(grandeFin) || finComputador.getNuevos().length != 0
+                || finComputador.getMemoria().getUsada() != 70)
+            throw new AssertionError("Terminar nuevo libero memoria ajena");
+        finComputador.terminarProceso(esperaFin);
+        if (finComputador.getMemoria().getUsada() != 20 || finComputador.getListos().length != 0)
+            throw new AssertionError("Se libero reserva del buffer");
+        Modelo.Proceso noRegistradoFin = new Modelo.Proceso("Ajeno", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        Modelo.Proceso otroFin = new Modelo.Proceso("Otro", 2, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        for (Modelo.Proceso invalidoFin : new Modelo.Proceso[] {null, noRegistradoFin, otroFin}) {
+            try {
+                finComputador.terminarProceso(invalidoFin);
+                throw new AssertionError("Terminacion invalida aceptada");
+            } catch (IllegalArgumentException esperado) { }
+        }
+        if (finComputador.getTerminados().length != 3 || finComputador.getMemoria().getUsada() != 20
+                || noRegistradoFin.getEstado() != Modelo.EstadoProceso.NUEVO)
+            throw new AssertionError("Rechazo altero el sistema");
+        System.out.println("Repeticiones sin efecto, nuevos sin reserva y buffer conservado: OK");
+        System.out.println("Prueba de terminacion y readmision de pendientes: OK");
+        */
+
+        /* Prueba de admision de nuevos a listos verificada en consola.
+        Sistema.Computador admisor = new Sistema.Computador(1, 100);
+        Sistema.Computador admisorOtro = new Sistema.Computador(2, 100);
+        Modelo.Proceso grandeAdmision = new Modelo.Proceso("Grande", 1, Modelo.TipoProceso.CPU_BOUND, 0, 101, 2, 10);
+        Modelo.Proceso primeroAdmision = new Modelo.Proceso("Primero", 1, Modelo.TipoProceso.CPU_BOUND, 0, 60, 2, 10);
+        Modelo.Proceso esperaAdmision = new Modelo.Proceso("Espera", 1, Modelo.TipoProceso.CPU_BOUND, 0, 50, 2, 10);
+        Modelo.Proceso ultimoAdmision = new Modelo.Proceso("Ultimo", 1, Modelo.TipoProceso.CPU_BOUND, 0, 40, 2, 10);
+        admisor.recibirProceso(grandeAdmision);
+        admisor.recibirProceso(primeroAdmision);
+        admisor.recibirProceso(esperaAdmision);
+        admisor.recibirProceso(ultimoAdmision);
+        int cantidadAdmitida = admisor.admitirProcesos();
+        Modelo.Proceso[] listosAdmision = admisor.getListos();
+        Modelo.Proceso[] nuevosAdmision = admisor.getNuevos();
+        System.out.println("Admitidos: " + cantidadAdmitida + " (esperado: 2)");
+        System.out.println("Listos: " + listosAdmision[0].getNombre() + ", " + listosAdmision[1].getNombre() + " (esperado: Primero, Ultimo)");
+        System.out.println("Nuevos pendientes: " + nuevosAdmision[0].getNombre() + ", " + nuevosAdmision[1].getNombre() + " (esperado: Grande, Espera)");
+        if (cantidadAdmitida != 2 || listosAdmision.length != 2 || nuevosAdmision.length != 2
+                || listosAdmision[0] != primeroAdmision || listosAdmision[1] != ultimoAdmision
+                || nuevosAdmision[0] != grandeAdmision || nuevosAdmision[1] != esperaAdmision)
+            throw new AssertionError("Orden de admision incorrecto");
+        if (primeroAdmision.getEstado() != Modelo.EstadoProceso.LISTO || ultimoAdmision.getEstado() != Modelo.EstadoProceso.LISTO
+                || grandeAdmision.getEstado() != Modelo.EstadoProceso.NUEVO || esperaAdmision.getEstado() != Modelo.EstadoProceso.NUEVO)
+            throw new AssertionError("Estados de admision incorrectos");
+        if (admisor.getMemoria().getUsada() != 100 || admisor.getMemoria().getLibre() != 0
+                || admisor.admitirProcesos() != 0 || admisor.getListos().length != 2)
+            throw new AssertionError("RAM o admision repetida incorrecta");
+        if (admisorOtro.admitirProcesos() != 0 || admisorOtro.getMemoria().getUsada() != 0
+                || admisorOtro.getNuevos().length != 0 || admisorOtro.getListos().length != 0)
+            throw new AssertionError("Se afecto otro computador");
+        System.out.println("RAM usada/libre: 100/0; segunda revision sin duplicados; otro computador intacto");
+        System.out.println("Prueba de admision de nuevos a listos: OK");
+        */
+
+        /* Prueba de recepcion de procesos nuevos verificada en consola.
+        Sistema.Computador receptorUno = new Sistema.Computador(1, 32);
+        Sistema.Computador receptorDos = new Sistema.Computador(2, 64);
+        Modelo.Proceso nuevoUno = new Modelo.Proceso("N1", 1, Modelo.TipoProceso.CPU_BOUND, 0, 16, 2, 5);
+        Modelo.Proceso nuevoDos = new Modelo.Proceso("N2", 1, Modelo.TipoProceso.CPU_BOUND, 0, 100, 2, 5);
+        receptorUno.recibirProceso(nuevoUno);
+        receptorUno.recibirProceso(nuevoDos);
+        Modelo.Proceso[] recibidosNuevos = receptorUno.getNuevos();
+        System.out.println("Orden de nuevos: " + recibidosNuevos[0].getNombre() + ", " + recibidosNuevos[1].getNombre() + " (esperado: N1, N2)");
+        if (recibidosNuevos.length != 2 || recibidosNuevos[0] != nuevoUno || recibidosNuevos[1] != nuevoDos
+                || receptorUno.getMemoria().getUsada() != 0 || receptorUno.getListos().length != 0)
+            throw new AssertionError("Recepcion altero orden, RAM o listos");
+        recibidosNuevos[0] = null;
+        if (receptorUno.getNuevos()[0] != nuevoUno || receptorDos.getNuevos().length != 0)
+            throw new AssertionError("Consulta altero colas o se compartieron procesos");
+        Modelo.Proceso yaListo = new Modelo.Proceso("Listo", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        yaListo.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        Modelo.Proceso otroComputador = new Modelo.Proceso("Otro", 2, Modelo.TipoProceso.CPU_BOUND, 0, 1, 1, 1);
+        for (Modelo.Proceso invalidoNuevo : new Modelo.Proceso[] {null, nuevoUno, yaListo, otroComputador}) {
+            try {
+                receptorUno.recibirProceso(invalidoNuevo);
+                throw new AssertionError("Recepcion invalida aceptada");
+            } catch (IllegalArgumentException esperado) {
+                if (receptorUno.getNuevos().length != 2 || receptorUno.getMemoria().getUsada() != 0)
+                    throw new AssertionError("Rechazo altero computador");
+            }
+        }
+        receptorDos.recibirProceso(otroComputador);
+        System.out.println("Nuevos por computador: " + receptorUno.getNuevos().length + "/" + receptorDos.getNuevos().length + " (esperado: 2/1)");
+        System.out.println("Prueba de recepcion de procesos nuevos sin reservar RAM: OK");
+        */
+
+        /* Prueba de inicializacion de colas propias verificada en consola.
+        Sistema.Computador colasUno = new Sistema.Computador(1, 128);
+        Sistema.Computador colasDos = new Sistema.Computador(2, 256);
+        Sistema.Computador[] computadoresColas = {colasUno, colasDos};
+        for (Sistema.Computador computadorColas : computadoresColas) {
+            System.out.println("Computador " + computadorColas.getId() + " nuevos/listos/bloqueados/terminados: "
+                    + computadorColas.getNuevos().length + "/" + computadorColas.getListos().length + "/"
+                    + computadorColas.getBloqueados().length + "/" + computadorColas.getTerminados().length
+                    + " (esperado: 0/0/0/0)");
+            if (computadorColas.getNuevos().length != 0 || computadorColas.getListos().length != 0
+                    || computadorColas.getBloqueados().length != 0 || computadorColas.getTerminados().length != 0)
+                throw new AssertionError("Las colas no comenzaron vacias");
+        }
+        Modelo.Proceso[] consultaNuevos = colasUno.getNuevos();
+        if (consultaNuevos == colasUno.getNuevos() || consultaNuevos == colasDos.getNuevos()
+                || colasUno.getListos() == colasDos.getListos()
+                || colasUno.getBloqueados() == colasDos.getBloqueados()
+                || colasUno.getTerminados() == colasDos.getTerminados())
+            throw new AssertionError("Consultas compartidas entre computadores");
+        System.out.println("Consultas devuelven arreglos independientes: OK");
+        System.out.println("Prueba de inicializacion de colas propias: OK");
+        */
+
+        /* Prueba de computadores y RAM independiente verificada en consola.
+        Sistema.Computador computadorUno = new Sistema.Computador(1, 128);
+        Sistema.Computador computadorDos = new Sistema.Computador(2, 256);
+        if (computadorUno.getId() != 1 || computadorDos.getId() != 2
+                || computadorUno.getMemoria() == computadorDos.getMemoria())
+            throw new AssertionError("Computadores sin identidad o memoria independiente");
+        computadorUno.getMemoria().reservar("proceso:1", 64);
+        System.out.println("Computador 1 RAM usada/libre: " + computadorUno.getMemoria().getUsada() + "/" + computadorUno.getMemoria().getLibre() + " (esperado: 64/64)");
+        System.out.println("Computador 2 RAM usada/libre: " + computadorDos.getMemoria().getUsada() + "/" + computadorDos.getMemoria().getLibre() + " (esperado: 0/256)");
+        if (computadorUno.getMemoria().getUsada() != 64 || computadorUno.getMemoria().getLibre() != 64
+                || computadorDos.getMemoria().getUsada() != 0 || computadorDos.getMemoria().getLibre() != 256)
+            throw new AssertionError("Una RAM afecto al otro computador");
+        for (int casoComputador = 0; casoComputador < 2; casoComputador++) {
+            try {
+                new Sistema.Computador(casoComputador == 0 ? 0 : 1, casoComputador == 1 ? 0 : 128);
+                throw new AssertionError("Configuracion invalida aceptada");
+            } catch (IllegalArgumentException esperado) { }
+        }
+        System.out.println("Prueba de computadores y RAM independiente: OK");
+        */
+
         /* Prueba integrada de gestion RAM verificada en consola.
         Modelo.Memoria ramIntegrada = new Modelo.Memoria(128);
         Modelo.Proceso procesoRam = new Modelo.Proceso("RAM", 1, Modelo.TipoProceso.CPU_BOUND, 0, 64, 1, 5);
