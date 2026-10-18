@@ -68,6 +68,15 @@ public class Proyecto1SO2526 {
             javax.swing.SwingUtilities.invokeAndWait(() -> {
                 Interfaces.PanelComputadores panelGrafico = new Interfaces.PanelComputadores();
                 panelGrafico.mostrarVistas(graficas, "Pausado · inspeccion del ciclo", 1);
+                if (panelGrafico.getComputadoresVisibles() != 2) throw new AssertionError("No muestra el cluster");
+                panelGrafico.seleccionarComputador(1);
+                if (panelGrafico.getComputadoresVisibles() != 1) throw new AssertionError("Filtro no enfoca computador");
+                panelGrafico.mostrarDetallesPCB(true);
+                panelGrafico.mostrarVistas(graficas, "Pausado", 1);
+                if (panelGrafico.getComputadoresVisibles() != 1) throw new AssertionError("Refresco pierde filtro");
+                panelGrafico.seleccionarComputador(0);
+                panelGrafico.mostrarDetallesPCB(false);
+                if (panelGrafico.getComputadoresVisibles() != 2) throw new AssertionError("No restauro vista general");
                 javax.swing.JFrame ventanaGrafica = new javax.swing.JFrame("Simulacion grafica");
                 try {
                     ventanaGrafica.setContentPane(panelGrafico); ventanaGrafica.setSize(1200, 1000); ventanaGrafica.setVisible(true);
@@ -83,7 +92,7 @@ public class Proyecto1SO2526 {
             });
         } catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new IllegalStateException(error); }
         catch (java.lang.reflect.InvocationTargetException error) { throw new IllegalStateException(error.getCause()); }
-        System.out.println("Colas graficas: CPU activa, nuevos esperando RAM, listos FIFO, terminados y copias aisladas: OK");
+        System.out.println("Colas graficas: CPU, FIFO, RAM, filtro persistente, detalles PCB opcionales y copias aisladas: OK");
         */
         /* Prueba de configuracion rechazada verificada en consola.
         Interfaces.VentanaPrincipal[] rechazoVentana = new Interfaces.VentanaPrincipal[1];

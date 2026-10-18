@@ -9,6 +9,11 @@ import javax.swing.*;
 public class PanelComputador extends JPanel {
     private static final Color FONDO = new Color(242, 246, 251);
     private static final Color AZUL = new Color(42, 99, 195);
+    private boolean mostrarPCB;
+    private final JScrollPane[] colasVisibles = new JScrollPane[4];
+    private int indiceCola;
+
+    public void mostrarDetalles(boolean valor) { mostrarPCB = valor; }
 
     public PanelComputador() {
         initComponents();
@@ -18,6 +23,10 @@ public class PanelComputador extends JPanel {
     }
 
     public void mostrar(VistaComputador vista) {
+        int[] posiciones = new int[4];
+        for (int i = 0; i < 4; i++) if (colasVisibles[i] != null)
+            posiciones[i] = colasVisibles[i].getVerticalScrollBar().getValue();
+        indiceCola = 0;
         removeAll();
         JPanel resumen = new JPanel(new BorderLayout(12, 8));
         resumen.setOpaque(false);
@@ -50,6 +59,11 @@ public class PanelComputador extends JPanel {
         cuerpo.add(colas, BorderLayout.CENTER);
         add(resumen, BorderLayout.NORTH); add(cuerpo, BorderLayout.CENTER);
         revalidate(); repaint();
+        for (int i = 0; i < 4; i++) {
+            final JScrollPane colaActual = colasVisibles[i];
+            final int posicion = posiciones[i];
+            SwingUtilities.invokeLater(() -> colaActual.getVerticalScrollBar().setValue(posicion));
+        }
     }
 
     private JPanel cola(String titulo, String ayuda, VistaProceso[] procesos, Color color) {
@@ -76,6 +90,7 @@ public class PanelComputador extends JPanel {
         desplazamiento.setBorder(null); desplazamiento.getViewport().setBackground(FONDO);
         desplazamiento.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         desplazamiento.getVerticalScrollBar().setUnitIncrement(16);
+        colasVisibles[indiceCola++] = desplazamiento;
         columna.add(desplazamiento, BorderLayout.CENTER);
         return columna;
     }
@@ -88,22 +103,24 @@ public class PanelComputador extends JPanel {
         JLabel nombre = new JLabel("P" + proceso.id() + " · " + proceso.nombre());
         nombre.setFont(new Font("SansSerif", Font.BOLD, 12)); nombre.setToolTipText(proceso.nombre());
         tarjeta.add(nombre, BorderLayout.NORTH);
-        JLabel pcb = new JLabel("<html>RAM " + proceso.memoria() + " · prioridad " + proceso.prioridad()
-                + "<br>PC " + proceso.pc() + " · MAR " + proceso.mar()
-                + "<br>Restan " + proceso.restante() + " · plazo " + proceso.deadline() + "</html>");
+        String datosPCB = "PC " + proceso.pc() + " · MAR " + proceso.mar() + " · prioridad " + proceso.prioridad();
+        JLabel pcb = new JLabel("<html>RAM " + proceso.memoria()
+                + " · restan " + proceso.restante() + "<br>Plazo " + proceso.deadline()
+                + (mostrarPCB ? "<br>" + datosPCB : "") + "</html>");
+        tarjeta.setToolTipText(datosPCB + " · " + proceso.estado());
         pcb.setFont(new Font("SansSerif", Font.PLAIN, 11)); tarjeta.add(pcb, BorderLayout.CENTER);
         long total = (long) proceso.pc() + proceso.restante();
         JProgressBar progreso = new JProgressBar(0, 100);
         progreso.setValue(total == 0 ? 100 : (int) (100L * proceso.pc() / total));
         progreso.setForeground(color); progreso.setStringPainted(true); progreso.setString(progreso.getValue() + "% ejecutado");
         tarjeta.add(progreso, BorderLayout.SOUTH);
-        tarjeta.setMaximumSize(new Dimension(Integer.MAX_VALUE, 132));
+        tarjeta.setMaximumSize(new Dimension(Integer.MAX_VALUE, mostrarPCB ? 126 : 104));
         return tarjeta;
     }
 
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
         setLayout(new BorderLayout(12, 12));
-        setPreferredSize(new Dimension(1080, 420));
+        setPreferredSize(new Dimension(1080, 360));
     }// </editor-fold>//GEN-END:initComponents
 }

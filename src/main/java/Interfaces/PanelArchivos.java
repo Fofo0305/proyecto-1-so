@@ -93,8 +93,8 @@ public class PanelArchivos extends javax.swing.JPanel {
     private void initComponents() {
         guardar = new javax.swing.JButton(); cargar = new javax.swing.JButton(); ejemplo = new javax.swing.JButton(); resultado = new javax.swing.JLabel();
         setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
-        guardar.setText("Guardar carga inicial CSV"); add(guardar);
-        cargar.setText("Cargar configuracion CSV"); add(cargar);
+        guardar.setText("Guardar CSV"); add(guardar);
+        cargar.setText("Abrir CSV"); add(cargar);
         ejemplo.setText("Cargar ejemplo"); add(ejemplo);
         resultado.setText("Sin archivo"); add(resultado);
     }// </editor-fold>//GEN-END:initComponents

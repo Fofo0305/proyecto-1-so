@@ -14,6 +14,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         panelConfiguracion.mostrarConfiguracion(carga.getConfiguracion());
         panelControles.mostrarDuracion(carga.getConfiguracion().getDuracionMs());
         panelComputadores.actualizar();
+        mostrarSimulacion();
     });
     private final javax.swing.JButton botonConfigurar = new javax.swing.JButton("Aplicar configuracion");
     private final javax.swing.JLabel estado = new javax.swing.JLabel("Configure el cluster para comenzar");
@@ -116,6 +117,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
     }
 
     public PanelConfiguracion getPanelConfiguracion() { return panelConfiguracion; }
+    private void mostrarSimulacion() { pestanas.setSelectedComponent(panelComputadores); }
     public Sistema.ControladorSimulacion getControlador() { return controlador; }
     public String getEstado() { return estado.getText(); }
     public PanelControles getPanelControles() { return panelControles; }

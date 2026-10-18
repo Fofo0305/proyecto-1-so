@@ -17,6 +17,8 @@ El proyecto usa Java 22 y no necesita bibliotecas externas. Los archivos `.form`
 
 Para probar sin introducir datos, pulsar **Cargar ejemplo** y luego **Iniciar**. El paquete `Ejemplos` ofrece `ConfiguracionInicial.crear()`; el mismo escenario esta en `ejemplos/cluster-inicial.csv` para cargarlo con el selector. Incluye dos computadores, cinco procesos y un buffer de metadatos. En el computador 1, Informe espera RAM hasta que termina Compilar. El ciclo dura 700 ms para observar los movimientos. Al finalizar permanecen las ocho unidades reservadas por el buffer Datos.
 
+En Simulacion en vivo, el selector permite enfocar un computador. Las tarjetas muestran memoria, instrucciones restantes, plazo y avance; activar **Detalles PCB** para ver PC, MAR y prioridad. El desplazamiento de cada cola se conserva durante el refresco.
+
 Los botones de archivos guardan y leen CSV UTF-8 version 1. Se conserva la configuracion y la carga **inicial**: cargar reconstruye los procesos con PC y ciclo cero, nuevos identificadores y sus instrucciones y deadlines originales. No es una reanudacion del estado de ejecucion. El archivo completo se valida antes de reemplazar la sesion; detener el reloj antes de cargar.
 
 Los registros admitidos son `AVILAOS`, `CONFIG`, `COMPUTADOR`, `PROCESO` y `BUFFER`. Los nombres pueden contener comas, comillas y saltos de linea mediante el escape CSV. Los buffers cargados reservan una unidad de RAM por elemento en su anfitrion; sus registros son metadatos y no ejecutan productor/consumidor.
