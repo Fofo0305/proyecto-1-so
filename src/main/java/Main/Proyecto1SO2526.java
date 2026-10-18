@@ -13,6 +13,32 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de configuracion del cluster verificada en consola.
+        int[] ramConfiguracion = {64, 128};
+        Modelo.Configuracion configuracionPrueba = new Modelo.Configuracion(ramConfiguracion, 100, 4, 2);
+        ramConfiguracion[0] = 1;
+        int[] copiaConfiguracion = configuracionPrueba.getRam();
+        copiaConfiguracion[1] = 1;
+        if (configuracionPrueba.getRam()[0] != 64 || configuracionPrueba.getRam()[1] != 128
+                || configuracionPrueba.getCantidadComputadores() != 2 || configuracionPrueba.getDuracionMs() != 100
+                || configuracionPrueba.getQuantum() != 4 || configuracionPrueba.getLatencia() != 2
+                || configuracionPrueba.getPoliticaInicial() != Modelo.PoliticaPlanificacion.FCFS)
+            throw new AssertionError("Configuracion o copia de RAM incorrecta");
+        int rechazadosConfiguracion = 0;
+        for (int casoConfiguracion = 0; casoConfiguracion < 7; casoConfiguracion++) {
+            try {
+                new Modelo.Configuracion(casoConfiguracion == 0 ? null : casoConfiguracion == 1 ? new int[] {64}
+                        : casoConfiguracion == 2 ? new int[] {64, 0} : new int[] {64, 128},
+                        casoConfiguracion == 3 ? 0 : casoConfiguracion == 4 ? 60001 : 100,
+                        casoConfiguracion == 5 ? 0 : 4, casoConfiguracion == 6 ? -1 : 2);
+                throw new AssertionError("Configuracion invalida aceptada");
+            } catch (IllegalArgumentException esperado) { rechazadosConfiguracion++; }
+        }
+        System.out.println("Configuracion: 2 computadores, RAM 64/128, ciclo 100, quantum 4, latencia 2; copias aisladas: OK");
+        System.out.println("Configuraciones invalidas rechazadas: " + rechazadosConfiguracion + " (esperado: 7)");
+        System.out.println("Prueba de configuracion del cluster: OK");
+        */
+
         /* Prueba de ventana principal verificada en consola.
         try {
             javax.swing.SwingUtilities.invokeAndWait(() -> {
