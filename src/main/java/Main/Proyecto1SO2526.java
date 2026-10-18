@@ -13,6 +13,29 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de CSV verificada en consola.
+        String nombreCsvPrueba = "Proceso, con \"comillas\"\ny salto";
+        String textoCsvPrueba = Persistencia.Csv.registro("PROCESO", nombreCsvPrueba, "") + Persistencia.Csv.registro("FIN", "2");
+        Persistencia.RegistroCsv[] registrosCsvPrueba = Persistencia.Csv.leer(textoCsvPrueba);
+        if (registrosCsvPrueba.length != 2 || !nombreCsvPrueba.equals(registrosCsvPrueba[0].campos()[1])
+                || !"".equals(registrosCsvPrueba[0].campos()[2]) || registrosCsvPrueba[1].linea() != 3)
+            throw new AssertionError("CSV no conservo campos o lineas");
+        registrosCsvPrueba[0].campos()[0] = "alterado";
+        if (!"PROCESO".equals(registrosCsvPrueba[0].campos()[0])) throw new AssertionError("Registro CSV mutable");
+        for (String csvInvalido : new String[] {"\"sin cierre", "a\"b,c", "\"a\"x,b"}) {
+            try {
+                Persistencia.Csv.leer(csvInvalido);
+                throw new AssertionError("CSV mal formado aceptado");
+            } catch (IllegalArgumentException esperado) {
+                if (!esperado.getMessage().contains("Linea")) throw new AssertionError("Error sin linea");
+            }
+        }
+        if (Persistencia.Csv.leer("a,b\r\nc,d\r\n").length != 2 || Persistencia.Csv.leer("").length != 0)
+            throw new AssertionError("Finales de linea incorrectos");
+        System.out.println("CSV: comas, comillas, multilinea, campos vacios y CRLF conservados; errores con linea: OK");
+        System.out.println("Prueba de codificacion CSV: OK");
+        */
+
         /* Prueba de carga inicial verificada en consola.
         Modelo.DefinicionProceso[] definicionesPrueba = {new Modelo.DefinicionProceso("Inicial", 1, 0, 32, 3, 10)};
         Modelo.DefinicionBuffer[] buffersPrueba = {new Modelo.DefinicionBuffer("B1", 16, 2)};
