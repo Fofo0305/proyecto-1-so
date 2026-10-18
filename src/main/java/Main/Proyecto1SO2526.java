@@ -13,6 +13,47 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba integrada de persistencia verificada en consola.
+        try (Sistema.ControladorSimulacion persistenciaFinal = new Sistema.ControladorSimulacion()) {
+            persistenciaFinal.configurar(new Modelo.Configuracion(new int[] {32, 64}, 5, 3, 2));
+            persistenciaFinal.crearProceso("Primero, con comilla \"A\"", 1, 0, 32, 2, 20);
+            persistenciaFinal.crearProceso("Espera", 1, 1, 32, 1, 20);
+            java.nio.file.Path rutaFinal = java.nio.file.Path.of("target", "integracion-final.csv");
+            Persistencia.ArchivoConfiguracion.guardar(rutaFinal, persistenciaFinal.getCargaInicial());
+            persistenciaFinal.iniciar();
+            long limiteFinal = System.nanoTime() + 2_000_000_000L;
+            while (persistenciaFinal.getCiclo() < 3 && System.nanoTime() < limiteFinal) Thread.sleep(5);
+            persistenciaFinal.detener();
+            if (persistenciaFinal.getComputadores()[0].getTerminados().length != 2)
+                throw new AssertionError("No completo flujo antes de restaurar");
+            persistenciaFinal.cargarCarga(Persistencia.ArchivoConfiguracion.cargar(rutaFinal));
+            if (persistenciaFinal.getCiclo() != 0 || persistenciaFinal.getComputadores()[0].getListos().length != 1
+                    || persistenciaFinal.getComputadores()[0].getNuevos().length != 1
+                    || persistenciaFinal.getCargaInicial().getProcesos()[0].deadline() != 20)
+                throw new AssertionError("Restauracion no reconstruye la carga original");
+            Sistema.Computador[] sesionAntesError = persistenciaFinal.getComputadores();
+            java.nio.file.Path rutaFinalInvalida = java.nio.file.Path.of("target", "integracion-invalida.csv");
+            java.nio.file.Files.writeString(rutaFinalInvalida, Persistencia.Csv.registro("AVILAOS", "1")
+                    + Persistencia.Csv.registro("CONFIG", "5", "3", "2")
+                    + Persistencia.Csv.registro("COMPUTADOR", "1", "32", "FCFS", "3")
+                    + Persistencia.Csv.registro("COMPUTADOR", "2", "64", "FCFS", "3")
+                    + Persistencia.Csv.registro("PROCESO", "Invalido", "3", "0", "1", "1", "1", "CPU_BOUND"));
+            try {
+                persistenciaFinal.cargarCarga(Persistencia.ArchivoConfiguracion.cargar(rutaFinalInvalida));
+                throw new AssertionError("Archivo invalido reemplazo sesion");
+            } catch (IllegalArgumentException esperado) {
+                if (persistenciaFinal.getComputadores()[0] != sesionAntesError[0])
+                    throw new AssertionError("Fallo de carga altero sesion existente");
+            }
+            System.out.println("Persistencia integrada: ejecutar, guardar carga original, reconstruir PC/ciclo cero y conservar sesion ante archivo invalido: OK");
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba final interrumpida", interrupcion);
+        } catch (java.io.IOException errorFinal) {
+            throw new IllegalStateException("Fallo de prueba final", errorFinal);
+        }
+        */
+
         /* Prueba de archivos desde interfaz verificada en consola.
         try (Sistema.ControladorSimulacion archivoPanelControl = new Sistema.ControladorSimulacion()) {
             archivoPanelControl.configurar(new Modelo.Configuracion(new int[] {64, 128}, 100, 4, 0));
@@ -505,7 +546,7 @@ public class Proyecto1SO2526 {
                     System.out.println("Ventana visible: " + ventanaPrueba.isShowing() + " (esperado: true)");
                     System.out.println("Titulo: " + ventanaPrueba.getTitle());
                     if (!ventanaPrueba.isShowing() || !"AvilaOS - Simulador distribuido".equals(ventanaPrueba.getTitle())
-                            || ventanaPrueba.getContentPane().getComponentCount() != 1)
+                            || ventanaPrueba.getPanelConfiguracion() == null || ventanaPrueba.getPanelComputadores() == null)
                         throw new AssertionError("Ventana inicial incorrecta");
                 } finally { ventanaPrueba.dispose(); }
                 System.out.println("Ventana liberada: " + !ventanaPrueba.isDisplayable() + " (esperado: true)");
