@@ -10,7 +10,7 @@ import Modelo.TipoProceso;
  * Ejecuta como máximo una instrucción por ciclo. El núcleo serializa su acceso.
  * @author Adolfo
  */
-public class CPU {
+public class CPU implements ComponenteReloj {
     private Proceso actual;
     private ModoCPU modo = ModoCPU.SISTEMA_OPERATIVO;
     private long ultimoCiclo;

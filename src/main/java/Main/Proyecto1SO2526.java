@@ -13,6 +13,31 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de reloj global por ciclos verificada en consola.
+        Sistema.Computador relojUno = new Sistema.Computador(1, 32);
+        Sistema.Computador relojDos = new Sistema.Computador(2, 32);
+        Modelo.Proceso relojProceso = new Modelo.Proceso("Reloj", 1, Modelo.TipoProceso.CPU_BOUND, 0, 16, 3, 10);
+        relojUno.recibirProceso(relojProceso);
+        try (Sistema.RelojGlobal relojPrueba = new Sistema.RelojGlobal(new Sistema.ComponenteReloj[] {relojUno, relojDos})) {
+            for (int i = 1; i <= 3; i++) {
+                relojPrueba.avanzarCiclo();
+                if (relojPrueba.getCiclo() != i || relojUno.getUltimoCiclo() != i || relojDos.getUltimoCiclo() != i
+                        || relojProceso.getPc() != i) throw new AssertionError("Computadores desincronizados");
+            }
+            System.out.println("Reloj global y computadores: 3/3/3, PC 3 (verificado)");
+        }
+        try (Sistema.RelojGlobal relojFallo = new Sistema.RelojGlobal(new Sistema.ComponenteReloj[] {
+                cicloFallo -> { throw new IllegalStateException("fallo de prueba"); }, cicloVacio -> { }})) {
+            try {
+                relojFallo.avanzarCiclo();
+                throw new AssertionError("Error de hilo no propagado");
+            } catch (IllegalStateException esperado) {
+                if (esperado.getCause() == null) throw new AssertionError("Se perdio causa del fallo");
+            }
+        }
+        System.out.println("Prueba de reloj con hilos y confirmaciones: OK");
+        */
+
         /* Prueba de ejecucion FCFS integrada verificada en consola.
         Sistema.Computador flujoCpu = new Sistema.Computador(1, 64);
         Modelo.Proceso flujoA = new Modelo.Proceso("A", 1, Modelo.TipoProceso.CPU_BOUND, 0, 64, 2, 2);

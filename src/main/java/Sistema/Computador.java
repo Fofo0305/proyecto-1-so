@@ -15,7 +15,7 @@ import java.util.concurrent.Semaphore;
  * Computador reutilizable con identificación y RAM propias.
  * @author Adolfo
  */
-public class Computador {
+public class Computador implements ComponenteReloj {
     private final Semaphore mutex = new Semaphore(1, true);
     private final int id;
     private final Memoria memoria;
