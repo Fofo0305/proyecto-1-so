@@ -13,6 +13,40 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de controles del controlador verificada en consola.
+        try (Sistema.ControladorSimulacion controlesPrueba = new Sistema.ControladorSimulacion()) {
+            controlesPrueba.configurar(new Modelo.Configuracion(new int[] {32, 32}, 5, 4, 0));
+            controlesPrueba.crearProceso("Control", 1, 0, 16, 2, 10);
+            controlesPrueba.iniciar();
+            long limiteControles = System.nanoTime() + 2_000_000_000L;
+            while (controlesPrueba.getCiclo() < 2 && System.nanoTime() < limiteControles) Thread.sleep(2);
+            controlesPrueba.pausar();
+            long cicloPausaControl = controlesPrueba.getCiclo();
+            Thread.sleep(20);
+            if (cicloPausaControl < 2 || controlesPrueba.getCiclo() != cicloPausaControl || !"Pausado".equals(controlesPrueba.getEstado()))
+                throw new AssertionError("Pausa desde controlador incorrecta");
+            try {
+                controlesPrueba.configurar(new Modelo.Configuracion(new int[] {16, 16}, 10, 4, 0));
+                throw new AssertionError("Se reemplazo simulacion activa");
+            } catch (IllegalStateException esperado) { }
+            controlesPrueba.cambiarDuracion(2);
+            controlesPrueba.reanudar();
+            limiteControles = System.nanoTime() + 2_000_000_000L;
+            while (controlesPrueba.getCiclo() == cicloPausaControl && System.nanoTime() < limiteControles) Thread.sleep(2);
+            controlesPrueba.detener();
+            if (controlesPrueba.getCiclo() <= cicloPausaControl || !"Detenido".equals(controlesPrueba.getEstado())
+                    || controlesPrueba.getConfiguracion().getDuracionMs() != 2) throw new AssertionError("Reanudacion o cierre incorrectos");
+            controlesPrueba.configurar(new Modelo.Configuracion(new int[] {64, 64}, 100, 2, 0));
+            if (!"Preparado".equals(controlesPrueba.getEstado()) || controlesPrueba.getCiclo() != 0)
+                throw new AssertionError("No se pudo crear una nueva sesion");
+            System.out.println("Controlador: inicio, pausa, reanudacion, duracion y detencion; nueva sesion en ciclo cero: OK");
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de controles interrumpida", interrupcion);
+        }
+        System.out.println("Prueba de controles de simulacion fuera de EDT: OK");
+        */
+
         /* Prueba de formulario de procesos verificada en consola.
         Interfaces.PanelProceso[] panelProcesoPrueba = new Interfaces.PanelProceso[1];
         try (Sistema.ControladorSimulacion controladorPanelProceso = new Sistema.ControladorSimulacion()) {

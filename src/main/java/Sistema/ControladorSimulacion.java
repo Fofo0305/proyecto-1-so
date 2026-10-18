@@ -16,6 +16,8 @@ public class ControladorSimulacion implements AutoCloseable {
     private Computador[] computadores;
     private RelojGlobal reloj;
     private boolean cerrado;
+    private boolean pausado;
+    private boolean detenido;
 
     /** Reemplaza la simulación únicamente si el reloj anterior está detenido o no iniciado. */
     public void configurar(Configuracion nueva) {
@@ -34,6 +36,8 @@ public class ControladorSimulacion implements AutoCloseable {
             configuracion = nueva;
             computadores = nuevos;
             reloj = nuevoReloj;
+            pausado = false;
+            detenido = false;
         } finally { mutex.release(); }
     }
 
@@ -42,7 +46,7 @@ public class ControladorSimulacion implements AutoCloseable {
                                 int memoria, int instrucciones, int deadline) {
         mutex.acquireUninterruptibly();
         try {
-            if (cerrado || computadores == null) throw new IllegalStateException("Configure primero el cluster");
+            if (cerrado || computadores == null || detenido) throw new IllegalStateException("Configure primero el cluster");
             if (computador < 1 || computador > computadores.length)
                 throw new IllegalArgumentException("Seleccione un computador existente");
             Computador destino = computadores[computador - 1];
@@ -52,6 +56,63 @@ public class ControladorSimulacion implements AutoCloseable {
             destino.recibirProceso(proceso);
             destino.admitirProcesos();
             return proceso;
+        } finally { mutex.release(); }
+    }
+
+    public void iniciar() {
+        mutex.acquireUninterruptibly();
+        try { comprobarDisponible(); reloj.iniciar(); pausado = false; }
+        finally { mutex.release(); }
+    }
+
+    public void pausar() {
+        mutex.acquireUninterruptibly();
+        try { comprobarDisponible(); reloj.pausar(); pausado = true; }
+        finally { mutex.release(); }
+    }
+
+    public void reanudar() {
+        mutex.acquireUninterruptibly();
+        try { comprobarDisponible(); reloj.reanudar(); pausado = false; }
+        finally { mutex.release(); }
+    }
+
+    /** Detener es definitivo para el reloj actual; configurar crea una sesión nueva. */
+    public void detener() {
+        mutex.acquireUninterruptibly();
+        try {
+            if (cerrado || reloj == null) throw new IllegalStateException("Configure primero el cluster");
+            reloj.detener();
+            detenido = true;
+            pausado = false;
+        } finally { mutex.release(); }
+    }
+
+    public void cambiarDuracion(int duracionMs) {
+        mutex.acquireUninterruptibly();
+        try {
+            comprobarDisponible();
+            Configuracion actualizada = new Configuracion(configuracion.getRam(), duracionMs,
+                    configuracion.getQuantum(), configuracion.getLatencia());
+            reloj.setDuracionMs(duracionMs);
+            configuracion = actualizada;
+        } finally { mutex.release(); }
+    }
+
+    private void comprobarDisponible() {
+        if (cerrado || reloj == null || detenido) throw new IllegalStateException("Configure un cluster disponible");
+        if (reloj.getError() != null) throw new IllegalStateException("La simulacion fallo", reloj.getError());
+    }
+
+    public String getEstado() {
+        mutex.acquireUninterruptibly();
+        try {
+            if (cerrado) return "Cerrado";
+            if (reloj == null) return "Sin configurar";
+            if (reloj.getError() != null) return "Error: " + reloj.getError().getMessage();
+            if (detenido) return "Detenido";
+            if (pausado) return "Pausado";
+            return reloj.estaActivo() ? "En ejecucion" : "Preparado";
         } finally { mutex.release(); }
     }
 
