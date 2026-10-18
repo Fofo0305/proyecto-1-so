@@ -87,16 +87,19 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         estado.setText("Aplicando configuracion...");
         Thread trabajo = new Thread(() -> {
             String mensaje;
+            boolean aplicada = false;
             try {
                 controlador.configurar(configuracion);
+                aplicada = true;
                 mensaje = "Cluster configurado: " + configuracion.getCantidadComputadores() + " computadores, politica FCFS";
             } catch (RuntimeException error) {
                 mensaje = error.getMessage();
             }
             final String resultado = mensaje;
+            final boolean actualizarControles = aplicada;
             javax.swing.SwingUtilities.invokeLater(() -> {
                 estado.setText(resultado);
-                panelControles.mostrarDuracion(configuracion.getDuracionMs());
+                if (actualizarControles) panelControles.mostrarDuracion(configuracion.getDuracionMs());
                 botonConfigurar.setEnabled(true);
             });
         }, "Configurar-cluster");

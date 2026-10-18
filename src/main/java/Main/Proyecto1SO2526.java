@@ -13,6 +13,43 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de configuracion rechazada verificada en consola.
+        Interfaces.VentanaPrincipal[] rechazoVentana = new Interfaces.VentanaPrincipal[1];
+        try {
+            javax.swing.SwingUtilities.invokeAndWait(() -> rechazoVentana[0] = new Interfaces.VentanaPrincipal());
+            rechazoVentana[0].getControlador().configurar(new Modelo.Configuracion(new int[] {32, 64}, 100, 4, 0));
+            rechazoVentana[0].getControlador().iniciar();
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                rechazoVentana[0].getPanelConfiguracion().mostrarConfiguracion(new Modelo.Configuracion(new int[] {64, 64}, 777, 4, 0));
+                rechazoVentana[0].aplicarConfiguracion();
+            });
+            String[] rechazoEstado = {""};
+            long rechazoLimite = System.nanoTime() + 2_000_000_000L;
+            do {
+                javax.swing.SwingUtilities.invokeAndWait(() -> rechazoEstado[0] = rechazoVentana[0].getEstado());
+                if (!rechazoEstado[0].equals("Aplicando configuracion...")) break;
+                Thread.sleep(5);
+            } while (System.nanoTime() < rechazoLimite);
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                if (!rechazoVentana[0].getEstado().contains("Detenga")
+                        || !"100".equals(rechazoVentana[0].getPanelControles().getDuracionMostrada()))
+                    throw new AssertionError("Cambio rechazado altero controles o no mostro error");
+            });
+            if (rechazoVentana[0].getControlador().getConfiguracion().getDuracionMs() != 100)
+                throw new AssertionError("Cambio rechazado altero sesion");
+            System.out.println("Configuracion rechazada con reloj activo: error visible, sesion y ciclo mostrado conservados en 100 ms: OK");
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(error);
+        } catch (java.lang.reflect.InvocationTargetException error) {
+            throw new IllegalStateException(error.getCause());
+        } finally {
+            if (rechazoVentana[0] != null) {
+                rechazoVentana[0].getControlador().close();
+                javax.swing.SwingUtilities.invokeLater(() -> rechazoVentana[0].dispose());
+            }
+        }
+        */
         /* Prueba integrada de persistencia verificada en consola.
         try (Sistema.ControladorSimulacion persistenciaFinal = new Sistema.ControladorSimulacion()) {
             persistenciaFinal.configurar(new Modelo.Configuracion(new int[] {32, 64}, 5, 3, 2));

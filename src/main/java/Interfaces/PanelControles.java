@@ -56,6 +56,7 @@ public class PanelControles extends javax.swing.JPanel {
     }
 
     public void mostrarDuracion(int duracionMs) { ciclo.setText(Integer.toString(duracionMs)); }
+    public String getDuracionMostrada() { return ciclo.getText(); }
     public String getResultado() { return resultado.getText(); }
 
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
