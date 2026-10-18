@@ -9,6 +9,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
     private final PanelConfiguracion panelConfiguracion = new PanelConfiguracion();
     private final PanelProceso panelProceso = new PanelProceso();
     private final PanelControles panelControles = new PanelControles(controlador);
+    private final PanelComputadores panelComputadores = new PanelComputadores(controlador);
     private final javax.swing.JButton botonConfigurar = new javax.swing.JButton("Aplicar configuracion");
     private final javax.swing.JLabel estado = new javax.swing.JLabel("Configure el cluster para comenzar");
 
@@ -46,6 +47,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         });
         pestanas.addTab("Configuracion", configuracion);
         pestanas.addTab("Procesos", procesos);
+        pestanas.addTab("Computadores", panelComputadores);
         contenido.add(pestanas, java.awt.BorderLayout.CENTER);
         getContentPane().add(titulo, java.awt.BorderLayout.NORTH);
         getContentPane().add(contenido, java.awt.BorderLayout.CENTER);
@@ -100,6 +102,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
     public Sistema.ControladorSimulacion getControlador() { return controlador; }
     public String getEstado() { return estado.getText(); }
     public PanelControles getPanelControles() { return panelControles; }
+    public PanelComputadores getPanelComputadores() { return panelComputadores; }
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents

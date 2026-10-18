@@ -13,6 +13,31 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de panel computadores verificada en consola.
+        Sistema.Computador graficoPrueba = new Sistema.Computador(1, 64);
+        graficoPrueba.recibirProceso(new Modelo.Proceso("Visual", 1, Modelo.TipoProceso.CPU_BOUND, 3, 32, 3, 10));
+        graficoPrueba.avanzarCiclo(1);
+        Modelo.VistaComputador[] vistasPanel = {graficoPrueba.consultarVista()};
+        try {
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                Interfaces.PanelComputadores panelVistaPrueba = new Interfaces.PanelComputadores();
+                panelVistaPrueba.mostrarVistas(vistasPanel, "Pausado", 1);
+                String detallePrueba = panelVistaPrueba.getDetalle();
+                if (!detallePrueba.contains("COMPUTADOR 1") || !detallePrueba.contains("PC=1")
+                        || !detallePrueba.contains("RAM usada/libre: 32/32") || !detallePrueba.contains("deadline=9")
+                        || !detallePrueba.contains("TERMINADOS") || !panelVistaPrueba.getCabecera().contains("Ciclo global: 1"))
+                    throw new AssertionError("Panel no muestra PCB completo");
+                System.out.println("Visualizacion: CPU/PCB, modo, RAM y cuatro colas; ciclo global 1: OK");
+            });
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de vista interrumpida", interrupcion);
+        } catch (java.lang.reflect.InvocationTargetException errorVista) {
+            throw new IllegalStateException("Fallo de panel de computadores", errorVista.getCause());
+        }
+        System.out.println("Prueba de PanelComputadores en EDT: OK");
+        */
+
         /* Prueba de vistas de computador verificada en consola.
         Sistema.Computador computadorVista = new Sistema.Computador(1, 64);
         Modelo.Proceso procesoVista = new Modelo.Proceso("Visible", 1, Modelo.TipoProceso.CPU_BOUND, 2, 32, 3, 10);
