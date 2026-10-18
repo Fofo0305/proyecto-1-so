@@ -1,5 +1,8 @@
 package Interfaces;
 
+import javax.swing.*;
+import java.awt.*;
+
 import Modelo.VistaComputador;
 import Sistema.ControladorSimulacion;
 import java.util.concurrent.Semaphore;
@@ -8,11 +11,10 @@ import java.util.concurrent.Semaphore;
  * Observa el núcleo sin modificarlo. Las lecturas se hacen fuera del EDT.
  * @author Adolfo
  */
-public class PanelComputadores extends javax.swing.JPanel {
+public class PanelComputadores extends JPanel {
     private final ControladorSimulacion controlador;
     private final Semaphore lectura = new Semaphore(1);
-    private final javax.swing.Timer refresco;
-    private String textoDetalle = "";
+    private final Timer refresco;
     private PanelComputador[] paneles = new PanelComputador[0];
     private VistaComputador[] ultimasVistas = new VistaComputador[0];
     private boolean ajustandoSelector;
@@ -24,7 +26,7 @@ public class PanelComputadores extends javax.swing.JPanel {
         initComponents();
         selector.addActionListener(evento -> { if (!ajustandoSelector) aplicarFiltro(); });
         detalles.addActionListener(evento -> aplicarFiltro());
-        refresco = new javax.swing.Timer(200, evento -> actualizar());
+        refresco = new Timer(200, evento -> actualizar());
     }
 
     @Override
@@ -40,10 +42,16 @@ public class PanelComputadores extends javax.swing.JPanel {
                 VistaComputador[] vistas = controlador.consultarVistas();
                 String estado = controlador.getEstado();
                 long ciclo = controlador.getCiclo();
-                javax.swing.SwingUtilities.invokeLater(() -> mostrarVistas(vistas, estado, ciclo));
+                SwingUtilities.invokeLater(() -> {
+                    try { mostrarVistas(vistas, estado, ciclo); }
+                    finally { lectura.release(); }
+                });
             } catch (RuntimeException error) {
-                javax.swing.SwingUtilities.invokeLater(() -> cabecera.setText("Error de lectura: " + error.getMessage()));
-            } finally { lectura.release(); }
+                SwingUtilities.invokeLater(() -> {
+                    try { cabecera.setText("Error de lectura: " + error.getMessage()); }
+                    finally { lectura.release(); }
+                });
+            }
         }, "Leer-computadores");
         trabajador.setDaemon(true);
         trabajador.start();
@@ -64,16 +72,6 @@ public class PanelComputadores extends javax.swing.JPanel {
                 : "Cluster · " + vistas.length + " equipos    |    CPU activas " + activos
                 + "    |    Esperan RAM " + nuevos + "    |    Listos " + listos
                 + "    |    Terminados " + terminados + "    |    RAM " + ramUsada + "/" + ramTotal);
-        StringBuilder contenido = new StringBuilder();
-        for (VistaComputador vista : vistas) {
-            contenido.append("COMPUTADOR ").append(vista.id()).append(" | ciclo ").append(vista.ciclo())
-                    .append(" | FCFS | modo ").append(vista.modo()).append('\n');
-            contenido.append("RAM usada/libre: ").append(vista.usada()).append('/').append(vista.libre()).append('\n');
-            contenido.append("CPU: ").append(vista.cpu()).append("\n\nNUEVOS\n").append(vista.nuevos())
-                    .append("\n\nLISTOS\n").append(vista.listos()).append("\n\nBLOQUEADOS\n").append(vista.bloqueados())
-                    .append("\n\nTERMINADOS\n").append(vista.terminados()).append("\n\n----------------------------------------\n\n");
-        }
-        textoDetalle = contenido.toString();
         if (paneles.length != vistas.length) {
             detalle.removeAll();
             paneles = new PanelComputador[vistas.length];
@@ -81,7 +79,7 @@ public class PanelComputadores extends javax.swing.JPanel {
                 paneles[i] = new PanelComputador();
                 paneles[i].setAlignmentX(LEFT_ALIGNMENT);
                 detalle.add(paneles[i]);
-                detalle.add(javax.swing.Box.createVerticalStrut(16));
+                detalle.add(Box.createVerticalStrut(16));
             }
             if (vistas.length == 0) detalle.add(crearBienvenida());
         }
@@ -92,7 +90,6 @@ public class PanelComputadores extends javax.swing.JPanel {
             ajustandoSelector = false;
         }
         aplicarFiltro();
-        detalle.revalidate(); detalle.repaint();
     }
 
     private void aplicarFiltro() {
@@ -117,18 +114,29 @@ public class PanelComputadores extends javax.swing.JPanel {
         return cantidad;
     }
 
-    public String getDetalle() { return textoDetalle; }
+    public String getDetalle() {
+        StringBuilder contenido = new StringBuilder();
+        for (VistaComputador vista : ultimasVistas) {
+            contenido.append("COMPUTADOR ").append(vista.id()).append(" | ciclo ").append(vista.ciclo())
+                    .append(" | FCFS | modo ").append(vista.modo()).append('\n');
+            contenido.append("RAM usada/libre: ").append(vista.usada()).append('/').append(vista.libre()).append('\n');
+            contenido.append("CPU: ").append(vista.cpu()).append("\n\nNUEVOS\n").append(vista.nuevos())
+                    .append("\n\nLISTOS\n").append(vista.listos()).append("\n\nBLOQUEADOS\n").append(vista.bloqueados())
+                    .append("\n\nTERMINADOS\n").append(vista.terminados()).append("\n\n----------------------------------------\n\n");
+        }
+        return contenido.toString();
+    }
     public String getCabecera() { return cabecera.getText(); }
     public String getResumen() { return resumen.getText(); }
 
-    private javax.swing.JLabel crearBienvenida() {
-        javax.swing.JLabel mensaje = new javax.swing.JLabel("<html><h1>Tu cluster, de un vistazo</h1>"
+    private JLabel crearBienvenida() {
+        JLabel mensaje = new JLabel("<html><h1>Tu cluster, de un vistazo</h1>"
                 + "1. Abre Configuracion y pulsa Cargar ejemplo.<br><br>"
                 + "2. Pulsa Iniciar para ver avanzar los procesos.<br><br>"
                 + "3. Usa Pausar para explorar las colas y los detalles.<br><br>"
                 + "Cada computador mostrara su CPU, memoria y procesos en tiempo real.</html>");
-        mensaje.setForeground(new java.awt.Color(64, 83, 111));
-        mensaje.setBorder(javax.swing.BorderFactory.createEmptyBorder(48, 32, 48, 32));
+        mensaje.setForeground(new Color(64, 83, 111));
+        mensaje.setBorder(BorderFactory.createEmptyBorder(48, 32, 48, 32));
         return mensaje;
     }
 
