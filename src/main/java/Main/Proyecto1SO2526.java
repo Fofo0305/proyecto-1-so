@@ -13,6 +13,29 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         System.out.println("Hello World!");
 
+        /* Prueba de politica y FCFS verificada en consola.
+        Planificacion.Politica politicaFcfs = new Planificacion.FCFS();
+        EDD.Cola<Modelo.Proceso> listosFcfs = new EDD.Cola<>();
+        Modelo.Proceso primeroFcfs = new Modelo.Proceso("Primero", 1, Modelo.TipoProceso.CPU_BOUND, 5, 1, 3, 10);
+        Modelo.Proceso segundoFcfs = new Modelo.Proceso("Segundo", 1, Modelo.TipoProceso.CPU_BOUND, 0, 1, 2, 5);
+        primeroFcfs.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        segundoFcfs.cambiarEstado(Modelo.EstadoProceso.LISTO, Modelo.MotivoBloqueo.NINGUNO);
+        listosFcfs.agregar(primeroFcfs);
+        listosFcfs.agregar(segundoFcfs);
+        if (politicaFcfs.seleccionar(listosFcfs) != primeroFcfs || politicaFcfs.seleccionar(listosFcfs) != segundoFcfs
+                || politicaFcfs.seleccionar(listosFcfs) != null)
+            throw new AssertionError("FCFS no respeto el orden de llegada");
+        if (primeroFcfs.getPc() != 0 || primeroFcfs.getRestante() != 3 || primeroFcfs.getEstado() != Modelo.EstadoProceso.LISTO
+                || segundoFcfs.getPc() != 0 || segundoFcfs.getRestante() != 2)
+            throw new AssertionError("La politica modifico el contexto");
+        try {
+            politicaFcfs.seleccionar(null);
+            throw new AssertionError("Cola nula aceptada");
+        } catch (IllegalArgumentException esperado) { }
+        System.out.println("Seleccion FCFS: Primero, Segundo, null; contexto sin ejecutar: OK");
+        System.out.println("Prueba de contrato de politica y FCFS: OK");
+        */
+
         /* Prueba integrada de admision verificada en consola.
         Sistema.Computador integracionUno = new Sistema.Computador(1, 64);
         Sistema.Computador integracionDos = new Sistema.Computador(2, 64);
