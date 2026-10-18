@@ -8,6 +8,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
     private final Sistema.ControladorSimulacion controlador = new Sistema.ControladorSimulacion();
     private final PanelConfiguracion panelConfiguracion = new PanelConfiguracion();
     private final PanelProceso panelProceso = new PanelProceso();
+    private final PanelControles panelControles = new PanelControles(controlador);
     private final javax.swing.JButton botonConfigurar = new javax.swing.JButton("Aplicar configuracion");
     private final javax.swing.JLabel estado = new javax.swing.JLabel("Configure el cluster para comenzar");
 
@@ -48,7 +49,10 @@ public class VentanaPrincipal extends javax.swing.JFrame {
         contenido.add(pestanas, java.awt.BorderLayout.CENTER);
         getContentPane().add(titulo, java.awt.BorderLayout.NORTH);
         getContentPane().add(contenido, java.awt.BorderLayout.CENTER);
-        getContentPane().add(estado, java.awt.BorderLayout.SOUTH);
+        javax.swing.JPanel pie = new javax.swing.JPanel(new java.awt.BorderLayout());
+        pie.add(panelControles, java.awt.BorderLayout.NORTH);
+        pie.add(estado, java.awt.BorderLayout.SOUTH);
+        getContentPane().add(pie, java.awt.BorderLayout.SOUTH);
         botonConfigurar.addActionListener(evento -> aplicarConfiguracion());
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
@@ -84,6 +88,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
             final String resultado = mensaje;
             javax.swing.SwingUtilities.invokeLater(() -> {
                 estado.setText(resultado);
+                panelControles.mostrarDuracion(configuracion.getDuracionMs());
                 botonConfigurar.setEnabled(true);
             });
         }, "Configurar-cluster");
@@ -94,6 +99,7 @@ public class VentanaPrincipal extends javax.swing.JFrame {
     public PanelConfiguracion getPanelConfiguracion() { return panelConfiguracion; }
     public Sistema.ControladorSimulacion getControlador() { return controlador; }
     public String getEstado() { return estado.getText(); }
+    public PanelControles getPanelControles() { return panelControles; }
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents

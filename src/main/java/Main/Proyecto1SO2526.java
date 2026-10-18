@@ -13,6 +13,34 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de botones de simulacion verificada en consola.
+        try (Sistema.ControladorSimulacion botonesControlador = new Sistema.ControladorSimulacion()) {
+            botonesControlador.configurar(new Modelo.Configuracion(new int[] {32, 32}, 5, 4, 0));
+            Interfaces.PanelControles[] botonesPanel = new Interfaces.PanelControles[1];
+            javax.swing.SwingUtilities.invokeAndWait(() -> {
+                botonesPanel[0] = new Interfaces.PanelControles(botonesControlador);
+                botonesPanel[0].ejecutarAccion("iniciar");
+            });
+            long limiteBotones = System.nanoTime() + 2_000_000_000L;
+            while (botonesControlador.getCiclo() < 2 && System.nanoTime() < limiteBotones) Thread.sleep(5);
+            javax.swing.SwingUtilities.invokeAndWait(() -> botonesPanel[0].ejecutarAccion("pausar"));
+            limiteBotones = System.nanoTime() + 2_000_000_000L;
+            while (!"Pausado".equals(botonesControlador.getEstado()) && System.nanoTime() < limiteBotones) Thread.sleep(5);
+            if (!"Pausado".equals(botonesControlador.getEstado())) throw new AssertionError("Boton pausa no actuo");
+            javax.swing.SwingUtilities.invokeAndWait(() -> botonesPanel[0].ejecutarAccion("detener"));
+            limiteBotones = System.nanoTime() + 2_000_000_000L;
+            while (!"Detenido".equals(botonesControlador.getEstado()) && System.nanoTime() < limiteBotones) Thread.sleep(5);
+            if (!"Detenido".equals(botonesControlador.getEstado())) throw new AssertionError("Boton detener no actuo");
+            System.out.println("Botones en EDT con operaciones fuera EDT: inicio, pausa y detencion: OK");
+        } catch (InterruptedException interrupcion) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Prueba de botones interrumpida", interrupcion);
+        } catch (java.lang.reflect.InvocationTargetException errorBotones) {
+            throw new IllegalStateException("Error de botones", errorBotones.getCause());
+        }
+        System.out.println("Prueba de PanelControles: OK");
+        */
+
         /* Prueba de controles del controlador verificada en consola.
         try (Sistema.ControladorSimulacion controlesPrueba = new Sistema.ControladorSimulacion()) {
             controlesPrueba.configurar(new Modelo.Configuracion(new int[] {32, 32}, 5, 4, 0));
