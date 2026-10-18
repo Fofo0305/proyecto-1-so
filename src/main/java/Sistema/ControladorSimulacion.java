@@ -1,6 +1,8 @@
 package Sistema;
 
 import Modelo.Configuracion;
+import Modelo.Proceso;
+import Modelo.TipoProceso;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -32,6 +34,24 @@ public class ControladorSimulacion implements AutoCloseable {
             configuracion = nueva;
             computadores = nuevos;
             reloj = nuevoReloj;
+        } finally { mutex.release(); }
+    }
+
+    /** Crea un proceso CPU-bound en el computador elegido y solicita su admisión. */
+    public Proceso crearProceso(String nombre, int computador, int prioridad,
+                                int memoria, int instrucciones, int deadline) {
+        mutex.acquireUninterruptibly();
+        try {
+            if (cerrado || computadores == null) throw new IllegalStateException("Configure primero el cluster");
+            if (computador < 1 || computador > computadores.length)
+                throw new IllegalArgumentException("Seleccione un computador existente");
+            Computador destino = computadores[computador - 1];
+            if (memoria > destino.getMemoria().getCapacidad())
+                throw new IllegalArgumentException("La memoria del proceso supera la RAM total del computador");
+            Proceso proceso = new Proceso(nombre, computador, TipoProceso.CPU_BOUND, prioridad, memoria, instrucciones, deadline);
+            destino.recibirProceso(proceso);
+            destino.admitirProcesos();
+            return proceso;
         } finally { mutex.release(); }
     }
 

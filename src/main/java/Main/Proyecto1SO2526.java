@@ -13,6 +13,35 @@ public class Proyecto1SO2526 {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> new Interfaces.VentanaPrincipal().setVisible(true));
 
+        /* Prueba de creacion manual de procesos verificada en consola.
+        try (Sistema.ControladorSimulacion creacionPrueba = new Sistema.ControladorSimulacion()) {
+            try {
+                creacionPrueba.crearProceso("Sin cluster", 1, 0, 1, 1, 1);
+                throw new AssertionError("Proceso creado sin cluster");
+            } catch (IllegalStateException esperado) { }
+            creacionPrueba.configurar(new Modelo.Configuracion(new int[] {64, 128}, 100, 4, 0));
+            Modelo.Proceso creadoPrimero = creacionPrueba.crearProceso("Primero", 1, 0, 64, 2, 10);
+            Modelo.Proceso creadoEspera = creacionPrueba.crearProceso("Espera", 1, 0, 32, 2, 10);
+            Modelo.Proceso creadoOtro = creacionPrueba.crearProceso("Otro", 2, 0, 128, 2, 10);
+            if (creadoPrimero.getEstado() != Modelo.EstadoProceso.LISTO || creadoEspera.getEstado() != Modelo.EstadoProceso.NUEVO
+                    || creadoOtro.getEstado() != Modelo.EstadoProceso.LISTO || creadoOtro.getComputador() != 2)
+                throw new AssertionError("Asignacion o admision desde controlador incorrecta");
+            for (int casoCreacion = 0; casoCreacion < 3; casoCreacion++) {
+                try {
+                    creacionPrueba.crearProceso(casoCreacion == 2 ? "" : "Invalido", casoCreacion == 0 ? 3 : 1,
+                            0, casoCreacion == 1 ? 65 : 1, 1, 1);
+                    throw new AssertionError("Solicitud de proceso invalida aceptada");
+                } catch (IllegalArgumentException esperado) { }
+            }
+            Sistema.Computador[] destinoCreacion = creacionPrueba.getComputadores();
+            if (destinoCreacion[0].getListos().length != 1 || destinoCreacion[0].getNuevos().length != 1
+                    || destinoCreacion[1].getListos().length != 1)
+                throw new AssertionError("Entradas invalidas alteraron colas");
+            System.out.println("Creacion manual: listo, nuevo por falta de RAM y otro computador listo: OK");
+        }
+        System.out.println("Prueba de creacion de procesos desde controlador: OK");
+        */
+
         /* Prueba de configuracion desde ventana verificada en consola.
         Interfaces.VentanaPrincipal[] ventanaConfiguracion = new Interfaces.VentanaPrincipal[1];
         try {
