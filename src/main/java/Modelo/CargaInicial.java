@@ -28,6 +28,14 @@ public final class CargaInicial {
                 throw new IllegalArgumentException("Los buffers superan la RAM de su anfitrion");
         }
         this.configuracion = configuracion;
+        for (DefinicionProceso proceso : procesos) {
+            if (proceso.parametrosBuffer() == null) continue;
+            boolean encontrado = false;
+            for (DefinicionBuffer buffer : buffers)
+                if (buffer.nombre().equals(proceso.parametrosBuffer().buffer())
+                        && buffer.anfitrion() == proceso.computador()) encontrado = true;
+            if (!encontrado) throw new IllegalArgumentException("El proceso requiere un buffer local existente");
+        }
         this.procesos = procesos.clone();
         this.buffers = buffers.clone();
     }

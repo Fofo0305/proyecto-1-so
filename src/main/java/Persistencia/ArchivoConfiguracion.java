@@ -5,6 +5,8 @@ import Modelo.CargaInicial;
 import Modelo.Configuracion;
 import Modelo.DefinicionBuffer;
 import Modelo.DefinicionProceso;
+import Modelo.ParametrosBuffer;
+import Modelo.TipoProceso;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -21,17 +23,29 @@ public final class ArchivoConfiguracion {
     public static void guardar(Path destino, CargaInicial carga) throws IOException {
         if (destino == null || carga == null) throw new IllegalArgumentException("Archivo y carga obligatorios");
         Configuracion configuracion = carga.getConfiguracion();
-        StringBuilder texto = new StringBuilder(Csv.registro("AVILAOS", "1"));
+        boolean versionDos = false;
+        for (DefinicionProceso proceso : carga.getProcesos())
+            if (proceso.parametrosBuffer() != null) versionDos = true;
+        StringBuilder texto = new StringBuilder(Csv.registro("AVILAOS", versionDos ? "2" : "1"));
         texto.append(Csv.registro("CONFIG", Integer.toString(configuracion.getDuracionMs()),
                 Integer.toString(configuracion.getQuantum()), Integer.toString(configuracion.getLatencia())));
         int[] ram = configuracion.getRam();
         for (int i = 0; i < ram.length; i++)
             texto.append(Csv.registro("COMPUTADOR", Integer.toString(i + 1), Integer.toString(ram[i]),
                     "FCFS", Integer.toString(configuracion.getQuantum())));
-        for (DefinicionProceso proceso : carga.getProcesos())
+        for (DefinicionProceso proceso : carga.getProcesos()) {
+            if (proceso.parametrosBuffer() != null) {
+                ParametrosBuffer parametros = proceso.parametrosBuffer();
+                texto.append(Csv.registro("PROCESO", proceso.nombre(), Integer.toString(proceso.computador()),
+                        Integer.toString(proceso.prioridad()), Integer.toString(proceso.memoria()),
+                        Integer.toString(proceso.instrucciones()), Integer.toString(proceso.deadline()), proceso.tipo().name(),
+                        parametros.buffer(), Integer.toString(parametros.intervalo()), Integer.toString(parametros.elementos())));
+                continue;
+            }
             texto.append(Csv.registro("PROCESO", proceso.nombre(), Integer.toString(proceso.computador()),
                     Integer.toString(proceso.prioridad()), Integer.toString(proceso.memoria()),
                     Integer.toString(proceso.instrucciones()), Integer.toString(proceso.deadline()), "CPU_BOUND"));
+        }
         for (DefinicionBuffer buffer : carga.getBuffers())
             texto.append(Csv.registro("BUFFER", buffer.nombre(), Integer.toString(buffer.capacidad()), Integer.toString(buffer.anfitrion())));
         Path absoluto = destino.toAbsolutePath();
@@ -53,7 +67,8 @@ public final class ArchivoConfiguracion {
         RegistroCsv[] registros = Csv.leer(texto);
         if (registros.length == 0) throw new IllegalArgumentException("Archivo vacio");
         String[] cabecera = registros[0].campos();
-        if (cabecera.length != 2 || !"AVILAOS".equals(cabecera[0]) || !"1".equals(cabecera[1]))
+        if (cabecera.length != 2 || !"AVILAOS".equals(cabecera[0])
+                || (!"1".equals(cabecera[1]) && !"2".equals(cabecera[1])))
             throw new IllegalArgumentException("Linea 1: version de archivo no soportada");
         Cola<int[]> computadores = new Cola<>();
         Cola<DefinicionProceso> procesos = new Cola<>();
@@ -75,10 +90,18 @@ public final class ArchivoConfiguracion {
                         computadores.agregar(new int[] {entero(campos[1]), entero(campos[2]), entero(campos[4]), registro.linea()});
                     }
                     case "PROCESO" -> {
-                        exigirCantidad(campos, 8);
-                        if (!"CPU_BOUND".equals(campos[7])) throw new IllegalArgumentException("Tipo de proceso no implementado: " + campos[7]);
-                        procesos.agregar(new DefinicionProceso(campos[1], entero(campos[2]), entero(campos[3]),
-                                entero(campos[4]), entero(campos[5]), entero(campos[6])));
+                        if (campos.length < 8) throw new IllegalArgumentException("Registro de proceso incompleto");
+                        if ("CPU_BOUND".equals(campos[7])) {
+                            exigirCantidad(campos, 8);
+                            procesos.agregar(new DefinicionProceso(campos[1], entero(campos[2]), entero(campos[3]),
+                                    entero(campos[4]), entero(campos[5]), entero(campos[6])));
+                        } else {
+                            if (!"2".equals(cabecera[1])) throw new IllegalArgumentException("El tipo requiere CSV version 2");
+                            exigirCantidad(campos, 11);
+                            procesos.agregar(new DefinicionProceso(campos[1], entero(campos[2]), entero(campos[3]),
+                                    entero(campos[4]), entero(campos[5]), entero(campos[6]), TipoProceso.valueOf(campos[7]),
+                                    new ParametrosBuffer(campos[8], entero(campos[9]), entero(campos[10]))));
+                        }
                     }
                     case "BUFFER" -> {
                         exigirCantidad(campos, 4);

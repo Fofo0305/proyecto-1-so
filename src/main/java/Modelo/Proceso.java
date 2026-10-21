@@ -18,6 +18,8 @@ public class Proceso {
     private final int memoria;
     private final int instrucciones;
     private final int deadlineInicial;
+    private final ParametrosBuffer parametrosBuffer;
+    private final Buffer<Object> buffer;
     private EstadoProceso estado;
     private MotivoBloqueo motivoBloqueo;
     private int pc;
@@ -27,6 +29,12 @@ public class Proceso {
 
     public Proceso(String nombre, int computador, TipoProceso tipo, int prioridad,
                    int memoria, int instrucciones, int deadline) {
+        this(nombre, computador, tipo, prioridad, memoria, instrucciones, deadline, null, null);
+    }
+
+    public Proceso(String nombre, int computador, TipoProceso tipo, int prioridad,
+                   int memoria, int instrucciones, int deadline, ParametrosBuffer parametrosBuffer,
+                   Buffer<Object> buffer) {
         if (nombre == null || nombre.isBlank()) {
             throw new IllegalArgumentException("El nombre es obligatorio");
         }
@@ -36,6 +44,16 @@ public class Proceso {
         if (computador < 1 || prioridad < 0 || memoria < 1 || instrucciones < 1 || deadline < 1) {
             throw new IllegalArgumentException("Los atributos del proceso estan fuera de rango");
         }
+        boolean comunicante = tipo == TipoProceso.PRODUCTOR || tipo == TipoProceso.CONSUMIDOR;
+        if (comunicante) {
+            if (parametrosBuffer == null || buffer == null || !parametrosBuffer.buffer().equals(buffer.getNombre())
+                    || computador != buffer.getAnfitrion() || instrucciones != parametrosBuffer.instrucciones())
+                throw new IllegalArgumentException("Se requiere un buffer local y parametros consistentes");
+        } else if (parametrosBuffer != null || buffer != null) {
+            throw new IllegalArgumentException("El proceso no utiliza buffer");
+        }
+        this.parametrosBuffer = parametrosBuffer;
+        this.buffer = buffer;
         MUTEX_ID.acquireUninterruptibly();
         try {
             if (siguienteId == Long.MAX_VALUE) {
@@ -124,4 +142,6 @@ public class Proceso {
     public int getMar() { return mar; }
     public int getRestante() { return restante; }
     public int getDeadline() { return deadline; }
+    public ParametrosBuffer getParametrosBuffer() { return parametrosBuffer; }
+    public Buffer<Object> getBuffer() { return buffer; }
 }

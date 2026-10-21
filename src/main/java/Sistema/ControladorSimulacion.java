@@ -9,6 +9,7 @@ import Modelo.DefinicionProceso;
 import Modelo.DefinicionBuffer;
 import Modelo.Buffer;
 import Modelo.SemaforoSimulado;
+import Modelo.ParametrosBuffer;
 import EDD.Cola;
 import java.util.concurrent.Semaphore;
 
@@ -50,7 +51,9 @@ public class ControladorSimulacion implements AutoCloseable {
                 registrarBuffer(buffer, nuevos, nuevosBuffers);
             Cola<DefinicionProceso> definiciones = new Cola<>();
             for (DefinicionProceso definicion : carga.getProcesos()) {
-                nuevos[definicion.computador() - 1].recibirProceso(definicion.crearProceso());
+                Buffer<Object> buffer = definicion.parametrosBuffer() == null ? null
+                        : buscarBuffer(definicion.parametrosBuffer().buffer(), nuevosBuffers);
+                nuevos[definicion.computador() - 1].recibirProceso(definicion.crearProceso(buffer));
                 definiciones.agregar(definicion);
             }
             for (Computador computador : nuevos) computador.admitirProcesos();
@@ -85,6 +88,37 @@ public class ControladorSimulacion implements AutoCloseable {
             cargaProcesos.agregar(definicion);
             return proceso;
         } finally { mutex.release(); }
+    }
+
+    /** Crea un productor o consumidor local sin modificar recursos si la solicitud es invalida. */
+    public Proceso crearProcesoBuffer(String nombre, int computador, int prioridad, int memoria,
+            int deadline, TipoProceso tipo, String nombreBuffer, int intervalo, int elementos) {
+        ParametrosBuffer parametros = new ParametrosBuffer(nombreBuffer, intervalo, elementos);
+        DefinicionProceso definicion = new DefinicionProceso(nombre, computador, prioridad,
+                memoria, parametros.instrucciones(), deadline, tipo, parametros);
+        mutex.acquireUninterruptibly();
+        try {
+            comprobarDisponible();
+            if (computador < 1 || computador > computadores.length)
+                throw new IllegalArgumentException("Seleccione un computador existente");
+            Computador destino = computadores[computador - 1];
+            if (memoria > destino.getMemoria().getCapacidad())
+                throw new IllegalArgumentException("La memoria del proceso supera la RAM del computador");
+            Buffer<Object> buffer = buscarBuffer(nombreBuffer, buffers);
+            Proceso proceso = definicion.crearProceso(buffer);
+            destino.recibirProceso(proceso);
+            destino.admitirProcesos();
+            cargaProcesos.agregar(definicion);
+            return proceso;
+        } finally { mutex.release(); }
+    }
+
+    private static Buffer<Object> buscarBuffer(String nombre, Cola<Buffer<Object>> registro) {
+        for (Object elemento : registro.instantanea()) {
+            @SuppressWarnings("unchecked") Buffer<Object> buffer = (Buffer<Object>) elemento;
+            if (buffer.getNombre().equals(nombre)) return buffer;
+        }
+        throw new IllegalArgumentException("El buffer indicado no existe");
     }
 
     /** Devuelve atributos iniciales; nunca guarda PC, estado o deadline ya consumido. */
