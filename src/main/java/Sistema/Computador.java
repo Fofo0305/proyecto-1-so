@@ -8,6 +8,7 @@ import Modelo.MotivoBloqueo;
 import Modelo.ModoCPU;
 import Modelo.TipoProceso;
 import Modelo.VistaComputador;
+import Modelo.SemaforoSimulado;
 import Planificacion.Politica;
 import Planificacion.FCFS;
 import java.util.concurrent.Semaphore;
@@ -24,6 +25,8 @@ public class Computador implements ComponenteReloj {
     private final Cola<Proceso> listos = new Cola<>();
     private final Cola<Proceso> bloqueados = new Cola<>();
     private final Cola<Proceso> terminados = new Cola<>();
+    private record EsperaSemaforo(Proceso proceso, SemaforoSimulado semaforo) { }
+    private final Cola<EsperaSemaforo> esperasSemaforos = new Cola<>();
     private final CPU cpu = new CPU();
     private final Politica politica = new FCFS();
     private long ultimoCiclo;
@@ -116,6 +119,8 @@ public class Computador implements ComponenteReloj {
         if (!contiene(nuevos, proceso.getId()) && !contiene(listos, proceso.getId())
                 && !contiene(bloqueados, proceso.getId()) && cpu.getActual() != proceso)
             throw new IllegalArgumentException("El proceso no esta registrado en el computador");
+        EsperaSemaforo espera = retirarEsperaSemaforo(proceso);
+        if (espera != null) espera.semaforo().cancelarEspera(proceso);
         proceso.cambiarEstado(EstadoProceso.TERMINADO, MotivoBloqueo.NINGUNO);
         retirar(nuevos, proceso.getId());
         retirar(listos, proceso.getId());
@@ -124,6 +129,67 @@ public class Computador implements ComponenteReloj {
         memoria.liberar("proceso:" + proceso.getId());
         terminados.agregar(proceso);
         return true;
+    }
+
+    /**
+     * Consume un permiso o bloquea al proceso actual y libera la CPU.
+     * El semaforo nunca llama al nucleo mientras conserva su mutex: las senales
+     * entregan primero el receptor y despues solicitan el despertar.
+     * Esta transicion no ejecuta una instruccion; el motor contabiliza su ciclo.
+     */
+    public boolean esperarSemaforo(Proceso proceso, SemaforoSimulado semaforo) {
+        if (proceso == null || semaforo == null)
+            throw new IllegalArgumentException("Proceso y semaforo obligatorios");
+        mutex.acquireUninterruptibly();
+        try {
+            if (cpu.getActual() != proceso || proceso.getEstado() != EstadoProceso.EJECUCION
+                    || proceso.getDeadline() == 0 || proceso.getRestante() == 0)
+                throw new IllegalStateException("Solo puede esperar el proceso vigente en CPU");
+            if (semaforo.esperar(proceso)) return true;
+            esperasSemaforos.agregar(new EsperaSemaforo(proceso, semaforo));
+            proceso.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.SEMAFORO);
+            cpu.retirar();
+            bloqueados.agregar(proceso);
+            return false;
+        } finally { mutex.release(); }
+    }
+
+    /**
+     * Acepta un permiso transferido solo para la espera registrada en ese semaforo.
+     * Si el proceso termino mientras llegaba la senal, devuelve false: quien senala
+     * debe transferir de nuevo el permiso, sin perderlo.
+     */
+    public boolean despertarPorSemaforo(Proceso proceso, SemaforoSimulado semaforo) {
+        if (proceso == null || semaforo == null)
+            throw new IllegalArgumentException("Proceso y semaforo obligatorios");
+        mutex.acquireUninterruptibly();
+        try {
+            if (proceso.getEstado() != EstadoProceso.BLOQUEADO
+                    || proceso.getMotivoBloqueo() != MotivoBloqueo.SEMAFORO
+                    || !contiene(bloqueados, proceso.getId())) return false;
+            boolean coincide = false;
+            for (Object elemento : esperasSemaforos.instantanea()) {
+                EsperaSemaforo espera = (EsperaSemaforo) elemento;
+                if (espera.proceso() == proceso && espera.semaforo() == semaforo) coincide = true;
+            }
+            if (!coincide) return false;
+            retirarEsperaSemaforo(proceso);
+            retirar(bloqueados, proceso.getId());
+            proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+            listos.agregar(proceso);
+            return true;
+        } finally { mutex.release(); }
+    }
+
+    private EsperaSemaforo retirarEsperaSemaforo(Proceso proceso) {
+        EsperaSemaforo retirada = null;
+        int cantidad = esperasSemaforos.getTamano();
+        for (int i = 0; i < cantidad; i++) {
+            EsperaSemaforo espera = esperasSemaforos.quitar();
+            if (espera.proceso() == proceso) retirada = espera;
+            else esperasSemaforos.agregar(espera);
+        }
+        return retirada;
     }
 
     /** Ejecuta una instrucción FCFS y descuenta una vez todos los plazos del ciclo. */

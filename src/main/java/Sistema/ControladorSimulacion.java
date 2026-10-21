@@ -8,6 +8,7 @@ import Modelo.CargaInicial;
 import Modelo.DefinicionProceso;
 import Modelo.DefinicionBuffer;
 import Modelo.Buffer;
+import Modelo.SemaforoSimulado;
 import EDD.Cola;
 import java.util.concurrent.Semaphore;
 
@@ -143,6 +144,45 @@ public class ControladorSimulacion implements AutoCloseable {
             for (int i = 0; i < copia.length; i++) copia[i] = (Buffer<?>) registrados[i];
             return copia;
         } finally { mutex.release(); }
+    }
+
+    /** Solicita wait sobre uno de los semaforos de buffers de la sesion actual. */
+    public boolean esperarSemaforo(Proceso proceso, SemaforoSimulado semaforo) {
+        mutex.acquireUninterruptibly();
+        try {
+            comprobarDisponible();
+            comprobarSemaforo(semaforo);
+            if (proceso == null || proceso.getComputador() < 1 || proceso.getComputador() > computadores.length)
+                throw new IllegalArgumentException("El proceso debe pertenecer al cluster");
+            return computadores[proceso.getComputador() - 1].esperarSemaforo(proceso, semaforo);
+        } finally { mutex.release(); }
+    }
+
+    /** Libera un permiso y devuelve el proceso despertado, o null si no hubo espera. */
+    public Proceso senalizarSemaforo(SemaforoSimulado semaforo) {
+        mutex.acquireUninterruptibly();
+        try {
+            comprobarDisponible();
+            comprobarSemaforo(semaforo);
+            Proceso receptor;
+            while ((receptor = semaforo.senalizar()) != null) {
+                int equipo = receptor.getComputador();
+                if (equipo >= 1 && equipo <= computadores.length
+                        && computadores[equipo - 1].despertarPorSemaforo(receptor, semaforo)) return receptor;
+                // El plazo puede vencer entre retirar la espera y adquirir el mutex del nucleo.
+                // Se devuelve el mismo permiso mediante otra senal, sin incrementar dos veces.
+            }
+            return null;
+        } finally { mutex.release(); }
+    }
+
+    private void comprobarSemaforo(SemaforoSimulado semaforo) {
+        for (Object elemento : buffers.instantanea()) {
+            Buffer<?> buffer = (Buffer<?>) elemento;
+            if (semaforo == buffer.getMutexSimulado() || semaforo == buffer.getVacios()
+                    || semaforo == buffer.getLlenos()) return;
+        }
+        throw new IllegalArgumentException("El semaforo debe pertenecer a un buffer de la sesion actual");
     }
 
     public void iniciar() {
