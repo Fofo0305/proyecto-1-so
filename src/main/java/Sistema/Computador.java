@@ -128,6 +128,8 @@ public class Computador implements ComponenteReloj {
         retirar(listos, proceso.getId());
         retirar(bloqueados, proceso.getId());
         if (cpu.getActual() == proceso) cpu.retirar();
+        if (proceso.getContextoBuffer() != null)
+            for (SemaforoSimulado semaforo : proceso.getContextoBuffer().abandonar()) senalizarLocal(semaforo);
         memoria.liberar("proceso:" + proceso.getId());
         terminados.agregar(proceso);
         return true;
@@ -289,6 +291,19 @@ public class Computador implements ComponenteReloj {
     public Proceso getProcesoEnCPU() {
         mutex.acquireUninterruptibly();
         try { return cpu.getActual(); } finally { mutex.release(); }
+    }
+
+    /** Punto de apropiacion del planificador: conserva PC, etapa y permisos adquiridos. */
+    public boolean cederCPU() {
+        mutex.acquireUninterruptibly();
+        try {
+            Proceso actual = cpu.getActual();
+            if (actual == null) return false;
+            actual.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+            cpu.retirar();
+            listos.agregar(actual);
+            return true;
+        } finally { mutex.release(); }
     }
 
     public ModoCPU getModoCPU() {

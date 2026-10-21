@@ -12,6 +12,7 @@ public final class ContextoBuffer {
     private boolean recursoReservado;
     private boolean mutexAdquirido;
     private boolean modificado;
+    private boolean cancelado;
 
     public ContextoBuffer(Buffer<Object> buffer, ParametrosBuffer parametros, TipoProceso tipo) {
         if (buffer == null || parametros == null || !buffer.getNombre().equals(parametros.buffer())
@@ -72,8 +73,25 @@ public final class ContextoBuffer {
     }
 
     private void exigir(EtapaBuffer esperada) {
-        if (etapa != esperada || completados >= parametros.elementos())
+        if (cancelado || etapa != esperada || completados >= parametros.elementos())
             throw new IllegalStateException("Etapa de buffer invalida");
+    }
+
+    /**
+     * Devuelve los permisos retenidos al abandonar, una sola vez.
+     * Si el contenido ya cambio se publica en el semaforo opuesto; nunca se repite
+     * ni revierte la insercion/extraccion. El nucleo cancela antes la espera pendiente.
+     */
+    public SemaforoSimulado[] abandonar() {
+        if (cancelado) return new SemaforoSimulado[0];
+        SemaforoSimulado[] devolver = new SemaforoSimulado[(mutexAdquirido ? 1 : 0) + (recursoReservado ? 1 : 0)];
+        int posicion = 0;
+        if (mutexAdquirido) devolver[posicion++] = buffer.getMutexSimulado();
+        if (recursoReservado) devolver[posicion] = modificado ? getRecursoLiberado() : getRecurso();
+        mutexAdquirido = false;
+        recursoReservado = false;
+        cancelado = true;
+        return devolver;
     }
 
     public SemaforoSimulado getRecurso() { return productor ? buffer.getVacios() : buffer.getLlenos(); }
@@ -84,4 +102,5 @@ public final class ContextoBuffer {
     public boolean tieneRecurso() { return recursoReservado; }
     public boolean tieneMutex() { return mutexAdquirido; }
     public boolean estaModificado() { return modificado; }
+    public boolean estaCancelado() { return cancelado; }
 }
