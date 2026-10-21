@@ -23,9 +23,9 @@ La configuracion explica la RAM por equipo y la duracion del ciclo; destaca el c
 
 La ventana abre dentro del area util de la pantalla, sin maximizar. Los controles del reloj usan dos filas; los formularios se pueden recorrer verticalmente y las colas se distribuyen en dos columnas cuando el ancho es reducido. Procesos comparte el estilo y las ayudas de Configuracion. FCFS es la unica politica ejecutable: Round Robin, EDF y Prioridades figuran como pendientes, sin simular su ejecucion.
 
-Los botones de archivos guardan y leen CSV UTF-8 version 1. Se conserva la configuracion y la carga **inicial**: cargar reconstruye los procesos con PC y ciclo cero, nuevos identificadores y sus instrucciones y deadlines originales. No es una reanudacion del estado de ejecucion. El archivo completo se valida antes de reemplazar la sesion; detener el reloj antes de cargar.
+Los botones de archivos guardan y leen CSV UTF-8. Se escribe version 2 cuando hay productores o consumidores, y version 1 para cargas CPU-bound; se leen ambas versiones. Se conserva la configuracion y la carga **inicial**: cargar reconstruye los procesos con PC y ciclo cero, nuevos identificadores y sus instrucciones y deadlines originales. No es una reanudacion del estado de ejecucion. El archivo completo se valida antes de reemplazar la sesion; detener el reloj antes de cargar.
 
-Los registros admitidos son `AVILAOS`, `CONFIG`, `COMPUTADOR`, `PROCESO` y `BUFFER`. Los nombres pueden contener comas, comillas y saltos de linea mediante el escape CSV. Los buffers cargados reservan una unidad de RAM por elemento en su anfitrion; sus registros son metadatos y no ejecutan productor/consumidor.
+Los registros admitidos son `AVILAOS`, `CONFIG`, `COMPUTADOR`, `PROCESO` y `BUFFER`. Los nombres pueden contener comas, comillas y saltos de linea mediante el escape CSV. Los buffers cargados reservan una unidad de RAM por posicion en su anfitrion y comienzan vacios. En version 2 los registros de productor/consumidor agregan nombre de buffer, intervalo y elementos objetivo despues del tipo.
 
 ## Integracion
 
@@ -39,7 +39,7 @@ Los registros admitidos son `AVILAOS`, `CONFIG`, `COMPUTADOR`, `PROCESO` y `BUFF
 
 Las vistas son coherentes por computador. Durante un ciclo en curso, dos computadores pueden mostrar ciclos diferentes hasta que ambos confirmen su avance. No modificar las colas de un computador desde la GUI: usar las operaciones del controlador y del computador.
 
-La implementacion ejecuta CPU_BOUND con FCFS. Quantum y latencia se validan y conservan como configuracion para integraciones posteriores; no activan Round Robin, comunicaciones ni cambios de contexto simulados. IO, productor/consumidor, politicas avanzadas y metricas corresponden a otros modulos y no deben enviarse a esta CPU como si fueran CPU_BOUND.
+La implementacion ejecuta CPU_BOUND, PRODUCTOR y CONSUMIDOR locales con FCFS. Quantum y latencia se validan y conservan para integraciones posteriores. El nucleo ofrece `cederCPU` para integrar apropiacion sin perder contexto; FCFS no la solicita automaticamente. E/S, acceso remoto, politicas avanzadas y metricas globales siguen pendientes.
 
 ## Pruebas y ramas
 
@@ -57,8 +57,38 @@ computador anfitrion. Configurar primero el cluster. La capacidad completa reser
 RAM en ese computador, aun con el buffer vacio; si falta espacio, la creacion se
 rechaza sin registrar el buffer. La confirmacion aparece al pie de la ventana y la
 ocupacion se puede consultar en Simulacion en vivo. Guardar CSV incluye estos buffers
-en la carga inicial. Este avance incorpora almacenamiento y reserva; las operaciones
-de procesos productores y consumidores se integran en las siguientes funcionalidades.
+en la carga inicial. La misma pestana muestra contenido, capacidad, permisos y colas
+FIFO de espera, mediante vistas capturadas bajo el bloqueo del anfitrion.
+
+### Productor consumidor local
+
+1. Configurar el cluster y crear un buffer en **Buffers** (por ejemplo Datos, capacidad 1, computador 1).
+2. En **Productor / consumidor**, crear un consumidor y un productor del computador 1 asociados a Datos, con intervalo 1, tres elementos y plazo 500.
+3. Iniciar el reloj. El consumidor espera por llenos y libera la CPU. Al producir un elemento despierta; cuando falta espacio, el productor espera por vacios.
+4. Consultar etapas y avances en Simulacion en vivo; consultar contenido y esperas en Buffers. Al completar ambos procesos, el buffer queda vacio y mantiene su RAM reservada.
+
+Tambien se puede abrir `ejemplos/productor-consumidor-local.csv`: incluye ese flujo
+y un CPU-bound en el segundo computador. Las solicitudes remotas se rechazan en esta
+funcionalidad; proceso y buffer deben compartir computador.
+
+El intervalo representa instrucciones de trabajo de usuario antes de cada operacion.
+A ese trabajo se agregan cinco instrucciones, cada una en un ciclo de sistema:
+wait del recurso (vacios o llenos), wait del mutex, insertar o extraer, signal del mutex
+y signal del recurso opuesto. El total inicial es `elementos * (intervalo + 5)`;
+los ciclos bloqueados descuentan deadline, pero no ejecutan instrucciones.
+
+Cada proceso conserva su etapa y permisos al bloquear o ceder CPU. Un wait que bloquea
+ya consumio su instruccion: al recibir el permiso, retoma la etapa siguiente.
+Al vencer o cancelarse se retira su espera y se devuelven permisos retenidos; si ya
+modifico el contenido, se publica el permiso opuesto sin repetir ni revertir el cambio.
+La limpieza del nucleo no agrega ciclos despues de terminar el proceso. El avance
+por elementos cuenta operaciones completas, incluyendo sus cinco instrucciones.
+
+`PruebaProductorConsumidorLocal` verifica conservacion de permisos y elementos despues
+de cada ciclo, varios productores y consumidores, apropiacion dentro de la region
+critica, bloqueos por lleno/vacio, vencimientos en las seis etapas, CSV v1/v2 y reloj
+automatico con pausa/reanudacion. Con `-Interfaz` tambien se prueba el flujo de creacion
+desde la ventana. Las pruebas no requieren modificar el punto de entrada.
 
 ### Semaforos simulados
 
@@ -79,16 +109,15 @@ de salir de la cola y antes de despertar, el controlador vuelve a transferir el 
 permiso. No se adquieren mutex de computadores desde el mutex del semaforo: primero
 se retira el receptor y despues se solicita su despertar.
 
-Estas APIs realizan las transiciones; no avanzan PC, MAR ni el reloj. La siguiente
-funcionalidad de productor-consumidor debe ejecutar cada wait, signal e insercion o
-extraccion en su ciclo de sistema, conservar la etapa y limpiar permisos ya adquiridos
-si el proceso termina durante una operacion. `Buffer.insertar` y `extraer` siguen
+Estas APIs realizan las transiciones; no avanzan PC, MAR ni el reloj. El motor local
+las integra con las etapas de las instrucciones, conserva el contexto y limpia los
+permisos adquiridos si el proceso termina durante una operacion. `Buffer.insertar` y `extraer` siguen
 siendo primitivas de almacenamiento; no actualizan automaticamente los semaforos.
 
 El script de comprobacion incluye permisos iniciales, FIFO, cancelacion, cuatro hilos
 concurrentes, bloqueo con CPU disponible, despertar entre computadores, vencimientos
-y un intercalado determinista de una senal en transito. Los escenarios usan procesos
-CPU-bound para comprobar el nucleo; todavia no ejecutan productores o consumidores.
+y un intercalado determinista de una senal en transito. Las pruebas de primitivas
+usan procesos CPU-bound y las del motor ejecutan productores y consumidores reales.
 
 Las pruebas recientes estan comentadas en `Main.Proyecto1SO2526.java`, con prints y comprobaciones mediante `AssertionError`. Para repetir una, desactivar temporalmente el lanzamiento de la ventana, activar su bloque, compilar y ejecutar; restaurar despues el lanzamiento y el comentario. Las salidas y archivos temporales se escriben en `target`, ignorado por Git.
 

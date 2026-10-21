@@ -10,12 +10,14 @@ try {
     & $compilador -encoding UTF-8 --release 22 -d target/pruebas-buffers @fuentesBuffers
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la compilacion.' }
     foreach ($pruebaBuffers in @('Pruebas.PruebaBuffer', 'Pruebas.PruebaRegistroBuffers', 'Pruebas.PruebaPanelBuffer',
-            'Pruebas.PruebaSemaforos', 'Pruebas.PruebaBloqueoSemaforos')) {
+            'Pruebas.PruebaSemaforos', 'Pruebas.PruebaBloqueoSemaforos', 'Pruebas.PruebaProductorConsumidorLocal')) {
         & $java -cp target/pruebas-buffers $pruebaBuffers
         if ($LASTEXITCODE -ne 0) { throw "Fallo $pruebaBuffers" }
     }
     if ($Interfaz) {
         & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaBuffers
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de buffers con la ventana.' }
+        & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaProductorConsumidor
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de productor consumidor con la ventana.' }
     }
 } finally { Pop-Location }
