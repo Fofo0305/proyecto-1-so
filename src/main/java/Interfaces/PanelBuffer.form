@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Form version="1.3" maxVersion="1.9" type="org.netbeans.modules.form.forminfo.JPanelFormInfo">
+<AuxValues><AuxValue name="FormSettings_generateFQN" type="java.lang.Boolean" value="true" /></AuxValues>
+<Layout class="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout"><Property name="verticalGap" type="int" value="16" /></Layout>
+<SubComponents>
+<Component class="javax.swing.JLabel" name="introduccion">
+<Properties><Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;h2&gt;Crea un buffer compartido&lt;/h2&gt;Elige su capacidad y el computador que reserva la memoria.&lt;/html&gt;" /></Properties>
+<Constraints><Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout" value="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout$BorderConstraintsDescription"><BorderConstraints direction="North" /></Constraint></Constraints>
+</Component>
+<Container class="javax.swing.JPanel" name="formulario">
+<Constraints><Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout" value="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout$BorderConstraintsDescription"><BorderConstraints direction="Center" /></Constraint></Constraints>
+<Layout class="org.netbeans.modules.form.compat2.layouts.DesignGridLayout"><Property name="rows" type="int" value="3" /><Property name="columns" type="int" value="2" /><Property name="horizontalGap" type="int" value="16" /><Property name="verticalGap" type="int" value="12" /></Layout>
+<SubComponents><Component class="javax.swing.JLabel" name="etiquetaNombre"><Properties><Property name="text" type="java.lang.String" value="Nombre unico del buffer" /></Properties></Component>
+<Component class="javax.swing.JTextField" name="campoNombre"><Properties><Property name="text" type="java.lang.String" value="Datos" /></Properties></Component>
+<Component class="javax.swing.JLabel" name="etiquetaCapacidad"><Properties><Property name="text" type="java.lang.String" value="Capacidad (unidades de RAM)" /></Properties></Component>
+<Component class="javax.swing.JTextField" name="campoCapacidad"><Properties><Property name="text" type="java.lang.String" value="8" /></Properties></Component>
+<Component class="javax.swing.JLabel" name="etiquetaAnfitrion"><Properties><Property name="text" type="java.lang.String" value="Computador anfitrion (ID desde 1)" /></Properties></Component>
+<Component class="javax.swing.JTextField" name="campoAnfitrion"><Properties><Property name="text" type="java.lang.String" value="1" /></Properties></Component></SubComponents>
+</Container>
+<Component class="javax.swing.JLabel" name="ayuda">
+<Properties><Property name="text" type="java.lang.String" value="&lt;html&gt;Configura primero el cluster. Cada posicion reserva una unidad de RAM en el anfitrion.&lt;br&gt;La reserva permanece aunque el buffer este vacio.&lt;/html&gt;" /></Properties>
+<Constraints><Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout" value="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout$BorderConstraintsDescription"><BorderConstraints direction="South" /></Constraint></Constraints>
+</Component>
+</SubComponents>
+</Form>
