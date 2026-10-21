@@ -348,7 +348,45 @@ public class Computador implements ComponenteReloj {
     private Modelo.VistaProceso vistaProceso(Proceso proceso) {
         return new Modelo.VistaProceso(proceso.getId(), proceso.getNombre(), proceso.getMemoria(),
                 proceso.getPrioridad(), proceso.getDeadline(), proceso.getRestante(), proceso.getPc(),
-                proceso.getMar(), proceso.getEstado());
+                proceso.getMar(), proceso.getEstado(), proceso.getTipo(), proceso.getMotivoBloqueo(), describirOperacion(proceso));
+    }
+
+    private String describirOperacion(Proceso proceso) {
+        ContextoBuffer contexto = proceso.getContextoBuffer();
+        if (contexto == null) return "";
+        String texto = "Buffer " + proceso.getBuffer().getNombre() + " | " + contexto.getEtapa()
+                + " | elementos " + contexto.getCompletados() + "/" + proceso.getParametrosBuffer().elementos();
+        for (Object elemento : esperasSemaforos.instantanea()) {
+            EsperaSemaforo espera = (EsperaSemaforo) elemento;
+            if (espera.proceso() == proceso) texto += " | espera " + espera.semaforo().getNombre();
+        }
+        return texto;
+    }
+
+    public Modelo.VistaBuffer consultarBuffer(Modelo.Buffer<?> buffer) {
+        if (buffer == null || buffer.getAnfitrion() != id)
+            throw new IllegalArgumentException("El buffer debe pertenecer a este computador");
+        mutex.acquireUninterruptibly();
+        try {
+            StringBuilder contenido = new StringBuilder();
+            for (Object elemento : buffer.instantanea()) {
+                if (!contenido.isEmpty()) contenido.append(", ");
+                contenido.append(elemento);
+            }
+            return new Modelo.VistaBuffer(buffer.getNombre(), id, buffer.getCapacidad(), buffer.getCantidad(),
+                    contenido.toString(), buffer.getMutexSimulado().getValor(), buffer.getVacios().getValor(),
+                    buffer.getLlenos().getValor(), describirEspera(buffer.getMutexSimulado()),
+                    describirEspera(buffer.getVacios()), describirEspera(buffer.getLlenos()));
+        } finally { mutex.release(); }
+    }
+
+    private String describirEspera(SemaforoSimulado semaforo) {
+        StringBuilder texto = new StringBuilder();
+        for (Proceso proceso : semaforo.getEsperando()) {
+            if (!texto.isEmpty()) texto.append(", ");
+            texto.append("P").append(proceso.getId()).append(" ").append(proceso.getNombre());
+        }
+        return texto.isEmpty() ? "sin esperas" : texto.toString();
     }
 
     private Modelo.VistaProceso[] vistasCola(Cola<Proceso> cola) {
@@ -372,7 +410,7 @@ public class Computador implements ComponenteReloj {
                 + " | " + proceso.getTipo() + " | " + proceso.getEstado() + " | prioridad=" + proceso.getPrioridad()
                 + " | RAM=" + proceso.getMemoria() + " | deadline=" + proceso.getDeadline()
                 + " | restante=" + proceso.getRestante() + " | PC=" + proceso.getPc() + " | MAR=" + proceso.getMar()
-                + " | bloqueo=" + proceso.getMotivoBloqueo();
+                + " | bloqueo=" + proceso.getMotivoBloqueo() + " | " + describirOperacion(proceso);
     }
 
     public int getId() { return id; }

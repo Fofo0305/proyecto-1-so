@@ -12,12 +12,15 @@ public class VentanaPrincipal extends JFrame {
     private final PanelConfiguracion panelConfiguracion = new PanelConfiguracion();
     private final PanelProceso panelProceso = new PanelProceso();
     private final PanelBuffer panelBuffer = new PanelBuffer();
+    private final PanelProductorConsumidor panelProductorConsumidor = new PanelProductorConsumidor();
+    private final PanelEstadoBuffers panelEstadoBuffers = new PanelEstadoBuffers(controlador);
     private final PanelControles panelControles = new PanelControles(controlador);
     private final PanelComputadores panelComputadores = new PanelComputadores(controlador);
     private final PanelArchivos panelArchivos = new PanelArchivos(controlador, this::mostrarCarga);
     private final JButton botonConfigurar = new JButton("Aplicar configuracion");
     private final JButton botonCrear = new JButton("Crear proceso CPU-bound");
     private final JButton botonCrearBuffer = new JButton("Crear buffer y reservar RAM");
+    private final JButton botonCrearComunicante = new JButton("Crear productor o consumidor");
     private final JLabel estado = new JLabel("Configure el cluster para comenzar");
     private final JTabbedPane pestanas = new JTabbedPane();
 
@@ -39,12 +42,20 @@ public class VentanaPrincipal extends JFrame {
         JPanel buffers = new JPanel(new BorderLayout(8, 8));
         JPanel formularioBuffers = new JPanel(new BorderLayout());
         formularioBuffers.add(panelBuffer, BorderLayout.NORTH);
+        formularioBuffers.add(panelEstadoBuffers, BorderLayout.CENTER);
         buffers.add(conScroll(formularioBuffers), BorderLayout.CENTER);
         buffers.add(botonCrearBuffer, BorderLayout.SOUTH);
         botonCrearBuffer.addActionListener(evento -> crearBuffer());
         pestanas.addTab("Configuracion", configuracion);
         pestanas.addTab("Procesos", procesos);
         pestanas.addTab("Buffers", buffers);
+        JPanel comunicantes = new JPanel(new BorderLayout(8,8));
+        JPanel camposComunicantes = new JPanel(new BorderLayout());
+        camposComunicantes.add(panelProductorConsumidor, BorderLayout.NORTH);
+        comunicantes.add(conScroll(camposComunicantes), BorderLayout.CENTER);
+        comunicantes.add(botonCrearComunicante, BorderLayout.SOUTH);
+        botonCrearComunicante.addActionListener(evento -> crearProductorConsumidor());
+        pestanas.addTab("Productor / consumidor", comunicantes);
         pestanas.addTab("Simulacion en vivo", panelComputadores);
         contenido.add(pestanas, BorderLayout.CENTER);
         getContentPane().add(titulo, BorderLayout.NORTH);
@@ -135,6 +146,30 @@ public class VentanaPrincipal extends JFrame {
         trabajo.start();
     }
 
+    public void crearProductorConsumidor() {
+        if (!botonCrearComunicante.isEnabled()) return;
+        final String[] campos = panelProductorConsumidor.leerCampos();
+        try { PanelProductorConsumidor.validarCampos(campos); }
+        catch (IllegalArgumentException error) { estado.setText(error.getMessage()); return; }
+        botonCrearComunicante.setEnabled(false);
+        estado.setText("Creando productor o consumidor...");
+        Thread trabajador = new Thread(() -> {
+            try {
+                Modelo.Proceso proceso = PanelProductorConsumidor.crearProceso(controlador, campos);
+                SwingUtilities.invokeLater(() -> {
+                    estado.setText("Proceso " + proceso.getId() + " creado: " + proceso.getTipo());
+                    panelComputadores.actualizar();
+                });
+            } catch (RuntimeException error) {
+                SwingUtilities.invokeLater(() -> estado.setText(error.getMessage()));
+            } finally {
+                SwingUtilities.invokeLater(() -> botonCrearComunicante.setEnabled(true));
+            }
+        }, "Crear-productor-consumidor");
+        trabajador.setDaemon(true);
+        trabajador.start();
+    }
+
     /** Lee en EDT y construye el clúster fuera del hilo de interfaz. */
     public void aplicarConfiguracion() {
         final Modelo.Configuracion configuracion;
@@ -180,6 +215,7 @@ public class VentanaPrincipal extends JFrame {
     }
     public PanelConfiguracion getPanelConfiguracion() { return panelConfiguracion; }
     public PanelProceso getPanelProceso() { return panelProceso; }
+    public PanelProductorConsumidor getPanelProductorConsumidor() { return panelProductorConsumidor; }
     public void mostrarProcesos() { pestanas.setSelectedIndex(1); }
     private void mostrarCarga(Modelo.CargaInicial carga) {
         panelConfiguracion.mostrarConfiguracion(carga.getConfiguracion());

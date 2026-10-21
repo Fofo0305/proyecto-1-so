@@ -126,6 +126,8 @@ public class PanelComputador extends JPanel {
         String datosPCB = "PC " + proceso.pc() + " · MAR " + proceso.mar() + " · prioridad " + proceso.prioridad();
         JLabel pcb = new JLabel("<html>RAM " + proceso.memoria()
                 + " · restan " + proceso.restante() + "<br>Plazo " + proceso.deadline()
+                + "<br>" + proceso.tipo() + (proceso.motivoBloqueo() == Modelo.MotivoBloqueo.NINGUNO ? "" : " | " + proceso.motivoBloqueo())
+                + (proceso.operacion().isEmpty() ? "" : "<br>" + proceso.operacion().replace("&", "&amp;").replace("<", "&lt;").replace("|", "<br>"))
                 + (mostrarPCB ? "<br>" + datosPCB : "") + "</html>");
         tarjeta.setToolTipText(datosPCB + " · " + proceso.estado());
         pcb.setFont(new Font("SansSerif", Font.PLAIN, 11)); tarjeta.add(pcb, BorderLayout.CENTER);
@@ -134,7 +136,7 @@ public class PanelComputador extends JPanel {
         progreso.setValue(total == 0 ? 100 : (int) (100L * proceso.pc() / total));
         progreso.setForeground(color); progreso.setStringPainted(true); progreso.setString(progreso.getValue() + "% ejecutado");
         tarjeta.add(progreso, BorderLayout.SOUTH);
-        tarjeta.setMaximumSize(new Dimension(Integer.MAX_VALUE, mostrarPCB ? 126 : 104));
+        tarjeta.setMaximumSize(new Dimension(Integer.MAX_VALUE, (mostrarPCB ? 145 : 123) + (proceso.operacion().isEmpty() ? 0 : 70)));
         return tarjeta;
     }
 
