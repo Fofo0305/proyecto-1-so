@@ -9,6 +9,8 @@ import Modelo.ModoCPU;
 import Modelo.TipoProceso;
 import Modelo.VistaComputador;
 import Modelo.SemaforoSimulado;
+import Modelo.ContextoBuffer;
+import Modelo.EtapaBuffer;
 import Planificacion.Politica;
 import Planificacion.FCFS;
 import java.util.concurrent.Semaphore;
@@ -145,13 +147,17 @@ public class Computador implements ComponenteReloj {
             if (cpu.getActual() != proceso || proceso.getEstado() != EstadoProceso.EJECUCION
                     || proceso.getDeadline() == 0 || proceso.getRestante() == 0)
                 throw new IllegalStateException("Solo puede esperar el proceso vigente en CPU");
-            if (semaforo.esperar(proceso)) return true;
-            esperasSemaforos.agregar(new EsperaSemaforo(proceso, semaforo));
-            proceso.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.SEMAFORO);
-            cpu.retirar();
-            bloqueados.agregar(proceso);
-            return false;
+            return esperarRegistrado(proceso, semaforo);
         } finally { mutex.release(); }
+    }
+
+    private boolean esperarRegistrado(Proceso proceso, SemaforoSimulado semaforo) {
+        if (semaforo.esperar(proceso)) return true;
+        esperasSemaforos.agregar(new EsperaSemaforo(proceso, semaforo));
+        proceso.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.SEMAFORO);
+        cpu.retirar();
+        bloqueados.agregar(proceso);
+        return false;
     }
 
     /**
@@ -164,6 +170,11 @@ public class Computador implements ComponenteReloj {
             throw new IllegalArgumentException("Proceso y semaforo obligatorios");
         mutex.acquireUninterruptibly();
         try {
+            return despertarRegistrado(proceso, semaforo);
+        } finally { mutex.release(); }
+    }
+
+    private boolean despertarRegistrado(Proceso proceso, SemaforoSimulado semaforo) {
             if (proceso.getEstado() != EstadoProceso.BLOQUEADO
                     || proceso.getMotivoBloqueo() != MotivoBloqueo.SEMAFORO
                     || !contiene(bloqueados, proceso.getId())) return false;
@@ -173,12 +184,12 @@ public class Computador implements ComponenteReloj {
                 if (espera.proceso() == proceso && espera.semaforo() == semaforo) coincide = true;
             }
             if (!coincide) return false;
+            if (proceso.getContextoBuffer() != null) proceso.getContextoBuffer().conceder(semaforo);
             retirarEsperaSemaforo(proceso);
             retirar(bloqueados, proceso.getId());
             proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
             listos.agregar(proceso);
             return true;
-        } finally { mutex.release(); }
     }
 
     private EsperaSemaforo retirarEsperaSemaforo(Proceso proceso) {
@@ -206,7 +217,16 @@ public class Computador implements ComponenteReloj {
                 Proceso seleccionado = politica.seleccionar(listos);
                 if (seleccionado != null) cpu.asignar(seleccionado);
             }
-            cpu.avanzarCiclo(ciclo);
+            Proceso actual = cpu.getActual();
+            if (actual != null && actual.getContextoBuffer() != null) {
+                ContextoBuffer contexto = actual.getContextoBuffer();
+                if (contexto.getEtapa() == EtapaBuffer.INTERVALO) {
+                    cpu.avanzarCiclo(ciclo);
+                    contexto.avanzarIntervalo();
+                } else {
+                    cpu.avanzarCicloSistema(ciclo, () -> ejecutarOperacionBuffer(actual));
+                }
+            } else cpu.avanzarCiclo(ciclo);
             for (Object[] cola : colasCiclo)
                 for (Object elemento : cola) ((Proceso) elemento).descontarDeadline();
             if (anterior != null) anterior.descontarDeadline();
@@ -227,8 +247,43 @@ public class Computador implements ComponenteReloj {
     }
 
     private void validarTipoEjecucion(Proceso proceso) {
-        if (proceso.getTipo() != TipoProceso.CPU_BOUND)
-            throw new UnsupportedOperationException("Este flujo solo ejecuta CPU_BOUND; falta el modulo de " + proceso.getTipo());
+        if (proceso.getTipo() == TipoProceso.IO_BOUND)
+            throw new UnsupportedOperationException("Falta el modulo de IO_BOUND");
+    }
+
+    private void ejecutarOperacionBuffer(Proceso proceso) {
+        ContextoBuffer contexto = proceso.getContextoBuffer();
+        // Incluso un wait que bloquea consume su instruccion exactamente una vez.
+        proceso.ejecutarInstruccion();
+        switch (contexto.getEtapa()) {
+            case ESPERAR_RECURSO, ESPERAR_MUTEX -> {
+                SemaforoSimulado semaforo = contexto.getEtapa() == EtapaBuffer.ESPERAR_RECURSO
+                        ? contexto.getRecurso() : contexto.getBuffer().getMutexSimulado();
+                contexto.iniciarEspera();
+                if (esperarRegistrado(proceso, semaforo)) contexto.conceder(semaforo);
+            }
+            case MODIFICAR -> contexto.modificar(proceso.getId());
+            case SENALAR_MUTEX -> {
+                contexto.liberarMutex();
+                senalizarLocal(contexto.getBuffer().getMutexSimulado());
+            }
+            case SENALAR_RECURSO -> {
+                SemaforoSimulado liberado = contexto.getRecursoLiberado();
+                contexto.completar();
+                senalizarLocal(liberado);
+            }
+            default -> throw new IllegalStateException("Etapa no ejecutable en modo sistema");
+        }
+    }
+
+    /** Solo buffers locales: no adquiere el mutex de otro computador. */
+    private void senalizarLocal(SemaforoSimulado semaforo) {
+        Proceso receptor;
+        while ((receptor = semaforo.senalizar()) != null) {
+            if (receptor.getComputador() != id)
+                throw new IllegalStateException("El motor local no puede despertar un proceso remoto");
+            if (despertarRegistrado(receptor, semaforo)) return;
+        }
     }
 
     public Proceso getProcesoEnCPU() {

@@ -20,6 +20,7 @@ public class Proceso {
     private final int deadlineInicial;
     private final ParametrosBuffer parametrosBuffer;
     private final Buffer<Object> buffer;
+    private final ContextoBuffer contextoBuffer;
     private EstadoProceso estado;
     private MotivoBloqueo motivoBloqueo;
     private int pc;
@@ -54,6 +55,7 @@ public class Proceso {
         }
         this.parametrosBuffer = parametrosBuffer;
         this.buffer = buffer;
+        this.contextoBuffer = comunicante ? new ContextoBuffer(buffer, parametrosBuffer, tipo) : null;
         MUTEX_ID.acquireUninterruptibly();
         try {
             if (siguienteId == Long.MAX_VALUE) {
@@ -144,4 +146,5 @@ public class Proceso {
     public int getDeadline() { return deadline; }
     public ParametrosBuffer getParametrosBuffer() { return parametrosBuffer; }
     public Buffer<Object> getBuffer() { return buffer; }
+    public ContextoBuffer getContextoBuffer() { return contextoBuffer; }
 }

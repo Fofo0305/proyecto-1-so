@@ -18,10 +18,10 @@ public class CPU implements ComponenteReloj {
     /** Asigna un proceso listo; FCFS lo conserva hasta terminar. */
     public void asignar(Proceso proceso) {
         if (actual != null) throw new IllegalStateException("La CPU esta ocupada");
-        if (proceso == null || proceso.getTipo() != TipoProceso.CPU_BOUND
+        if (proceso == null || proceso.getTipo() == TipoProceso.IO_BOUND
                 || proceso.getEstado() != EstadoProceso.LISTO
                 || proceso.getRestante() == 0 || proceso.getDeadline() == 0)
-            throw new IllegalArgumentException("Se requiere un proceso CPU_BOUND listo y vigente");
+            throw new IllegalArgumentException("Se requiere un proceso ejecutable listo y vigente");
         proceso.cambiarEstado(EstadoProceso.EJECUCION, MotivoBloqueo.NINGUNO);
         actual = proceso;
     }
@@ -35,6 +35,15 @@ public class CPU implements ComponenteReloj {
             actual.ejecutarInstruccion();
             modo = ModoCPU.USUARIO;
         }
+        ultimoCiclo = ciclo;
+    }
+
+    /** Ejecuta una unica instruccion de sistema bajo el bloqueo del computador. */
+    public void avanzarCicloSistema(long ciclo, Runnable instruccion) {
+        if (ciclo != ultimoCiclo + 1 || actual == null || instruccion == null)
+            throw new IllegalArgumentException("Se requiere un ciclo consecutivo y una instruccion en CPU");
+        modo = ModoCPU.SISTEMA_OPERATIVO;
+        instruccion.run();
         ultimoCiclo = ciclo;
     }
 
