@@ -60,6 +60,36 @@ ocupacion se puede consultar en Simulacion en vivo. Guardar CSV incluye estos bu
 en la carga inicial. Este avance incorpora almacenamiento y reserva; las operaciones
 de procesos productores y consumidores se integran en las siguientes funcionalidades.
 
+### Semaforos simulados
+
+Cada buffer tiene `mutex=1`, `vacios=capacidad` y `llenos=0`. `SemaforoSimulado`
+mantiene permisos no negativos y una cola FIFO propia. El semaforo de Java protege
+operaciones breves entre hilos reales; esperar por un permiso de AvilaOS devuelve
+inmediatamente un resultado, sin detener al trabajador del computador.
+
+El motor solicita `ControladorSimulacion.esperarSemaforo(proceso, semaforo)` con el
+proceso en CPU. Si hay permiso, continua en ejecucion. Si no, el nucleo lo pasa a
+Bloqueado con motivo SEMAFORO y libera la CPU. `senalizarSemaforo` transfiere un
+permiso al primer proceso y lo devuelve a Listo en su propio computador. Ese proceso
+ya tiene el permiso concedido y debe continuar con la etapa siguiente, sin repetir
+el wait. Una senal sin esperas incrementa el contador; superar su maximo es un error.
+
+El nucleo retira las esperas al terminar un proceso. Si un receptor vence despues
+de salir de la cola y antes de despertar, el controlador vuelve a transferir el mismo
+permiso. No se adquieren mutex de computadores desde el mutex del semaforo: primero
+se retira el receptor y despues se solicita su despertar.
+
+Estas APIs realizan las transiciones; no avanzan PC, MAR ni el reloj. La siguiente
+funcionalidad de productor-consumidor debe ejecutar cada wait, signal e insercion o
+extraccion en su ciclo de sistema, conservar la etapa y limpiar permisos ya adquiridos
+si el proceso termina durante una operacion. `Buffer.insertar` y `extraer` siguen
+siendo primitivas de almacenamiento; no actualizan automaticamente los semaforos.
+
+El script de comprobacion incluye permisos iniciales, FIFO, cancelacion, cuatro hilos
+concurrentes, bloqueo con CPU disponible, despertar entre computadores, vencimientos
+y un intercalado determinista de una senal en transito. Los escenarios usan procesos
+CPU-bound para comprobar el nucleo; todavia no ejecutan productores o consumidores.
+
 Las pruebas recientes estan comentadas en `Main.Proyecto1SO2526.java`, con prints y comprobaciones mediante `AssertionError`. Para repetir una, desactivar temporalmente el lanzamiento de la ventana, activar su bloque, compilar y ejecutar; restaurar despues el lanzamiento y el comentario. Las salidas y archivos temporales se escriben en `target`, ignorado por Git.
 
 Se conservan tres escenarios: flujo completo desde las acciones Swing, ventana de 900x680 sin maximizar y estabilidad del scroll. El flujo completo carga el ejemplo, crea un sexto proceso desde el formulario, cambia la duracion, inicia/pausa/reanuda/detiene, comprueba finalizacion y RAM, guarda/abre CSV y rechaza un archivo corrupto sin perder la sesion. Al cerrar verifica que no quedan trabajadores del reloj. Los archivos de esta prueba se eligen por ruta desde main, sin automatizar el dialogo del selector.
