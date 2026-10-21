@@ -7,6 +7,7 @@ import Modelo.VistaComputador;
 import Modelo.CargaInicial;
 import Modelo.DefinicionProceso;
 import Modelo.DefinicionBuffer;
+import Modelo.Buffer;
 import EDD.Cola;
 import java.util.concurrent.Semaphore;
 
@@ -24,7 +25,7 @@ public class ControladorSimulacion implements AutoCloseable {
     private boolean pausado;
     private boolean detenido;
     private Cola<DefinicionProceso> cargaProcesos = new Cola<>();
-    private DefinicionBuffer[] cargaBuffers = new DefinicionBuffer[0];
+    private Cola<Buffer<Object>> buffers = new Cola<>();
 
     /** Reemplaza la simulación únicamente si el reloj anterior está detenido o no iniciado. */
     public void configurar(Configuracion nueva) {
@@ -43,9 +44,9 @@ public class ControladorSimulacion implements AutoCloseable {
             int[] capacidades = nueva.getRam();
             Computador[] nuevos = new Computador[capacidades.length];
             for (int i = 0; i < nuevos.length; i++) nuevos[i] = new Computador(i + 1, capacidades[i]);
+            Cola<Buffer<Object>> nuevosBuffers = new Cola<>();
             for (DefinicionBuffer buffer : carga.getBuffers())
-                if (!nuevos[buffer.anfitrion() - 1].getMemoria().reservar("buffer:" + buffer.nombre(), buffer.capacidad()))
-                    throw new IllegalArgumentException("No hay RAM para el buffer " + buffer.nombre());
+                registrarBuffer(buffer, nuevos, nuevosBuffers);
             Cola<DefinicionProceso> definiciones = new Cola<>();
             for (DefinicionProceso definicion : carga.getProcesos()) {
                 nuevos[definicion.computador() - 1].recibirProceso(definicion.crearProceso());
@@ -61,7 +62,7 @@ public class ControladorSimulacion implements AutoCloseable {
             pausado = false;
             detenido = false;
             cargaProcesos = definiciones;
-            cargaBuffers = carga.getBuffers();
+            buffers = nuevosBuffers;
         } finally { mutex.release(); }
     }
 
@@ -93,7 +94,54 @@ public class ControladorSimulacion implements AutoCloseable {
             Object[] elementos = cargaProcesos.instantanea();
             DefinicionProceso[] definiciones = new DefinicionProceso[elementos.length];
             for (int i = 0; i < elementos.length; i++) definiciones[i] = (DefinicionProceso) elementos[i];
+            Object[] registrados = buffers.instantanea();
+            DefinicionBuffer[] cargaBuffers = new DefinicionBuffer[registrados.length];
+            for (int i = 0; i < registrados.length; i++) {
+                Buffer<?> buffer = (Buffer<?>) registrados[i];
+                cargaBuffers[i] = new DefinicionBuffer(buffer.getNombre(), buffer.getCapacidad(), buffer.getAnfitrion());
+            }
             return new CargaInicial(configuracion, definiciones, cargaBuffers);
+        } finally { mutex.release(); }
+    }
+
+    /** Registra un buffer y reserva una unidad de RAM por posicion en su anfitrion. */
+    public Buffer<Object> crearBuffer(String nombre, int capacidad, int anfitrion) {
+        mutex.acquireUninterruptibly();
+        try {
+            comprobarDisponible();
+            return registrarBuffer(new DefinicionBuffer(nombre, capacidad, anfitrion), computadores, buffers);
+        } finally { mutex.release(); }
+    }
+
+    private static Buffer<Object> registrarBuffer(DefinicionBuffer definicion,
+            Computador[] equipos, Cola<Buffer<Object>> registro) {
+        if (definicion.anfitrion() > equipos.length)
+            throw new IllegalArgumentException("Seleccione un computador anfitrion existente");
+        for (Object elemento : registro.instantanea())
+            if (((Buffer<?>) elemento).getNombre().equals(definicion.nombre()))
+                throw new IllegalArgumentException("Nombre de buffer duplicado");
+        Buffer<Object> buffer = new Buffer<>(definicion.nombre(), definicion.capacidad(), definicion.anfitrion());
+        Modelo.Memoria memoria = equipos[definicion.anfitrion() - 1].getMemoria();
+        String propietario = "buffer:" + definicion.nombre();
+        if (!memoria.reservar(propietario, definicion.capacidad()))
+            throw new IllegalArgumentException("No hay RAM para el buffer " + definicion.nombre());
+        try {
+            registro.agregar(buffer);
+        } catch (RuntimeException | Error fallo) {
+            memoria.liberar(propietario);
+            throw fallo;
+        }
+        return buffer;
+    }
+
+    /** Devuelve un arreglo independiente; los buffers pertenecen al controlador. */
+    public Buffer<?>[] getBuffers() {
+        mutex.acquireUninterruptibly();
+        try {
+            Object[] registrados = buffers.instantanea();
+            Buffer<?>[] copia = new Buffer<?>[registrados.length];
+            for (int i = 0; i < copia.length; i++) copia[i] = (Buffer<?>) registrados[i];
+            return copia;
         } finally { mutex.release(); }
     }
 
