@@ -14,9 +14,15 @@ public final class Buffer<T> {
     private final DefinicionBuffer definicion;
     private final Cola<T> elementos = new Cola<>();
     private final Semaphore mutex = new Semaphore(1, true);
+    private final SemaforoSimulado mutexSimulado;
+    private final SemaforoSimulado vacios;
+    private final SemaforoSimulado llenos;
 
     public Buffer(String nombre, int capacidad, int anfitrion) {
         this.definicion = new DefinicionBuffer(nombre, capacidad, anfitrion);
+        mutexSimulado = new SemaforoSimulado(nombre + ":mutex", 1, 1);
+        vacios = new SemaforoSimulado(nombre + ":vacios", capacidad, capacidad);
+        llenos = new SemaforoSimulado(nombre + ":llenos", 0, capacidad);
     }
 
     /**
@@ -71,4 +77,7 @@ public final class Buffer<T> {
     public String getNombre() { return definicion.nombre(); }
     public int getCapacidad() { return definicion.capacidad(); }
     public int getAnfitrion() { return definicion.anfitrion(); }
+    public SemaforoSimulado getMutexSimulado() { return mutexSimulado; }
+    public SemaforoSimulado getVacios() { return vacios; }
+    public SemaforoSimulado getLlenos() { return llenos; }
 }
