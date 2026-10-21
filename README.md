@@ -49,6 +49,16 @@ al JDK instalado). Compila el proyecto y las comprobaciones de `src/test/java/Pr
 sin dependencias externas. Verifica capacidad, FIFO, acceso concurrente, reservas
 en el anfitrion, rechazos sin cambios, admision de procesos y reconstruccion CSV.
 El script devuelve un error si falla una comprobacion; no abre la interfaz grafica.
+Con `-Interfaz` comprueba ademas la creacion desde la ventana principal y el rechazo
+de duplicados; requiere un entorno de escritorio, aunque no muestra la ventana.
+
+La pestana **Buffers** permite crear un buffer indicando nombre unico, capacidad y
+computador anfitrion. Configurar primero el cluster. La capacidad completa reserva
+RAM en ese computador, aun con el buffer vacio; si falta espacio, la creacion se
+rechaza sin registrar el buffer. La confirmacion aparece al pie de la ventana y la
+ocupacion se puede consultar en Simulacion en vivo. Guardar CSV incluye estos buffers
+en la carga inicial. Este avance incorpora almacenamiento y reserva; las operaciones
+de procesos productores y consumidores se integran en las siguientes funcionalidades.
 
 Las pruebas recientes estan comentadas en `Main.Proyecto1SO2526.java`, con prints y comprobaciones mediante `AssertionError`. Para repetir una, desactivar temporalmente el lanzamiento de la ventana, activar su bloque, compilar y ejecutar; restaurar despues el lanzamiento y el comentario. Las salidas y archivos temporales se escriben en `target`, ignorado por Git.
 

@@ -1,4 +1,4 @@
-param([string]$Jdk = $env:JAVA_HOME)
+param([string]$Jdk = $env:JAVA_HOME, [switch]$Interfaz)
 $ErrorActionPreference = 'Stop'
 if (-not $Jdk) { throw 'Indique -Jdk con la ruta de un JDK 22 o posterior, o configure JAVA_HOME.' }
 $compilador = Join-Path $Jdk 'bin/javac.exe'
@@ -12,5 +12,9 @@ try {
     foreach ($pruebaBuffers in @('Pruebas.PruebaBuffer', 'Pruebas.PruebaRegistroBuffers', 'Pruebas.PruebaPanelBuffer')) {
         & $java -cp target/pruebas-buffers $pruebaBuffers
         if ($LASTEXITCODE -ne 0) { throw "Fallo $pruebaBuffers" }
+    }
+    if ($Interfaz) {
+        & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaBuffers
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de buffers con la ventana.' }
     }
 } finally { Pop-Location }

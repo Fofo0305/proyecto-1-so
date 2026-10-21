@@ -11,11 +11,13 @@ public class VentanaPrincipal extends JFrame {
     private final Sistema.ControladorSimulacion controlador = new Sistema.ControladorSimulacion();
     private final PanelConfiguracion panelConfiguracion = new PanelConfiguracion();
     private final PanelProceso panelProceso = new PanelProceso();
+    private final PanelBuffer panelBuffer = new PanelBuffer();
     private final PanelControles panelControles = new PanelControles(controlador);
     private final PanelComputadores panelComputadores = new PanelComputadores(controlador);
     private final PanelArchivos panelArchivos = new PanelArchivos(controlador, this::mostrarCarga);
     private final JButton botonConfigurar = new JButton("Aplicar configuracion");
     private final JButton botonCrear = new JButton("Crear proceso CPU-bound");
+    private final JButton botonCrearBuffer = new JButton("Crear buffer y reservar RAM");
     private final JLabel estado = new JLabel("Configure el cluster para comenzar");
     private final JTabbedPane pestanas = new JTabbedPane();
 
@@ -34,8 +36,15 @@ public class VentanaPrincipal extends JFrame {
 
         procesos.add(botonCrear, BorderLayout.SOUTH);
         botonCrear.addActionListener(evento -> crearProceso());
+        JPanel buffers = new JPanel(new BorderLayout(8, 8));
+        JPanel formularioBuffers = new JPanel(new BorderLayout());
+        formularioBuffers.add(panelBuffer, BorderLayout.NORTH);
+        buffers.add(conScroll(formularioBuffers), BorderLayout.CENTER);
+        buffers.add(botonCrearBuffer, BorderLayout.SOUTH);
+        botonCrearBuffer.addActionListener(evento -> crearBuffer());
         pestanas.addTab("Configuracion", configuracion);
         pestanas.addTab("Procesos", procesos);
+        pestanas.addTab("Buffers", buffers);
         pestanas.addTab("Simulacion en vivo", panelComputadores);
         contenido.add(pestanas, BorderLayout.CENTER);
         getContentPane().add(titulo, BorderLayout.NORTH);
@@ -94,6 +103,36 @@ public class VentanaPrincipal extends JFrame {
         trabajo.setDaemon(true);
         trabajo.start();
 
+    }
+
+    /** Captura el formulario en EDT y reserva la RAM fuera del hilo de Swing. */
+    public void crearBuffer() {
+        if (!botonCrearBuffer.isEnabled()) return;
+        final String[] campos = panelBuffer.leerCampos();
+        try {
+            PanelBuffer.validarCampos(campos);
+        } catch (IllegalArgumentException error) {
+            estado.setText(error.getMessage());
+            return;
+        }
+        botonCrearBuffer.setEnabled(false);
+        estado.setText("Creando buffer...");
+        Thread trabajo = new Thread(() -> {
+            try {
+                Modelo.Buffer<Object> creado = PanelBuffer.crearBuffer(controlador, campos);
+                SwingUtilities.invokeLater(() -> {
+                    estado.setText("Buffer " + creado.getNombre() + " creado en computador "
+                            + creado.getAnfitrion() + " | RAM reservada: " + creado.getCapacidad());
+                    panelComputadores.actualizar();
+                });
+            } catch (RuntimeException error) {
+                SwingUtilities.invokeLater(() -> estado.setText(error.getMessage()));
+            } finally {
+                SwingUtilities.invokeLater(() -> botonCrearBuffer.setEnabled(true));
+            }
+        }, "Crear-buffer");
+        trabajo.setDaemon(true);
+        trabajo.start();
     }
 
     /** Lee en EDT y construye el clúster fuera del hilo de interfaz. */
