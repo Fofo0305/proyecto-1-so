@@ -43,6 +43,13 @@ La implementacion ejecuta CPU_BOUND con FCFS. Quantum y latencia se validan y co
 
 ## Pruebas y ramas
 
+Para comprobar el almacenamiento de buffers y su registro con RAM desde PowerShell,
+ejecutar `./verificar-buffers.ps1 -Jdk 'C:/Program Files/Java/jdk-22'` (ajustar la ruta
+al JDK instalado). Compila el proyecto y las comprobaciones de `src/test/java/Pruebas`
+sin dependencias externas. Verifica capacidad, FIFO, acceso concurrente, reservas
+en el anfitrion, rechazos sin cambios, admision de procesos y reconstruccion CSV.
+El script devuelve un error si falla una comprobacion; no abre la interfaz grafica.
+
 Las pruebas recientes estan comentadas en `Main.Proyecto1SO2526.java`, con prints y comprobaciones mediante `AssertionError`. Para repetir una, desactivar temporalmente el lanzamiento de la ventana, activar su bloque, compilar y ejecutar; restaurar despues el lanzamiento y el comentario. Las salidas y archivos temporales se escriben en `target`, ignorado por Git.
 
 Se conservan tres escenarios: flujo completo desde las acciones Swing, ventana de 900x680 sin maximizar y estabilidad del scroll. El flujo completo carga el ejemplo, crea un sexto proceso desde el formulario, cambia la duracion, inicia/pausa/reanuda/detiene, comprueba finalizacion y RAM, guarda/abre CSV y rechaza un archivo corrupto sin perder la sesion. Al cerrar verifica que no quedan trabajadores del reloj. Los archivos de esta prueba se eligen por ruta desde main, sin automatizar el dialogo del selector.
