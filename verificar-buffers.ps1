@@ -17,6 +17,8 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Fallo $pruebaBuffers" }
     }
     if ($Interfaz) {
+        & $java -cp target/pruebas-buffers Pruebas.PruebaPanelObservacion
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo la observacion Swing de buffers.' }
         & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaBuffers
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de buffers con la ventana.' }
         & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaProductorConsumidor

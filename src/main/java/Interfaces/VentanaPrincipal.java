@@ -47,7 +47,6 @@ public class VentanaPrincipal extends JFrame {
         cabeceraBuffers.add(panelBuffer, BorderLayout.CENTER);
         cabeceraBuffers.add(panelLatenciaRed, BorderLayout.SOUTH);
         formularioBuffers.add(cabeceraBuffers, BorderLayout.NORTH);
-        formularioBuffers.add(panelEstadoBuffers, BorderLayout.CENTER);
         buffers.add(conScroll(formularioBuffers), BorderLayout.CENTER);
         buffers.add(botonCrearBuffer, BorderLayout.SOUTH);
         botonCrearBuffer.addActionListener(evento -> crearBuffer());
@@ -62,6 +61,7 @@ public class VentanaPrincipal extends JFrame {
         botonCrearComunicante.addActionListener(evento -> crearProductorConsumidor());
         pestanas.addTab("Productor / consumidor", comunicantes);
         pestanas.addTab("Simulacion en vivo", panelComputadores);
+        pestanas.addTab("Observacion de buffers", panelEstadoBuffers);
         contenido.add(pestanas, BorderLayout.CENTER);
         getContentPane().add(titulo, BorderLayout.NORTH);
         getContentPane().add(contenido, BorderLayout.CENTER);

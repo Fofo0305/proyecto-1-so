@@ -248,6 +248,31 @@ public class ControladorSimulacion implements AutoCloseable {
         finally { mutex.release(); }
     }
 
+    /** Mantiene la sesion mientras captura las distintas vistas, sin detener el reloj. */
+    public Modelo.VistaObservacionBuffers consultarObservacionBuffers() {
+        mutex.acquireUninterruptibly();
+        try {
+            Object[] registrados = buffers.instantanea();
+            Modelo.VistaBuffer[] estados = new Modelo.VistaBuffer[registrados.length];
+            Modelo.VistaContadoresBuffer[] contadores = new Modelo.VistaContadoresBuffer[registrados.length];
+            Modelo.VistaBloqueosBuffer[] bloqueos = new Modelo.VistaBloqueosBuffer[registrados.length];
+            Modelo.VistaEventosBuffer[] eventos = new Modelo.VistaEventosBuffer[registrados.length];
+            for (int i=0; i<registrados.length; i++) {
+                Buffer<?> buffer = (Buffer<?>) registrados[i];
+                estados[i] = computadores[buffer.getAnfitrion()-1].consultarBuffer(buffer);
+                contadores[i] = buffer.consultarContadores();
+                bloqueos[i] = buffer.consultarBloqueos();
+                eventos[i] = buffer.consultarEventos();
+            }
+            Cola<Modelo.VistaBloqueoProceso> perfiles = new Cola<>();
+            if (computadores != null) for (Computador computador : computadores)
+                for (Modelo.VistaBloqueoProceso perfil : computador.consultarBloqueosProcesos()) perfiles.agregar(perfil);
+            Modelo.VistaBloqueoProceso[] procesos = new Modelo.VistaBloqueoProceso[perfiles.getTamano()];
+            for (int i=0; i<procesos.length; i++) procesos[i] = perfiles.quitar();
+            return new Modelo.VistaObservacionBuffers(estados,contadores,bloqueos,procesos,eventos);
+        } finally { mutex.release(); }
+    }
+
     public Modelo.VistaBuffer[] consultarBuffers() {
         mutex.acquireUninterruptibly();
         try {
