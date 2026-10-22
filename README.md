@@ -149,6 +149,16 @@ vencimientos por etapa con latencia 0 y 2, espera de RAM, red y colas multiples,
 de mutex remoto en transito y carreras entre cancelacion y entrega. Comprueba contenido,
 RAM, FIFO y que ni permisos ni procesos puedan duplicarse al repetir la limpieza.
 
+### Registro de eventos de buffers
+
+El motor registra produccion, consumo, esperas y despertares de semaforo y red,
+accesos remotos, devoluciones de permisos y terminaciones. Cada evento conserva
+ciclo, computador, ID de proceso y una secuencia propia del buffer. El historial
+retiene los ultimos 256 eventos por buffer e informa cuantos antiguos descarto.
+`ControladorSimulacion.consultarEventosBuffers()` entrega copias inmutables para
+los visores y la integracion del log; consultar o refrescar no genera eventos.
+El registro comienza de nuevo al reconstruir una sesion y no se guarda como estado CSV.
+
 ### Semaforos simulados
 
 Cada buffer tiene `mutex=1`, `vacios=capacidad` y `llenos=0`. `SemaforoSimulado`

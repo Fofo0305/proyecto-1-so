@@ -261,6 +261,17 @@ public class ControladorSimulacion implements AutoCloseable {
         } finally { mutex.release(); }
     }
 
+    /** Historiales acotados de la sesion; consultar no modifica el motor. */
+    public Modelo.VistaEventosBuffer[] consultarEventosBuffers() {
+        mutex.acquireUninterruptibly();
+        try {
+            Object[] registrados = buffers.instantanea();
+            Modelo.VistaEventosBuffer[] vistas = new Modelo.VistaEventosBuffer[registrados.length];
+            for (int i = 0; i < vistas.length; i++) vistas[i] = ((Buffer<?>) registrados[i]).consultarEventos();
+            return vistas;
+        } finally { mutex.release(); }
+    }
+
     public void pausar() {
         mutex.acquireUninterruptibly();
         try { comprobarDisponible(); reloj.pausar(); pausado = true; }

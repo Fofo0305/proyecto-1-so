@@ -11,6 +11,7 @@ import Modelo.VistaComputador;
 import Modelo.SemaforoSimulado;
 import Modelo.ContextoBuffer;
 import Modelo.EtapaBuffer;
+import Modelo.TipoEventoBuffer;
 import Planificacion.Politica;
 import Planificacion.FCFS;
 import java.util.concurrent.Semaphore;
@@ -34,6 +35,7 @@ public class Computador implements ComponenteReloj {
     private final InterconexionBuffers interconexion;
     private int latenciaRed;
     private long ultimoCiclo;
+    private long cicloEnCurso = -1;
 
     public Computador(int id, int capacidadRam) {
         this(id, capacidadRam, null);
@@ -144,10 +146,18 @@ public class Computador implements ComponenteReloj {
         retirar(bloqueados, proceso.getId());
         if (cpu.getActual() == proceso) cpu.retirar();
         if (proceso.getContextoBuffer() != null)
-            for (SemaforoSimulado semaforo : proceso.getContextoBuffer().abandonar()) senalizarBuffer(semaforo);
-        for (SemaforoSimulado semaforo : transferencias) senalizarBuffer(semaforo);
+            for (SemaforoSimulado semaforo : proceso.getContextoBuffer().abandonar()) {
+                senalizarBuffer(semaforo);
+                registrarEvento(proceso, TipoEventoBuffer.DEVOLUCION_PERMISO, semaforo.getNombre());
+            }
+        for (SemaforoSimulado semaforo : transferencias) {
+            senalizarBuffer(semaforo);
+            registrarEvento(proceso, TipoEventoBuffer.DEVOLUCION_PERMISO, semaforo.getNombre() + " en transito");
+        }
         memoria.liberar("proceso:" + proceso.getId());
         terminados.agregar(proceso);
+        registrarEvento(proceso, TipoEventoBuffer.TERMINACION,
+                proceso.getRestante() == 0 ? "completado" : proceso.getDeadline() == 0 ? "vencido" : "cancelado");
         return true;
     }
 
@@ -175,6 +185,7 @@ public class Computador implements ComponenteReloj {
         proceso.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.SEMAFORO);
         cpu.retirar();
         bloqueados.agregar(proceso);
+        registrarEvento(proceso, TipoEventoBuffer.BLOQUEO_SEMAFORO, semaforo.getNombre());
         return false;
     }
 
@@ -208,6 +219,7 @@ public class Computador implements ComponenteReloj {
             retirar(bloqueados, proceso.getId());
             proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
             listos.agregar(proceso);
+            registrarEvento(proceso, TipoEventoBuffer.DESPERTAR_SEMAFORO, semaforo.getNombre());
             return true;
     }
 
@@ -227,6 +239,7 @@ public class Computador implements ComponenteReloj {
         mutex.acquireUninterruptibly();
         try {
             if (ciclo != ultimoCiclo + 1) throw new IllegalArgumentException("El ciclo debe ser consecutivo");
+            cicloEnCurso = ciclo;
             for (Object elemento : nuevos.instantanea()) validarTipoEjecucion((Proceso) elemento);
             for (Object elemento : listos.instantanea()) validarTipoEjecucion((Proceso) elemento);
             admitirPendientes();
@@ -266,7 +279,7 @@ public class Computador implements ComponenteReloj {
             finalizarEsperasRed(ciclo);
             admitirPendientes();
             ultimoCiclo = ciclo;
-        } finally { mutex.release(); }
+        } finally { cicloEnCurso = -1; mutex.release(); }
     }
 
     private void validarTipoEjecucion(Proceso proceso) {
@@ -285,7 +298,12 @@ public class Computador implements ComponenteReloj {
                 contexto.iniciarEspera();
                 if (esperarRegistrado(proceso, semaforo)) contexto.conceder(semaforo);
             }
-            case MODIFICAR -> contexto.modificar(proceso.getId());
+            case MODIFICAR -> {
+                contexto.modificar(proceso.getId());
+                registrarEvento(proceso, proceso.getTipo() == TipoProceso.PRODUCTOR
+                        ? TipoEventoBuffer.PRODUCCION : TipoEventoBuffer.CONSUMO,
+                        "elemento " + (contexto.getCompletados() + 1));
+            }
             case SENALAR_MUTEX -> {
                 contexto.liberarMutex();
                 senalizarBuffer(contexto.getBuffer().getMutexSimulado());
@@ -317,10 +335,13 @@ public class Computador implements ComponenteReloj {
         if (contexto == null || proceso.getBuffer().getAnfitrion() == id
                 || contexto.getEtapa() != EtapaBuffer.ESPERAR_RECURSO || contexto.isRedPreparada()) return false;
         contexto.prepararRed(ciclo, latenciaRed);
+        registrarEvento(proceso, TipoEventoBuffer.ACCESO_REMOTO,
+                "anfitrion C" + proceso.getBuffer().getAnfitrion() + ", latencia " + latenciaRed);
         if (latenciaRed == 0) return false;
         proceso.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.RED);
         cpu.retirar();
         bloqueados.agregar(proceso);
+        registrarEvento(proceso, TipoEventoBuffer.BLOQUEO_RED, "latencia " + latenciaRed);
         return true;
     }
 
@@ -333,8 +354,15 @@ public class Computador implements ComponenteReloj {
                 retirar(bloqueados, proceso.getId());
                 proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
                 listos.agregar(proceso);
+                registrarEvento(proceso, TipoEventoBuffer.DESPERTAR_RED, "latencia satisfecha");
             }
         }
+    }
+
+    private void registrarEvento(Proceso proceso, TipoEventoBuffer tipo, String detalle) {
+        if (proceso.getContextoBuffer() != null)
+            proceso.getBuffer().registrarEvento(cicloEnCurso >= 0 ? cicloEnCurso : ultimoCiclo,
+                    id, proceso.getId(), tipo, detalle);
     }
 
     public Proceso getProcesoEnCPU() {

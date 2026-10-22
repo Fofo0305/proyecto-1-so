@@ -11,7 +11,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la compilacion.' }
     foreach ($pruebaBuffers in @('Pruebas.PruebaBuffer', 'Pruebas.PruebaRegistroBuffers', 'Pruebas.PruebaPanelBuffer',
             'Pruebas.PruebaSemaforos', 'Pruebas.PruebaBloqueoSemaforos', 'Pruebas.PruebaProductorConsumidorLocal',
-            'Pruebas.PruebaAccesoRemoto', 'Pruebas.PruebaLimpiezaProductorConsumidor')) {
+            'Pruebas.PruebaAccesoRemoto', 'Pruebas.PruebaLimpiezaProductorConsumidor', 'Pruebas.PruebaEventosBuffers')) {
         & $java -cp target/pruebas-buffers $pruebaBuffers
         if ($LASTEXITCODE -ne 0) { throw "Fallo $pruebaBuffers" }
     }

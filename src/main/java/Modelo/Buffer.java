@@ -17,9 +17,11 @@ public final class Buffer<T> {
     private final SemaforoSimulado mutexSimulado;
     private final SemaforoSimulado vacios;
     private final SemaforoSimulado llenos;
+    private final RegistroEventosBuffer eventos;
 
     public Buffer(String nombre, int capacidad, int anfitrion) {
         this.definicion = new DefinicionBuffer(nombre, capacidad, anfitrion);
+        eventos = new RegistroEventosBuffer(nombre, 256);
         mutexSimulado = new SemaforoSimulado(nombre + ":mutex", 1, 1);
         vacios = new SemaforoSimulado(nombre + ":vacios", capacidad, capacidad);
         llenos = new SemaforoSimulado(nombre + ":llenos", 0, capacidad);
@@ -80,4 +82,8 @@ public final class Buffer<T> {
     public SemaforoSimulado getMutexSimulado() { return mutexSimulado; }
     public SemaforoSimulado getVacios() { return vacios; }
     public SemaforoSimulado getLlenos() { return llenos; }
+    public void registrarEvento(long ciclo, int computador, long proceso, TipoEventoBuffer tipo, String detalle) {
+        eventos.registrar(ciclo, computador, proceso, tipo, detalle);
+    }
+    public VistaEventosBuffer consultarEventos() { return eventos.consultar(); }
 }
