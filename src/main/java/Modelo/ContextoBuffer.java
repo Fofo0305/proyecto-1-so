@@ -16,6 +16,8 @@ public final class ContextoBuffer {
     private boolean limpiado;
     private boolean redPreparada;
     private long redHasta = -1;
+    private MotivoBloqueo esperaActual = MotivoBloqueo.NINGUNO;
+    private long ciclosSemaforo, esperasSemaforo, ciclosRed, esperasRed;
 
     public ContextoBuffer(Buffer<Object> buffer, ParametrosBuffer parametros, TipoProceso tipo) {
         if (buffer == null || parametros == null || !buffer.getNombre().equals(parametros.buffer())
@@ -105,6 +107,7 @@ public final class ContextoBuffer {
      */
     public SemaforoSimulado[] abandonar() {
         if (limpiado) return new SemaforoSimulado[0];
+        cerrarBloqueo();
         SemaforoSimulado[] devolver = new SemaforoSimulado[(mutexAdquirido ? 1 : 0) + (recursoReservado ? 1 : 0)];
         int posicion = 0;
         if (mutexAdquirido) devolver[posicion++] = buffer.getMutexSimulado();
@@ -130,4 +133,31 @@ public final class ContextoBuffer {
     public boolean estaLimpiado() { return limpiado; }
     public boolean isRedPreparada() { return redPreparada; }
     public long getRedHasta() { return redHasta; }
+
+    public void iniciarBloqueo(MotivoBloqueo motivo) {
+        if (limpiado || esperaActual != MotivoBloqueo.NINGUNO
+                || (motivo != MotivoBloqueo.SEMAFORO && motivo != MotivoBloqueo.RED))
+            throw new IllegalStateException("No se puede iniciar otra espera");
+        buffer.iniciarBloqueo(motivo);
+        esperaActual = motivo;
+        if (motivo == MotivoBloqueo.SEMAFORO) esperasSemaforo++; else esperasRed++;
+    }
+
+    public void contarCicloBloqueado(MotivoBloqueo motivo) {
+        if (limpiado || esperaActual != motivo || motivo == MotivoBloqueo.NINGUNO)
+            throw new IllegalStateException("El proceso no espera por ese motivo");
+        buffer.contarCicloBloqueado(motivo);
+        if (motivo == MotivoBloqueo.SEMAFORO) ciclosSemaforo++; else ciclosRed++;
+    }
+
+    public void cerrarBloqueo() {
+        if (esperaActual == MotivoBloqueo.NINGUNO) return;
+        buffer.cerrarBloqueo(esperaActual);
+        esperaActual = MotivoBloqueo.NINGUNO;
+    }
+
+    public VistaBloqueoProceso consultarBloqueos(long idProceso, String nombre, int computador) {
+        return new VistaBloqueoProceso(idProceso, nombre, computador, buffer.getNombre(),
+                ciclosSemaforo, esperasSemaforo, ciclosRed, esperasRed, esperaActual);
+    }
 }

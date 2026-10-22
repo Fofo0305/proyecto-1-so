@@ -283,6 +283,29 @@ public class ControladorSimulacion implements AutoCloseable {
         } finally { mutex.release(); }
     }
 
+    public Modelo.VistaBloqueosBuffer[] consultarBloqueosBuffers() {
+        mutex.acquireUninterruptibly();
+        try {
+            Object[] registrados = buffers.instantanea();
+            Modelo.VistaBloqueosBuffer[] vistas = new Modelo.VistaBloqueosBuffer[registrados.length];
+            for (int i = 0; i < vistas.length; i++) vistas[i] = ((Buffer<?>) registrados[i]).consultarBloqueos();
+            return vistas;
+        } finally { mutex.release(); }
+    }
+
+    /** Datos de modulo para metricas; no calcula indicadores globales del integrante 3. */
+    public Modelo.VistaBloqueoProceso[] consultarBloqueosProcesos() {
+        mutex.acquireUninterruptibly();
+        try {
+            Cola<Modelo.VistaBloqueoProceso> vistas = new Cola<>();
+            if (computadores != null) for (Computador computador : computadores)
+                for (Modelo.VistaBloqueoProceso vista : computador.consultarBloqueosProcesos()) vistas.agregar(vista);
+            Modelo.VistaBloqueoProceso[] copia = new Modelo.VistaBloqueoProceso[vistas.getTamano()];
+            for (int i = 0; i < copia.length; i++) copia[i] = vistas.quitar();
+            return copia;
+        } finally { mutex.release(); }
+    }
+
     public void pausar() {
         mutex.acquireUninterruptibly();
         try { comprobarDisponible(); reloj.pausar(); pausado = true; }

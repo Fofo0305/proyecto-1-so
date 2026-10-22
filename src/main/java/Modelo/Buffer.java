@@ -20,6 +20,8 @@ public final class Buffer<T> {
     private final RegistroEventosBuffer eventos;
     private long producidos;
     private long consumidos;
+    private long ciclosSemaforo, esperasSemaforo, abiertasSemaforo;
+    private long ciclosRed, esperasRed, abiertasRed;
 
     public Buffer(String nombre, int capacidad, int anfitrion) {
         this.definicion = new DefinicionBuffer(nombre, capacidad, anfitrion);
@@ -90,6 +92,51 @@ public final class Buffer<T> {
         } finally { mutex.release(); }
     }
     public boolean estaLleno() { return getCantidad() == getCapacidad(); }
+
+    public void iniciarBloqueo(MotivoBloqueo motivo) {
+        validarEspera(motivo);
+        mutex.acquireUninterruptibly();
+        try {
+            if (motivo == MotivoBloqueo.SEMAFORO) { esperasSemaforo++; abiertasSemaforo++; }
+            else { esperasRed++; abiertasRed++; }
+        } finally { mutex.release(); }
+    }
+
+    public void contarCicloBloqueado(MotivoBloqueo motivo) {
+        validarEspera(motivo);
+        mutex.acquireUninterruptibly();
+        try {
+            if (motivo == MotivoBloqueo.SEMAFORO) ciclosSemaforo++;
+            else ciclosRed++;
+        } finally { mutex.release(); }
+    }
+
+    public void cerrarBloqueo(MotivoBloqueo motivo) {
+        validarEspera(motivo);
+        mutex.acquireUninterruptibly();
+        try {
+            if (motivo == MotivoBloqueo.SEMAFORO) {
+                if (abiertasSemaforo == 0) throw new IllegalStateException("No hay espera de semaforo abierta");
+                abiertasSemaforo--;
+            } else {
+                if (abiertasRed == 0) throw new IllegalStateException("No hay espera de red abierta");
+                abiertasRed--;
+            }
+        } finally { mutex.release(); }
+    }
+
+    private static void validarEspera(MotivoBloqueo motivo) {
+        if (motivo != MotivoBloqueo.SEMAFORO && motivo != MotivoBloqueo.RED)
+            throw new IllegalArgumentException("Solo se miden esperas de semaforo y red");
+    }
+
+    public VistaBloqueosBuffer consultarBloqueos() {
+        mutex.acquireUninterruptibly();
+        try {
+            return new VistaBloqueosBuffer(getNombre(), ciclosSemaforo, esperasSemaforo,
+                    abiertasSemaforo, ciclosRed, esperasRed, abiertasRed);
+        } finally { mutex.release(); }
+    }
     public String getNombre() { return definicion.nombre(); }
     public int getCapacidad() { return definicion.capacidad(); }
     public int getAnfitrion() { return definicion.anfitrion(); }

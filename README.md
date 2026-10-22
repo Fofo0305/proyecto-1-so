@@ -169,6 +169,24 @@ aunque no haya completado las cinco instrucciones de la operacion. Los acumulado
 pertenecen a la sesion, son independientes del historial acotado y vuelven a cero al
 reconstruir la carga inicial CSV.
 
+Los tiempos del modulo se consultan mediante `consultarBloqueosBuffers()` y
+`consultarBloqueosProcesos()` del controlador. Son vistas inmutables; incluyen
+procesos terminados, esperas aun abiertas y episodios cerrados por cancelacion o
+vencimiento. Se mantienen separados los ciclos y episodios de semaforo y de red.
+El promedio es ciclos acumulados dividido entre episodios iniciados, incluyendo los
+abiertos con su duracion parcial; sin episodios devuelve cero. No es un promedio
+por numero de procesos ni excluye cancelaciones.
+
+Un wait que bloquea ya ejecuto una instruccion en su ciclo: el tiempo de semaforo
+empieza a sumar desde el ciclo siguiente y suma tambien el ciclo del despertar o
+vencimiento. Una senal recibida en el mismo ciclo del wait puede dar duracion cero.
+La latencia de red incluye su ciclo de inicio, segun la convencion del motor remoto.
+Pausas y consultas no suman tiempo. Cada nucleo cuenta una vez por ciclo y cierra
+el episodio al despertar o limpiar; liberar RAM no elimina los acumulados. Los
+totales del buffer se actualizan bajo su mutex, sin adquirir mutex de otros equipos.
+Estas APIs entregan datos al modulo de metricas del integrante 3; no calculan sus
+indicadores globales ni guardan tiempos de ejecucion en la carga inicial CSV.
+
 ### Semaforos simulados
 
 Cada buffer tiene `mutex=1`, `vacios=capacidad` y `llenos=0`. `SemaforoSimulado`

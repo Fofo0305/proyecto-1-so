@@ -185,6 +185,7 @@ public class Computador implements ComponenteReloj {
         proceso.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.SEMAFORO);
         cpu.retirar();
         bloqueados.agregar(proceso);
+        if (proceso.getContextoBuffer() != null) proceso.getContextoBuffer().iniciarBloqueo(MotivoBloqueo.SEMAFORO);
         registrarEvento(proceso, TipoEventoBuffer.BLOQUEO_SEMAFORO, semaforo.getNombre());
         return false;
     }
@@ -214,7 +215,10 @@ public class Computador implements ComponenteReloj {
                 if (espera.proceso() == proceso && espera.semaforo() == semaforo) coincide = true;
             }
             if (!coincide) return false;
-            if (proceso.getContextoBuffer() != null) proceso.getContextoBuffer().conceder(semaforo);
+            if (proceso.getContextoBuffer() != null) {
+                proceso.getContextoBuffer().conceder(semaforo);
+                proceso.getContextoBuffer().cerrarBloqueo();
+            }
             retirarEsperaSemaforo(proceso);
             retirar(bloqueados, proceso.getId());
             proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
@@ -240,6 +244,11 @@ public class Computador implements ComponenteReloj {
         try {
             if (ciclo != ultimoCiclo + 1) throw new IllegalArgumentException("El ciclo debe ser consecutivo");
             cicloEnCurso = ciclo;
+            for (Object elemento : bloqueados.instantanea()) {
+                Proceso proceso = (Proceso) elemento;
+                if (proceso.getContextoBuffer() != null)
+                    proceso.getContextoBuffer().contarCicloBloqueado(proceso.getMotivoBloqueo());
+            }
             for (Object elemento : nuevos.instantanea()) validarTipoEjecucion((Proceso) elemento);
             for (Object elemento : listos.instantanea()) validarTipoEjecucion((Proceso) elemento);
             admitirPendientes();
@@ -339,6 +348,8 @@ public class Computador implements ComponenteReloj {
                 "anfitrion C" + proceso.getBuffer().getAnfitrion() + ", latencia " + latenciaRed);
         if (latenciaRed == 0) return false;
         proceso.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.RED);
+        contexto.iniciarBloqueo(MotivoBloqueo.RED);
+        contexto.contarCicloBloqueado(MotivoBloqueo.RED);
         cpu.retirar();
         bloqueados.agregar(proceso);
         registrarEvento(proceso, TipoEventoBuffer.BLOQUEO_RED, "latencia " + latenciaRed);
@@ -352,6 +363,7 @@ public class Computador implements ComponenteReloj {
             if (proceso.getMotivoBloqueo() == MotivoBloqueo.RED
                     && proceso.getContextoBuffer().getRedHasta() <= ciclo) {
                 retirar(bloqueados, proceso.getId());
+                proceso.getContextoBuffer().cerrarBloqueo();
                 proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
                 listos.agregar(proceso);
                 registrarEvento(proceso, TipoEventoBuffer.DESPERTAR_RED, "latencia satisfecha");
@@ -368,6 +380,25 @@ public class Computador implements ComponenteReloj {
     public Proceso getProcesoEnCPU() {
         mutex.acquireUninterruptibly();
         try { return cpu.getActual(); } finally { mutex.release(); }
+    }
+
+    /** Incluye procesos terminados; conserva estadisticas despues de liberar su RAM. */
+    public Modelo.VistaBloqueoProceso[] consultarBloqueosProcesos() {
+        mutex.acquireUninterruptibly();
+        try {
+            Cola<Modelo.VistaBloqueoProceso> vistas = new Cola<>();
+            Object[][] colas = {nuevos.instantanea(), listos.instantanea(), bloqueados.instantanea(), terminados.instantanea()};
+            for (Object[] cola : colas) for (Object elemento : cola) agregarBloqueoProceso(vistas, (Proceso) elemento);
+            if (cpu.getActual() != null) agregarBloqueoProceso(vistas, cpu.getActual());
+            Modelo.VistaBloqueoProceso[] copia = new Modelo.VistaBloqueoProceso[vistas.getTamano()];
+            for (int i = 0; i < copia.length; i++) copia[i] = vistas.quitar();
+            return copia;
+        } finally { mutex.release(); }
+    }
+
+    private void agregarBloqueoProceso(Cola<Modelo.VistaBloqueoProceso> vistas, Proceso proceso) {
+        if (proceso.getContextoBuffer() != null)
+            vistas.agregar(proceso.getContextoBuffer().consultarBloqueos(proceso.getId(), proceso.getNombre(), id));
     }
 
     /** Punto de apropiacion del planificador: conserva PC, etapa y permisos adquiridos. */
