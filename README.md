@@ -39,7 +39,7 @@ Los registros admitidos son `AVILAOS`, `CONFIG`, `COMPUTADOR`, `PROCESO` y `BUFF
 
 Las vistas son coherentes por computador. Durante un ciclo en curso, dos computadores pueden mostrar ciclos diferentes hasta que ambos confirmen su avance. No modificar las colas de un computador desde la GUI: usar las operaciones del controlador y del computador.
 
-La implementacion ejecuta CPU_BOUND, PRODUCTOR y CONSUMIDOR locales con FCFS. Quantum y latencia se validan y conservan para integraciones posteriores. El nucleo ofrece `cederCPU` para integrar apropiacion sin perder contexto; FCFS no la solicita automaticamente. E/S, acceso remoto, politicas avanzadas y metricas globales siguen pendientes.
+La implementacion ejecuta CPU_BOUND, PRODUCTOR y CONSUMIDOR locales o remotos con FCFS. La latencia de red se aplica a cada operacion remota; quantum queda para Round Robin. El nucleo ofrece `cederCPU` para integrar apropiacion sin perder contexto; FCFS no la solicita automaticamente. E/S, politicas avanzadas, log global y metricas completas siguen pendientes.
 
 ## Pruebas y ramas
 
@@ -68,8 +68,9 @@ FIFO de espera, mediante vistas capturadas bajo el bloqueo del anfitrion.
 4. Consultar etapas y avances en Simulacion en vivo; consultar contenido y esperas en Buffers. Al completar ambos procesos, el buffer queda vacio y mantiene su RAM reservada.
 
 Tambien se puede abrir `ejemplos/productor-consumidor-local.csv`: incluye ese flujo
-y un CPU-bound en el segundo computador. Las solicitudes remotas se rechazan en esta
-funcionalidad; proceso y buffer deben compartir computador.
+y un CPU-bound en el segundo computador. Para observar acceso entre equipos, abrir
+`ejemplos/productor-consumidor-remoto.csv`: productor en el computador 2, buffer y
+consumidor en el computador 1, latencia de tres ciclos y otro proceso CPU-bound en el 2.
 
 El intervalo representa instrucciones de trabajo de usuario antes de cada operacion.
 A ese trabajo se agregan cinco instrucciones, cada una en un ciclo de sistema:
@@ -89,6 +90,39 @@ de cada ciclo, varios productores y consumidores, apropiacion dentro de la regio
 critica, bloqueos por lleno/vacio, vencimientos en las seis etapas, CSV v1/v2 y reloj
 automatico con pausa/reanudacion. Con `-Interfaz` tambien se prueba el flujo de creacion
 desde la ventana. Las pruebas no requieren modificar el punto de entrada.
+
+### Acceso remoto a buffers
+
+El computador de un proceso permanece fijo; el buffer puede residir en otro anfitrion.
+El anfitrion reserva la RAM del buffer y cada proceso reserva su memoria en su propio
+equipo. El algoritmo y los semaforos son los mismos para procesos locales y remotos.
+
+Antes del primer wait de cada operacion remota, el proceso espera la latencia configurada
+con motivo RED, sin avanzar PC o MAR ni adquirir permisos. El ciclo de inicio cuenta
+como el primero de la espera; puede volver a ejecutarse desde el ciclo posterior al
+ultimo ciclo de latencia. La CPU puede seleccionar otro proceso en ese mismo ciclo.
+Latencia cero no agrega espera y los accesos locales tampoco la pagan.
+
+La latencia se configura inicialmente en las opciones de Configuracion o durante la
+sesion en **Buffers > Aplicar latencia**. Cambiarla afecta accesos nuevos; una espera
+ya iniciada conserva su duracion. La carga inicial CSV guarda el valor actualizado.
+Las tarjetas muestran el anfitrion remoto y los ciclos de red pendientes.
+
+Cuando una senal entrega un permiso a otro computador, `InterconexionBuffers` lo
+conserva hasta que todos los trabajadores confirmen el ciclo. `FinalizadorCiclo` lo
+entrega en esa barrera, antes de empezar el siguiente. Asi ningun trabajador necesita
+adquirir el mutex de otro computador. Si el receptor vence, el permiso se transfiere
+de nuevo; un proceso terminado nunca vuelve a Listo. Los despertares remotos pueden
+ejecutar desde el siguiente ciclo, incluso con latencia cero.
+
+Para avanzar manualmente una carga remota se usa `ControladorSimulacion.avanzarCiclo()`:
+coordina todos los equipos y la entrega pendiente. Avanzar computadores por separado
+no completa la barrera del cluster. El reloj automatico realiza ambas fases.
+
+`PruebaAccesoRemoto` verifica duraciones con latencia 0, 1, 3 y 10; CPU disponible;
+cambios en vivo; CSV; vencimientos en red y durante una transferencia; e intercambios
+cruzados sobre dos buffers con trabajadores reales. Con `-Interfaz` se comprueban
+tambien el control de latencia y sus validaciones.
 
 ### Semaforos simulados
 

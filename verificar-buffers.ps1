@@ -10,7 +10,8 @@ try {
     & $compilador -encoding UTF-8 --release 22 -d target/pruebas-buffers @fuentesBuffers
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la compilacion.' }
     foreach ($pruebaBuffers in @('Pruebas.PruebaBuffer', 'Pruebas.PruebaRegistroBuffers', 'Pruebas.PruebaPanelBuffer',
-            'Pruebas.PruebaSemaforos', 'Pruebas.PruebaBloqueoSemaforos', 'Pruebas.PruebaProductorConsumidorLocal')) {
+            'Pruebas.PruebaSemaforos', 'Pruebas.PruebaBloqueoSemaforos', 'Pruebas.PruebaProductorConsumidorLocal',
+            'Pruebas.PruebaAccesoRemoto')) {
         & $java -cp target/pruebas-buffers $pruebaBuffers
         if ($LASTEXITCODE -ne 0) { throw "Fallo $pruebaBuffers" }
     }
@@ -19,5 +20,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de buffers con la ventana.' }
         & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaProductorConsumidor
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de productor consumidor con la ventana.' }
+        & $java -cp target/pruebas-buffers Pruebas.PruebaPanelLatencia
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo la configuracion de latencia desde Swing.' }
     }
 } finally { Pop-Location }
