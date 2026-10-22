@@ -124,6 +124,31 @@ cambios en vivo; CSV; vencimientos en red y durante una transferencia; e interca
 cruzados sobre dos buffers con trabajadores reales. Con `-Interfaz` se comprueban
 tambien el control de latencia y sus validaciones.
 
+### Limpieza de productor consumidor
+
+Vencimiento y cancelacion comparten `Computador.terminarProceso`. El controlador
+expone `cancelarProceso(proceso)` para solicitar esa ruta sin modificar directamente
+colas ni semaforos. Devuelve false si el proceso ya termino. Cancelar no elimina su
+definicion de la carga inicial guardable; una carga posterior reconstruye procesos nuevos.
+
+La terminacion retira la espera de semaforo, las transferencias remotas todavia en
+cola y la espera de red. Cada permiso tiene un responsable: el nucleo devuelve los
+que retiro de la interconexion; el finalizador devuelve los de transferencias que
+ya habia extraido, si el receptor termino antes de recibirlas. La cola de transferencias
+se modifica bajo su propio semaforo de Java, que se libera antes de acceder a un computador.
+
+La limpieza del contexto es idempotente y rechaza adquisiciones tardias. Devuelve
+mutex y permisos retenidos exactamente una vez. Antes de insertar o extraer devuelve
+el permiso original; despues de modificar publica el permiso opuesto y conserva el
+contenido resultante. Limpieza completa y operacion cancelada son estados diferentes:
+un proceso que alcanzo su objetivo no se marca como cancelado. Las tarjetas distinguen
+completado de interrumpido y conservan la etapa en la que termino.
+
+`PruebaLimpiezaProductorConsumidor` cubre cancelacion antes y despues de cada instruccion,
+vencimientos por etapa con latencia 0 y 2, espera de RAM, red y colas multiples, permiso
+de mutex remoto en transito y carreras entre cancelacion y entrega. Comprueba contenido,
+RAM, FIFO y que ni permisos ni procesos puedan duplicarse al repetir la limpieza.
+
 ### Semaforos simulados
 
 Cada buffer tiene `mutex=1`, `vacios=capacidad` y `llenos=0`. `SemaforoSimulado`
