@@ -401,6 +401,10 @@ public class Computador implements ComponenteReloj {
         if (contexto == null) return "";
         String texto = "Buffer " + proceso.getBuffer().getNombre() + " | " + contexto.getEtapa()
                 + " | elementos " + contexto.getCompletados() + "/" + proceso.getParametrosBuffer().elementos();
+        if (proceso.getBuffer().getAnfitrion() != id)
+            texto += " | acceso remoto a C" + proceso.getBuffer().getAnfitrion();
+        if (proceso.getMotivoBloqueo() == MotivoBloqueo.RED)
+            texto += " | red: " + Math.max(0, contexto.getRedHasta() - ultimoCiclo) + " ciclos pendientes";
         for (Object elemento : esperasSemaforos.instantanea()) {
             EsperaSemaforo espera = (EsperaSemaforo) elemento;
             if (espera.proceso() == proceso) texto += " | espera " + espera.semaforo().getNombre();

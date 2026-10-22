@@ -57,6 +57,8 @@ public class PanelConfiguracion extends javax.swing.JPanel {
         campoLatencia.setText(Integer.toString(configuracion.getLatencia()));
     }
 
+    public void mostrarLatencia(int latencia) { campoLatencia.setText(Integer.toString(latencia)); }
+
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
         setLayout(new java.awt.BorderLayout(0, 20));
@@ -81,7 +83,7 @@ public class PanelConfiguracion extends javax.swing.JPanel {
         campoQuantum = new javax.swing.JTextField("4", 12);
         etiquetaLatencia = new javax.swing.JLabel("Latencia de red (ciclos)");
         campoLatencia = new javax.swing.JTextField("0", 12);
-        aviso = new javax.swing.JLabel("<html>Quantum y latencia se guardan para los modulos pendientes.<br>Aplicar crea una sesion nueva.<br>Deten el reloj antes de cambiar la configuracion.</html>");
+        aviso = new javax.swing.JLabel("<html>La latencia se aplica a accesos remotos; quantum queda para Round Robin.<br>Aplicar crea una sesion nueva.<br>Deten el reloj antes de cambiar la configuracion.</html>");
         aviso.setForeground(new java.awt.Color(93, 108, 130));
         java.awt.GridBagConstraints c;
         c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=0; c.anchor=java.awt.GridBagConstraints.WEST; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(etiquetaCantidad,c);

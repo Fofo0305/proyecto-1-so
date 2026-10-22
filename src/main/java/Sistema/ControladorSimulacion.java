@@ -284,6 +284,18 @@ public class ControladorSimulacion implements AutoCloseable {
         } finally { mutex.release(); }
     }
 
+    /** Aplica a accesos futuros; las esperas iniciadas conservan su plazo de red. */
+    public void cambiarLatencia(int latencia) {
+        mutex.acquireUninterruptibly();
+        try {
+            comprobarDisponible();
+            Configuracion nueva = new Configuracion(configuracion.getRam(), configuracion.getDuracionMs(),
+                    configuracion.getQuantum(), latencia);
+            for (Computador computador : computadores) computador.setLatenciaRed(latencia);
+            configuracion = nueva;
+        } finally { mutex.release(); }
+    }
+
     private void comprobarDisponible() {
         if (cerrado || reloj == null || detenido) throw new IllegalStateException("Configure un cluster disponible");
         if (reloj.getError() != null) throw new IllegalStateException("La simulacion fallo", reloj.getError());

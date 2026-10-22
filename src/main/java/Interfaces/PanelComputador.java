@@ -136,7 +136,8 @@ public class PanelComputador extends JPanel {
         progreso.setValue(total == 0 ? 100 : (int) (100L * proceso.pc() / total));
         progreso.setForeground(color); progreso.setStringPainted(true); progreso.setString(progreso.getValue() + "% ejecutado");
         tarjeta.add(progreso, BorderLayout.SOUTH);
-        tarjeta.setMaximumSize(new Dimension(Integer.MAX_VALUE, (mostrarPCB ? 145 : 123) + (proceso.operacion().isEmpty() ? 0 : 70)));
+        int lineasOperacion = proceso.operacion().isEmpty() ? 0 : proceso.operacion().split("\\|").length;
+        tarjeta.setMaximumSize(new Dimension(Integer.MAX_VALUE, (mostrarPCB ? 145 : 123) + 18 * lineasOperacion));
         return tarjeta;
     }
 

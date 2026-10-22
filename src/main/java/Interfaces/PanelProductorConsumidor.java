@@ -56,7 +56,7 @@ public class PanelProductorConsumidor extends javax.swing.JPanel {
         etiquetaElementos = new javax.swing.JLabel(); campoElementos = new javax.swing.JTextField();
         ayuda = new javax.swing.JLabel();
         setLayout(new java.awt.BorderLayout(0,12));
-        introduccion.setText("<html><h2>Productor y consumidor local</h2>Crea primero el buffer en el computador que ejecutara el proceso.</html>");
+        introduccion.setText("<html><h2>Productor y consumidor</h2>El buffer puede estar en este computador o en otro del cluster.</html>");
         add(introduccion,java.awt.BorderLayout.NORTH);
         formulario.setLayout(new java.awt.GridLayout(9,2,16,8));
         etiquetaNombre.setText("Nombre"); formulario.add(etiquetaNombre);

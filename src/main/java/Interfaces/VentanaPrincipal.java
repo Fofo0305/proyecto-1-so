@@ -22,6 +22,8 @@ public class VentanaPrincipal extends JFrame {
     private final JButton botonCrearBuffer = new JButton("Crear buffer y reservar RAM");
     private final JButton botonCrearComunicante = new JButton("Crear productor o consumidor");
     private final JLabel estado = new JLabel("Configure el cluster para comenzar");
+    private final PanelLatenciaRed panelLatenciaRed = new PanelLatenciaRed(controlador,
+            panelConfiguracion::mostrarLatencia, estado::setText);
     private final JTabbedPane pestanas = new JTabbedPane();
 
     public VentanaPrincipal() {
@@ -41,7 +43,10 @@ public class VentanaPrincipal extends JFrame {
         botonCrear.addActionListener(evento -> crearProceso());
         JPanel buffers = new JPanel(new BorderLayout(8, 8));
         JPanel formularioBuffers = new JPanel(new BorderLayout());
-        formularioBuffers.add(panelBuffer, BorderLayout.NORTH);
+        JPanel cabeceraBuffers = new JPanel(new BorderLayout());
+        cabeceraBuffers.add(panelBuffer, BorderLayout.CENTER);
+        cabeceraBuffers.add(panelLatenciaRed, BorderLayout.SOUTH);
+        formularioBuffers.add(cabeceraBuffers, BorderLayout.NORTH);
         formularioBuffers.add(panelEstadoBuffers, BorderLayout.CENTER);
         buffers.add(conScroll(formularioBuffers), BorderLayout.CENTER);
         buffers.add(botonCrearBuffer, BorderLayout.SOUTH);
@@ -196,6 +201,7 @@ public class VentanaPrincipal extends JFrame {
             SwingUtilities.invokeLater(() -> {
                 estado.setText(resultado);
                 if (actualizarControles) {
+                    panelLatenciaRed.mostrarLatencia(configuracion.getLatencia());
                     panelControles.prepararSesion(configuracion.getDuracionMs());
                     pestanas.setSelectedComponent(panelComputadores);
                     panelComputadores.actualizar();
@@ -219,6 +225,7 @@ public class VentanaPrincipal extends JFrame {
     public void mostrarProcesos() { pestanas.setSelectedIndex(1); }
     private void mostrarCarga(Modelo.CargaInicial carga) {
         panelConfiguracion.mostrarConfiguracion(carga.getConfiguracion());
+        panelLatenciaRed.mostrarLatencia(carga.getConfiguracion().getLatencia());
         panelControles.prepararSesion(carga.getConfiguracion().getDuracionMs());
         estado.setText("Carga inicial lista. Pulse Iniciar.");
         panelComputadores.actualizar();
@@ -230,6 +237,7 @@ public class VentanaPrincipal extends JFrame {
     public PanelControles getPanelControles() { return panelControles; }
     public PanelComputadores getPanelComputadores() { return panelComputadores; }
     public PanelArchivos getPanelArchivos() { return panelArchivos; }
+    public PanelLatenciaRed getPanelLatenciaRed() { return panelLatenciaRed; }
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
