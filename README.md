@@ -221,3 +221,37 @@ Las pruebas recientes estan comentadas en `Main.Proyecto1SO2526.java`, con print
 Se conservan tres escenarios: flujo completo desde las acciones Swing, ventana de 900x680 sin maximizar y estabilidad del scroll. El flujo completo carga el ejemplo, crea un sexto proceso desde el formulario, cambia la duracion, inicia/pausa/reanuda/detiene, comprueba finalizacion y RAM, guarda/abre CSV y rechaza un archivo corrupto sin perder la sesion. Al cerrar verifica que no quedan trabajadores del reloj. Los archivos de esta prueba se eligen por ruta desde main, sin automatizar el dialogo del selector.
 
 Las ramas locales del domingo dependen en este orden: `feature/interfaz-configuracion` → `feature/visualizacion-computadores` → `feature/persistencia`. Se deben revisar e integrar respetando ese orden. La documentacion describe estos componentes; no sustituye el informe ni el UML de la entrega completa.
+
+### Observacion de buffers
+
+La pestana `Observacion de buffers` separa estado y metricas, perfiles por proceso
+(incluidos los terminados) e historial. Las lecturas y el formato automatico se
+realizan en un trabajador; el EDT solo presenta el texto. El refresco conserva la
+posicion del scroll y no ejecuta operaciones ni agrega eventos al motor. El panel
+se compone en Java, como su version anterior; no tiene formulario `.form` asociado.
+
+`ControladorSimulacion.consultarObservacionBuffers()` entrega
+`VistaObservacionBuffers`, con arreglos defensivos de records inmutables. Mantiene
+la misma sesion mientras captura estado, contadores, bloqueos, procesos y eventos.
+El reloj puede avanzar entre estas lecturas: la vista no promete un corte global
+atomico durante la ejecucion. Cada contador incluye su propia ocupacion atomica;
+para comparar totales entre perfiles y buffers, consultar en pausa o tras la
+barrera de `avanzarCiclo()`. No llamar estas consultas desde trabajadores del nucleo.
+
+El historial retiene hasta 256 eventos por buffer y muestra cuantos eventos antiguos
+se descartaron; la secuencia es propia de cada buffer. Los contadores acumulados no
+se calculan contando el historial y sobreviven a ese descarte. Los tiempos separan
+semaforos y red. El promedio divide ciclos por episodios iniciados e incluye la
+parte transcurrida de esperas abiertas y los episodios cancelados. Las metricas
+pertenecen a la sesion: reiniciar o cargar CSV reconstruye la carga inicial sin
+restaurar eventos, contadores ni tiempos anteriores.
+
+Ejecutar `./verificar-buffers.ps1 -Jdk 'C:/Program Files/Java/jdk-22' -Interfaz`
+compila con Java 22 y ejecuta 16 programas de comprobacion. La prueba integrada de
+observacion recorre 72 escenarios locales/remotos con vencimiento y cancelacion en
+distintos ciclos; compara eventos con modificaciones reales, perfiles con totales,
+lecturas repetidas, copias anteriores y limpieza de esperas. La prueba Swing valida
+contenido, lectura asincrona y scroll; genera capturas de estado e historial en
+`target/pruebas-buffers`. La validacion visual usa renderizado Swing y no sustituye
+la apertura manual del proyecto en NetBeans. Estas APIs quedan disponibles para
+el integrante 3; los indicadores globales y su integracion son trabajo separado.

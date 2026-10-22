@@ -12,7 +12,7 @@ try {
     foreach ($pruebaBuffers in @('Pruebas.PruebaBuffer', 'Pruebas.PruebaRegistroBuffers', 'Pruebas.PruebaPanelBuffer',
             'Pruebas.PruebaSemaforos', 'Pruebas.PruebaBloqueoSemaforos', 'Pruebas.PruebaProductorConsumidorLocal',
             'Pruebas.PruebaAccesoRemoto', 'Pruebas.PruebaLimpiezaProductorConsumidor', 'Pruebas.PruebaEventosBuffers',
-            'Pruebas.PruebaContadoresBuffers', 'Pruebas.PruebaTiemposBloqueo')) {
+            'Pruebas.PruebaContadoresBuffers', 'Pruebas.PruebaTiemposBloqueo', 'Pruebas.PruebaObservacionIntegrada')) {
         & $java -cp target/pruebas-buffers $pruebaBuffers
         if ($LASTEXITCODE -ne 0) { throw "Fallo $pruebaBuffers" }
     }
