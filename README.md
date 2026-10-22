@@ -159,6 +159,16 @@ retiene los ultimos 256 eventos por buffer e informa cuantos antiguos descarto.
 los visores y la integracion del log; consultar o refrescar no genera eventos.
 El registro comienza de nuevo al reconstruir una sesion y no se guarda como estado CSV.
 
+Los acumulados de produccion y consumo se consultan mediante
+`ControladorSimulacion.consultarContadoresBuffers()`. Cada vista inmutable captura
+los dos contadores y la ocupacion bajo el mismo mutex del buffer, conservando
+`producidos - consumidos = cantidad`. Solo una insercion o extraccion exitosa cambia
+su contador: los intentos fallidos, consultas, despertares y limpieza no suman.
+Si el proceso vence despues de modificar el contenido, ese trabajo real sigue contado
+aunque no haya completado las cinco instrucciones de la operacion. Los acumulados
+pertenecen a la sesion, son independientes del historial acotado y vuelven a cero al
+reconstruir la carga inicial CSV.
+
 ### Semaforos simulados
 
 Cada buffer tiene `mutex=1`, `vacios=capacidad` y `llenos=0`. `SemaforoSimulado`

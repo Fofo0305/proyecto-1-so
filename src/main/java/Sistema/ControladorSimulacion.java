@@ -272,6 +272,17 @@ public class ControladorSimulacion implements AutoCloseable {
         } finally { mutex.release(); }
     }
 
+    /** Cada lectura conserva cantidad = producidos - consumidos, tambien durante accesos remotos. */
+    public Modelo.VistaContadoresBuffer[] consultarContadoresBuffers() {
+        mutex.acquireUninterruptibly();
+        try {
+            Object[] registrados = buffers.instantanea();
+            Modelo.VistaContadoresBuffer[] vistas = new Modelo.VistaContadoresBuffer[registrados.length];
+            for (int i = 0; i < vistas.length; i++) vistas[i] = ((Buffer<?>) registrados[i]).consultarContadores();
+            return vistas;
+        } finally { mutex.release(); }
+    }
+
     public void pausar() {
         mutex.acquireUninterruptibly();
         try { comprobarDisponible(); reloj.pausar(); pausado = true; }

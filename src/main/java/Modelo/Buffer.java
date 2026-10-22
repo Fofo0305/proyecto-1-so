@@ -18,6 +18,8 @@ public final class Buffer<T> {
     private final SemaforoSimulado vacios;
     private final SemaforoSimulado llenos;
     private final RegistroEventosBuffer eventos;
+    private long producidos;
+    private long consumidos;
 
     public Buffer(String nombre, int capacidad, int anfitrion) {
         this.definicion = new DefinicionBuffer(nombre, capacidad, anfitrion);
@@ -39,6 +41,7 @@ public final class Buffer<T> {
         try {
             if (elementos.getTamano() == getCapacidad()) return false;
             elementos.agregar(elemento);
+            producidos++;
             return true;
         } finally {
             mutex.release();
@@ -49,7 +52,9 @@ public final class Buffer<T> {
     public T extraer() {
         mutex.acquireUninterruptibly();
         try {
-            return elementos.quitar();
+            T elemento = elementos.quitar();
+            if (elemento != null) consumidos++;
+            return elemento;
         } finally {
             mutex.release();
         }
@@ -75,6 +80,15 @@ public final class Buffer<T> {
     }
 
     public boolean estaVacio() { return getCantidad() == 0; }
+
+    /** Cuenta modificaciones reales, incluso si su proceso termina antes de publicar el permiso. */
+    public VistaContadoresBuffer consultarContadores() {
+        mutex.acquireUninterruptibly();
+        try {
+            return new VistaContadoresBuffer(getNombre(), getAnfitrion(), getCapacidad(),
+                    elementos.getTamano(), producidos, consumidos);
+        } finally { mutex.release(); }
+    }
     public boolean estaLleno() { return getCantidad() == getCapacidad(); }
     public String getNombre() { return definicion.nombre(); }
     public int getCapacidad() { return definicion.capacidad(); }
