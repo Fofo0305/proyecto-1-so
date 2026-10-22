@@ -126,6 +126,17 @@ public class ControladorSimulacion implements AutoCloseable {
         throw new IllegalArgumentException("El buffer indicado no existe");
     }
 
+    /** Cancela mediante la ruta comun del nucleo, sin cambiar la carga inicial guardable. */
+    public boolean cancelarProceso(Proceso proceso) {
+        mutex.acquireUninterruptibly();
+        try {
+            comprobarDisponible();
+            if (proceso == null || proceso.getComputador() < 1 || proceso.getComputador() > computadores.length)
+                throw new IllegalArgumentException("El proceso debe pertenecer al cluster");
+            return computadores[proceso.getComputador() - 1].terminarProceso(proceso);
+        } finally { mutex.release(); }
+    }
+
     /** Devuelve atributos iniciales; nunca guarda PC, estado o deadline ya consumido. */
     public CargaInicial getCargaInicial() {
         mutex.acquireUninterruptibly();

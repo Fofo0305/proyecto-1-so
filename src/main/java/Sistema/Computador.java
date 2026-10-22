@@ -136,6 +136,8 @@ public class Computador implements ComponenteReloj {
             throw new IllegalArgumentException("El proceso no esta registrado en el computador");
         EsperaSemaforo espera = retirarEsperaSemaforo(proceso);
         if (espera != null) espera.semaforo().cancelarEspera(proceso);
+        SemaforoSimulado[] transferencias = interconexion == null ? new SemaforoSimulado[0]
+                : interconexion.cancelarPendientes(proceso);
         proceso.cambiarEstado(EstadoProceso.TERMINADO, MotivoBloqueo.NINGUNO);
         retirar(nuevos, proceso.getId());
         retirar(listos, proceso.getId());
@@ -143,6 +145,7 @@ public class Computador implements ComponenteReloj {
         if (cpu.getActual() == proceso) cpu.retirar();
         if (proceso.getContextoBuffer() != null)
             for (SemaforoSimulado semaforo : proceso.getContextoBuffer().abandonar()) senalizarBuffer(semaforo);
+        for (SemaforoSimulado semaforo : transferencias) senalizarBuffer(semaforo);
         memoria.liberar("proceso:" + proceso.getId());
         terminados.agregar(proceso);
         return true;
@@ -191,6 +194,7 @@ public class Computador implements ComponenteReloj {
 
     private boolean despertarRegistrado(Proceso proceso, SemaforoSimulado semaforo) {
             if (proceso.getEstado() != EstadoProceso.BLOQUEADO
+                    || proceso.getDeadline() == 0
                     || proceso.getMotivoBloqueo() != MotivoBloqueo.SEMAFORO
                     || !contiene(bloqueados, proceso.getId())) return false;
             boolean coincide = false;

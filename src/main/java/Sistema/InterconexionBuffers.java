@@ -12,6 +12,7 @@ import Modelo.SemaforoSimulado;
 public final class InterconexionBuffers implements FinalizadorCiclo {
     private record Transferencia(Proceso proceso, SemaforoSimulado semaforo) { }
     private final Cola<Transferencia> pendientes = new Cola<>();
+    private final java.util.concurrent.Semaphore mutexPendientes = new java.util.concurrent.Semaphore(1, true);
     private Computador[] equipos;
 
     public void conectar(Computador[] equipos) {
@@ -24,12 +25,49 @@ public final class InterconexionBuffers implements FinalizadorCiclo {
         if (equipos == null || proceso == null || semaforo == null
                 || proceso.getComputador() < 1 || proceso.getComputador() > equipos.length)
             throw new IllegalArgumentException("Transferencia sin destino valido");
-        pendientes.agregar(new Transferencia(proceso, semaforo));
+        mutexPendientes.acquireUninterruptibly();
+        try { pendientes.agregar(new Transferencia(proceso, semaforo)); }
+        finally { mutexPendientes.release(); }
+    }
+
+    /**
+     * Retira transferencias aun en cola y devuelve sus permisos al nucleo para que
+     * los redistribuya. Una transferencia ya extraida pertenece al finalizador:
+     * este comprobara el estado del receptor y devolvera el permiso si termino.
+     */
+    public SemaforoSimulado[] cancelarPendientes(Proceso proceso) {
+        if (proceso == null) throw new IllegalArgumentException("El proceso es obligatorio");
+        mutexPendientes.acquireUninterruptibly();
+        try {
+            int cantidad = pendientes.getTamano();
+            SemaforoSimulado[] retirados = new SemaforoSimulado[cantidad];
+            int total = 0;
+            for (int i = 0; i < cantidad; i++) {
+                Transferencia transferencia = pendientes.quitar();
+                if (transferencia.proceso() == proceso) retirados[total++] = transferencia.semaforo();
+                else pendientes.agregar(transferencia);
+            }
+            SemaforoSimulado[] permisos = new SemaforoSimulado[total];
+            System.arraycopy(retirados, 0, permisos, 0, total);
+            return permisos;
+        } finally { mutexPendientes.release(); }
+    }
+
+    public int getCantidadPendientes() {
+        mutexPendientes.acquireUninterruptibly();
+        try { return pendientes.getTamano(); }
+        finally { mutexPendientes.release(); }
+    }
+
+    private Transferencia siguiente() {
+        mutexPendientes.acquireUninterruptibly();
+        try { return pendientes.quitar(); }
+        finally { mutexPendientes.release(); }
     }
 
     @Override public void finalizarCiclo(long ciclo) {
         Transferencia transferencia;
-        while ((transferencia = pendientes.quitar()) != null) {
+        while ((transferencia = siguiente()) != null) {
             Proceso receptor = transferencia.proceso();
             while (receptor != null) {
                 if (equipos[receptor.getComputador() - 1].despertarPorSemaforo(receptor, transferencia.semaforo())) break;
