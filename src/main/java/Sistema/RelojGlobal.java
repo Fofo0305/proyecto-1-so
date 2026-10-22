@@ -9,6 +9,7 @@ import java.util.concurrent.Semaphore;
 public class RelojGlobal implements AutoCloseable {
     private final Semaphore mutex = new Semaphore(1, true);
     private final TrabajadorReloj[] trabajadores;
+    private final FinalizadorCiclo finalizador;
     private long ciclo;
     private boolean cerrado;
     private final Semaphore despertar = new Semaphore(0);
@@ -19,6 +20,12 @@ public class RelojGlobal implements AutoCloseable {
     private volatile Throwable errorAutomatico;
 
     public RelojGlobal(ComponenteReloj[] componentes) {
+        this(componentes, ciclo -> { });
+    }
+
+    public RelojGlobal(ComponenteReloj[] componentes, FinalizadorCiclo finalizador) {
+        if (finalizador == null) throw new IllegalArgumentException("El finalizador es obligatorio");
+        this.finalizador = finalizador;
         if (componentes == null || componentes.length < 2)
             throw new IllegalArgumentException("Se requieren al menos dos componentes");
         for (int i = 0; i < componentes.length; i++) {
@@ -48,6 +55,11 @@ public class RelojGlobal implements AutoCloseable {
                     cerrarTrabajadores();
                     throw new IllegalStateException("Fallo un componente del reloj", trabajador.getError());
                 }
+            }
+            try { finalizador.finalizarCiclo(siguiente); }
+            catch (RuntimeException | Error fallo) {
+                cerrarTrabajadores();
+                throw fallo;
             }
             ciclo = siguiente;
         } finally { mutex.release(); }

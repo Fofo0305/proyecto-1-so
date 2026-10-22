@@ -45,7 +45,12 @@ public class ControladorSimulacion implements AutoCloseable {
             Configuracion nueva = carga.getConfiguracion();
             int[] capacidades = nueva.getRam();
             Computador[] nuevos = new Computador[capacidades.length];
-            for (int i = 0; i < nuevos.length; i++) nuevos[i] = new Computador(i + 1, capacidades[i]);
+            InterconexionBuffers interconexion = new InterconexionBuffers();
+            for (int i = 0; i < nuevos.length; i++) {
+                nuevos[i] = new Computador(i + 1, capacidades[i], interconexion);
+                nuevos[i].setLatenciaRed(nueva.getLatencia());
+            }
+            interconexion.conectar(nuevos);
             Cola<Buffer<Object>> nuevosBuffers = new Cola<>();
             for (DefinicionBuffer buffer : carga.getBuffers())
                 registrarBuffer(buffer, nuevos, nuevosBuffers);
@@ -57,7 +62,7 @@ public class ControladorSimulacion implements AutoCloseable {
                 definiciones.agregar(definicion);
             }
             for (Computador computador : nuevos) computador.admitirProcesos();
-            RelojGlobal nuevoReloj = new RelojGlobal(nuevos);
+            RelojGlobal nuevoReloj = new RelojGlobal(nuevos, interconexion);
             nuevoReloj.setDuracionMs(nueva.getDuracionMs());
             if (reloj != null) reloj.close();
             configuracion = nueva;
@@ -90,7 +95,7 @@ public class ControladorSimulacion implements AutoCloseable {
         } finally { mutex.release(); }
     }
 
-    /** Crea un productor o consumidor local sin modificar recursos si la solicitud es invalida. */
+    /** Crea un productor o consumidor sin modificar recursos si la solicitud es invalida. */
     public Proceso crearProcesoBuffer(String nombre, int computador, int prioridad, int memoria,
             int deadline, TipoProceso tipo, String nombreBuffer, int intervalo, int elementos) {
         ParametrosBuffer parametros = new ParametrosBuffer(nombreBuffer, intervalo, elementos);
@@ -222,6 +227,13 @@ public class ControladorSimulacion implements AutoCloseable {
     public void iniciar() {
         mutex.acquireUninterruptibly();
         try { comprobarDisponible(); reloj.iniciar(); pausado = false; }
+        finally { mutex.release(); }
+    }
+
+    /** Avance manual completo, incluyendo entrega de permisos entre computadores. */
+    public void avanzarCiclo() {
+        mutex.acquireUninterruptibly();
+        try { comprobarDisponible(); reloj.avanzarCiclo(); }
         finally { mutex.release(); }
     }
 

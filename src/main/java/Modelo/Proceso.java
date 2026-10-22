@@ -48,8 +48,8 @@ public class Proceso {
         boolean comunicante = tipo == TipoProceso.PRODUCTOR || tipo == TipoProceso.CONSUMIDOR;
         if (comunicante) {
             if (parametrosBuffer == null || buffer == null || !parametrosBuffer.buffer().equals(buffer.getNombre())
-                    || computador != buffer.getAnfitrion() || instrucciones != parametrosBuffer.instrucciones())
-                throw new IllegalArgumentException("Se requiere un buffer local y parametros consistentes");
+                    || instrucciones != parametrosBuffer.instrucciones())
+                throw new IllegalArgumentException("Se requiere un buffer y parametros consistentes");
         } else if (parametrosBuffer != null || buffer != null) {
             throw new IllegalArgumentException("El proceso no utiliza buffer");
         }

@@ -13,6 +13,8 @@ public final class ContextoBuffer {
     private boolean mutexAdquirido;
     private boolean modificado;
     private boolean cancelado;
+    private boolean redPreparada;
+    private long redHasta = -1;
 
     public ContextoBuffer(Buffer<Object> buffer, ParametrosBuffer parametros, TipoProceso tipo) {
         if (buffer == null || parametros == null || !buffer.getNombre().equals(parametros.buffer())
@@ -70,6 +72,16 @@ public final class ContextoBuffer {
         completados++;
         intervaloRestante = parametros.intervalo();
         etapa = EtapaBuffer.INTERVALO;
+        redPreparada = false;
+        redHasta = -1;
+    }
+
+    /** Una latencia por acceso completo; no adquiere permisos ni avanza PC durante la red. */
+    public void prepararRed(long ciclo, int latencia) {
+        exigir(EtapaBuffer.ESPERAR_RECURSO);
+        if (redPreparada || latencia < 0) throw new IllegalStateException("Acceso remoto ya preparado o latencia invalida");
+        redPreparada = true;
+        redHasta = latencia == 0 ? -1 : Math.addExact(ciclo, latencia - 1L);
     }
 
     private void exigir(EtapaBuffer esperada) {
@@ -103,4 +115,6 @@ public final class ContextoBuffer {
     public boolean tieneMutex() { return mutexAdquirido; }
     public boolean estaModificado() { return modificado; }
     public boolean estaCancelado() { return cancelado; }
+    public boolean isRedPreparada() { return redPreparada; }
+    public long getRedHasta() { return redHasta; }
 }

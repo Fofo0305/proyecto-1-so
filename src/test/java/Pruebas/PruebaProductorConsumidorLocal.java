@@ -46,7 +46,7 @@ public final class PruebaProductorConsumidorLocal {
         for (String[] campos : invalidos) rechazar(() -> PanelProductorConsumidor.validarCampos(campos));
         try (ControladorSimulacion c = crear()) {
             c.crearBuffer("B", 1, 1);
-            rechazar(() -> c.crearProcesoBuffer("Remoto",2,0,1,100,TipoProceso.PRODUCTOR,"B",1,1));
+            rechazar(() -> c.crearProcesoBuffer("Equipo inexistente",3,0,1,100,TipoProceso.PRODUCTOR,"B",1,1));
             rechazar(() -> c.crearProcesoBuffer("Ausente",1,0,1,100,TipoProceso.PRODUCTOR,"No existe",1,1));
             verificar(c.getCargaInicial().getProcesos().length == 0 && c.getComputadores()[0].getMemoria().getUsada() == 1,
                     "Solicitud invalida modifico recursos");

@@ -31,14 +31,27 @@ public class Computador implements ComponenteReloj {
     private final Cola<EsperaSemaforo> esperasSemaforos = new Cola<>();
     private final CPU cpu = new CPU();
     private final Politica politica = new FCFS();
+    private final InterconexionBuffers interconexion;
+    private int latenciaRed;
     private long ultimoCiclo;
 
     public Computador(int id, int capacidadRam) {
+        this(id, capacidadRam, null);
+    }
+
+    public Computador(int id, int capacidadRam, InterconexionBuffers interconexion) {
         if (id < 1) {
             throw new IllegalArgumentException("El identificador del computador debe ser positivo");
         }
         this.id = id;
         this.memoria = new Memoria(capacidadRam);
+        this.interconexion = interconexion;
+    }
+
+    public void setLatenciaRed(int latencia) {
+        if (latencia < 0) throw new IllegalArgumentException("La latencia no puede ser negativa");
+        mutex.acquireUninterruptibly();
+        try { latenciaRed = latencia; } finally { mutex.release(); }
     }
 
     /**
@@ -129,7 +142,7 @@ public class Computador implements ComponenteReloj {
         retirar(bloqueados, proceso.getId());
         if (cpu.getActual() == proceso) cpu.retirar();
         if (proceso.getContextoBuffer() != null)
-            for (SemaforoSimulado semaforo : proceso.getContextoBuffer().abandonar()) senalizarLocal(semaforo);
+            for (SemaforoSimulado semaforo : proceso.getContextoBuffer().abandonar()) senalizarBuffer(semaforo);
         memoria.liberar("proceso:" + proceso.getId());
         terminados.agregar(proceso);
         return true;
@@ -215,9 +228,12 @@ public class Computador implements ComponenteReloj {
             admitirPendientes();
             Object[][] colasCiclo = {nuevos.instantanea(), listos.instantanea(), bloqueados.instantanea()};
             Proceso anterior = cpu.getActual();
-            if (anterior == null) {
+            if (anterior != null) prepararAccesoRemoto(anterior, ciclo);
+            while (cpu.getActual() == null) {
                 Proceso seleccionado = politica.seleccionar(listos);
-                if (seleccionado != null) cpu.asignar(seleccionado);
+                if (seleccionado == null) break;
+                cpu.asignar(seleccionado);
+                if (!prepararAccesoRemoto(seleccionado, ciclo)) break;
             }
             Proceso actual = cpu.getActual();
             if (actual != null && actual.getContextoBuffer() != null) {
@@ -243,6 +259,7 @@ public class Computador implements ComponenteReloj {
             }
             if (anterior != null && anterior.getEstado() != EstadoProceso.TERMINADO && anterior.getDeadline() == 0)
                 terminarRegistrado(anterior);
+            finalizarEsperasRed(ciclo);
             admitirPendientes();
             ultimoCiclo = ciclo;
         } finally { mutex.release(); }
@@ -267,24 +284,52 @@ public class Computador implements ComponenteReloj {
             case MODIFICAR -> contexto.modificar(proceso.getId());
             case SENALAR_MUTEX -> {
                 contexto.liberarMutex();
-                senalizarLocal(contexto.getBuffer().getMutexSimulado());
+                senalizarBuffer(contexto.getBuffer().getMutexSimulado());
             }
             case SENALAR_RECURSO -> {
                 SemaforoSimulado liberado = contexto.getRecursoLiberado();
                 contexto.completar();
-                senalizarLocal(liberado);
+                senalizarBuffer(liberado);
             }
             default -> throw new IllegalStateException("Etapa no ejecutable en modo sistema");
         }
     }
 
-    /** Solo buffers locales: no adquiere el mutex de otro computador. */
-    private void senalizarLocal(SemaforoSimulado semaforo) {
+    /** Envia despertares remotos a la barrera; no adquiere mutex de otros computadores. */
+    private void senalizarBuffer(SemaforoSimulado semaforo) {
         Proceso receptor;
         while ((receptor = semaforo.senalizar()) != null) {
-            if (receptor.getComputador() != id)
-                throw new IllegalStateException("El motor local no puede despertar un proceso remoto");
+            if (receptor.getComputador() != id) {
+                if (interconexion == null) throw new IllegalStateException("Falta interconexion del cluster");
+                interconexion.enviar(receptor, semaforo);
+                return;
+            }
             if (despertarRegistrado(receptor, semaforo)) return;
+        }
+    }
+
+    private boolean prepararAccesoRemoto(Proceso proceso, long ciclo) {
+        ContextoBuffer contexto = proceso.getContextoBuffer();
+        if (contexto == null || proceso.getBuffer().getAnfitrion() == id
+                || contexto.getEtapa() != EtapaBuffer.ESPERAR_RECURSO || contexto.isRedPreparada()) return false;
+        contexto.prepararRed(ciclo, latenciaRed);
+        if (latenciaRed == 0) return false;
+        proceso.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.RED);
+        cpu.retirar();
+        bloqueados.agregar(proceso);
+        return true;
+    }
+
+    /** La espera incluye el ciclo de inicio y permite ejecutar desde el siguiente al vencimiento. */
+    private void finalizarEsperasRed(long ciclo) {
+        for (Object elemento : bloqueados.instantanea()) {
+            Proceso proceso = (Proceso) elemento;
+            if (proceso.getMotivoBloqueo() == MotivoBloqueo.RED
+                    && proceso.getContextoBuffer().getRedHasta() <= ciclo) {
+                retirar(bloqueados, proceso.getId());
+                proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+                listos.agregar(proceso);
+            }
         }
     }
 

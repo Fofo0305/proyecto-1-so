@@ -32,9 +32,8 @@ public final class CargaInicial {
             if (proceso.parametrosBuffer() == null) continue;
             boolean encontrado = false;
             for (DefinicionBuffer buffer : buffers)
-                if (buffer.nombre().equals(proceso.parametrosBuffer().buffer())
-                        && buffer.anfitrion() == proceso.computador()) encontrado = true;
-            if (!encontrado) throw new IllegalArgumentException("El proceso requiere un buffer local existente");
+                if (buffer.nombre().equals(proceso.parametrosBuffer().buffer())) encontrado = true;
+            if (!encontrado) throw new IllegalArgumentException("El proceso requiere un buffer existente");
         }
         this.procesos = procesos.clone();
         this.buffers = buffers.clone();
