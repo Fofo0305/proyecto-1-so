@@ -13,6 +13,7 @@ public final class ContextoBuffer {
     private boolean mutexAdquirido;
     private boolean modificado;
     private boolean cancelado;
+    private boolean limpiado;
     private boolean redPreparada;
     private long redHasta = -1;
 
@@ -33,15 +34,19 @@ public final class ContextoBuffer {
 
     /** La siguiente etapa queda guardada antes de que el wait libere la CPU. */
     public void iniciarEspera() {
-        if (etapa == EtapaBuffer.ESPERAR_RECURSO) etapa = EtapaBuffer.ESPERAR_MUTEX;
-        else if (etapa == EtapaBuffer.ESPERAR_MUTEX) etapa = EtapaBuffer.MODIFICAR;
+        if (limpiado) throw new IllegalStateException("La operacion ya fue cerrada");
+        if (etapa == EtapaBuffer.ESPERAR_RECURSO && !recursoReservado && !mutexAdquirido)
+            etapa = EtapaBuffer.ESPERAR_MUTEX;
+        else if (etapa == EtapaBuffer.ESPERAR_MUTEX && recursoReservado && !mutexAdquirido)
+            etapa = EtapaBuffer.MODIFICAR;
         else throw new IllegalStateException("No corresponde ejecutar wait");
     }
 
     public void conceder(SemaforoSimulado semaforo) {
+        if (limpiado) throw new IllegalStateException("Un contexto cerrado no puede recibir permisos");
         if (semaforo == getRecurso() && etapa == EtapaBuffer.ESPERAR_MUTEX && !recursoReservado)
             recursoReservado = true;
-        else if (semaforo == buffer.getMutexSimulado() && etapa == EtapaBuffer.MODIFICAR && !mutexAdquirido)
+        else if (semaforo == buffer.getMutexSimulado() && etapa == EtapaBuffer.MODIFICAR && recursoReservado && !mutexAdquirido)
             mutexAdquirido = true;
         else throw new IllegalStateException("Permiso inesperado en la operacion de buffer");
     }
@@ -61,12 +66,16 @@ public final class ContextoBuffer {
 
     public void liberarMutex() {
         exigir(EtapaBuffer.SENALAR_MUTEX);
+        if (!mutexAdquirido || !recursoReservado || !modificado)
+            throw new IllegalStateException("No hay una modificacion protegida para liberar");
         mutexAdquirido = false;
         etapa = EtapaBuffer.SENALAR_RECURSO;
     }
 
     public void completar() {
         exigir(EtapaBuffer.SENALAR_RECURSO);
+        if (mutexAdquirido || !recursoReservado || !modificado)
+            throw new IllegalStateException("La operacion no puede publicar su resultado");
         recursoReservado = false;
         modificado = false;
         completados++;
@@ -85,7 +94,7 @@ public final class ContextoBuffer {
     }
 
     private void exigir(EtapaBuffer esperada) {
-        if (cancelado || etapa != esperada || completados >= parametros.elementos())
+        if (limpiado || etapa != esperada || completados >= parametros.elementos())
             throw new IllegalStateException("Etapa de buffer invalida");
     }
 
@@ -95,14 +104,17 @@ public final class ContextoBuffer {
      * ni revierte la insercion/extraccion. El nucleo cancela antes la espera pendiente.
      */
     public SemaforoSimulado[] abandonar() {
-        if (cancelado) return new SemaforoSimulado[0];
+        if (limpiado) return new SemaforoSimulado[0];
         SemaforoSimulado[] devolver = new SemaforoSimulado[(mutexAdquirido ? 1 : 0) + (recursoReservado ? 1 : 0)];
         int posicion = 0;
         if (mutexAdquirido) devolver[posicion++] = buffer.getMutexSimulado();
         if (recursoReservado) devolver[posicion] = modificado ? getRecursoLiberado() : getRecurso();
         mutexAdquirido = false;
         recursoReservado = false;
-        cancelado = true;
+        limpiado = true;
+        cancelado = completados < parametros.elementos();
+        redPreparada = false;
+        redHasta = -1;
         return devolver;
     }
 
@@ -115,6 +127,7 @@ public final class ContextoBuffer {
     public boolean tieneMutex() { return mutexAdquirido; }
     public boolean estaModificado() { return modificado; }
     public boolean estaCancelado() { return cancelado; }
+    public boolean estaLimpiado() { return limpiado; }
     public boolean isRedPreparada() { return redPreparada; }
     public long getRedHasta() { return redHasta; }
 }

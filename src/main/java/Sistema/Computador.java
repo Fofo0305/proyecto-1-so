@@ -403,7 +403,10 @@ public class Computador implements ComponenteReloj {
     private String describirOperacion(Proceso proceso) {
         ContextoBuffer contexto = proceso.getContextoBuffer();
         if (contexto == null) return "";
-        String texto = "Buffer " + proceso.getBuffer().getNombre() + " | " + contexto.getEtapa()
+        String etapa = contexto.estaLimpiado()
+                ? (contexto.estaCancelado() ? "interrumpido en " + contexto.getEtapa() : "completado")
+                : contexto.getEtapa().name();
+        String texto = "Buffer " + proceso.getBuffer().getNombre() + " | " + etapa
                 + " | elementos " + contexto.getCompletados() + "/" + proceso.getParametrosBuffer().elementos();
         if (proceso.getBuffer().getAnfitrion() != id)
             texto += " | acceso remoto a C" + proceso.getBuffer().getAnfitrion();
