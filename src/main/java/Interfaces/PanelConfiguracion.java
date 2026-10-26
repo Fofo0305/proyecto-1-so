@@ -76,7 +76,7 @@ public class PanelConfiguracion extends javax.swing.JPanel {
         etiquetaCiclo = new javax.swing.JLabel("<html><b>Velocidad de simulacion</b><br><span style='color:#637089'>Milisegundos por ciclo<br>Mayor valor = mas lento</span></html>");
         campoCiclo = new javax.swing.JTextField("700", 12);
         etiquetaPolitica = new javax.swing.JLabel("Orden de ejecucion");
-        valorPolitica = new javax.swing.JLabel("<html><b>FCFS · disponible</b><br>Primero en llegar, primero en ejecutar<br><span style='color:#637089'>Round Robin, EDF y Prioridades:<br>pendientes de implementacion</span></html>");
+        valorPolitica = new javax.swing.JLabel("<html><b>FCFS · politica inicial</b><br>Primero en llegar, primero en ejecutar<br><span style='color:#637089'>Round Robin, EDF y Prioridades:<br>disponibles en Planificacion E/S y metricas</span></html>");
         opciones = new javax.swing.JCheckBox("Mostrar parametros de integracion"); opciones.setOpaque(false);
         avanzados = new javax.swing.JPanel(new java.awt.GridBagLayout()); avanzados.setOpaque(false);
         etiquetaQuantum = new javax.swing.JLabel("Quantum inicial");

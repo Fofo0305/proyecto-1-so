@@ -49,6 +49,7 @@ public class ControladorSimulacion implements AutoCloseable {
             for (int i = 0; i < nuevos.length; i++) {
                 nuevos[i] = new Computador(i + 1, capacidades[i], interconexion);
                 nuevos[i].setLatenciaRed(nueva.getLatencia());
+                nuevos[i].cambiarPolitica(nueva.getPoliticas()[i],nueva.getQuantums()[i]);
             }
             interconexion.conectar(nuevos);
             Cola<Buffer<Object>> nuevosBuffers = new Cola<>();
@@ -96,6 +97,33 @@ public class ControladorSimulacion implements AutoCloseable {
     }
 
     /** Crea un productor o consumidor sin modificar recursos si la solicitud es invalida. */
+    public Proceso crearProcesoES(String nombre,int equipo,int prioridad,int memoria,int instrucciones,int deadline,int rafaga,int duracion) {
+        Modelo.ParametrosES es=new Modelo.ParametrosES(rafaga,duracion);
+        mutex.acquireUninterruptibly();try {
+            comprobarDisponible();
+            if(equipo<1 || equipo>computadores.length) throw new IllegalArgumentException("Computador inexistente");
+            if(memoria>computadores[equipo-1].getMemoria().getCapacidad()) throw new IllegalArgumentException("Memoria superior a RAM");
+            DefinicionProceso d=new DefinicionProceso(nombre,equipo,prioridad,memoria,instrucciones,deadline,TipoProceso.IO_BOUND,null,es);
+            Proceso p=d.crearProceso();computadores[equipo-1].recibirProceso(p);computadores[equipo-1].admitirProcesos();cargaProcesos.agregar(d);return p;
+        }finally{mutex.release();}
+    }
+    public void cambiarPolitica(int equipo,Modelo.PoliticaPlanificacion tipo,int quantum) {
+        mutex.acquireUninterruptibly();try {
+            comprobarDisponible();if(equipo<1 || equipo>computadores.length) throw new IllegalArgumentException("Computador inexistente");
+            computadores[equipo-1].cambiarPolitica(tipo,quantum);
+            Modelo.PoliticaPlanificacion[] ps=configuracion.getPoliticas();int[] qs=configuracion.getQuantums();ps[equipo-1]=tipo;qs[equipo-1]=quantum;
+            configuracion=new Configuracion(configuracion.getRam(),configuracion.getDuracionMs(),configuracion.getQuantum(),configuracion.getLatencia(),ps,qs);
+        }finally{mutex.release();}
+    }
+    public Modelo.VistaMetricas[] consultarMetricas(){mutex.acquireUninterruptibly();try {
+        if(computadores==null) return new Modelo.VistaMetricas[0];
+        Modelo.VistaMetricas[] a=new Modelo.VistaMetricas[computadores.length];for(int i=0;i<a.length;i++)a[i]=computadores[i].consultarMetricas();return a;
+    }finally{mutex.release();}}
+    public Modelo.EventoSistema[] consultarLog(){mutex.acquireUninterruptibly();try{
+        Cola<Modelo.EventoSistema> eventos=new Cola<>();if(computadores!=null)for(Computador c:computadores)for(Modelo.EventoSistema e:c.consultarEventos())eventos.agregar(e);
+        Modelo.EventoSistema[] a=new Modelo.EventoSistema[eventos.getTamano()];for(int i=0;i<a.length;i++)a[i]=eventos.quitar();
+        for(int i=1;i<a.length;i++){Modelo.EventoSistema e=a[i];int j=i-1;while(j>=0 && (a[j].ciclo()>e.ciclo() || (a[j].ciclo()==e.ciclo() && a[j].computador()>e.computador()))){a[j+1]=a[j];j--;}a[j+1]=e;}return a;
+    }finally{mutex.release();}}
     public Proceso crearProcesoBuffer(String nombre, int computador, int prioridad, int memoria,
             int deadline, TipoProceso tipo, String nombreBuffer, int intervalo, int elementos) {
         ParametrosBuffer parametros = new ParametrosBuffer(nombreBuffer, intervalo, elementos);
@@ -359,7 +387,7 @@ public class ControladorSimulacion implements AutoCloseable {
         try {
             comprobarDisponible();
             Configuracion actualizada = new Configuracion(configuracion.getRam(), duracionMs,
-                    configuracion.getQuantum(), configuracion.getLatencia());
+                    configuracion.getQuantum(), configuracion.getLatencia(),configuracion.getPoliticas(),configuracion.getQuantums());
             reloj.setDuracionMs(duracionMs);
             configuracion = actualizada;
         } finally { mutex.release(); }
@@ -371,7 +399,7 @@ public class ControladorSimulacion implements AutoCloseable {
         try {
             comprobarDisponible();
             Configuracion nueva = new Configuracion(configuracion.getRam(), configuracion.getDuracionMs(),
-                    configuracion.getQuantum(), latencia);
+                    configuracion.getQuantum(), latencia,configuracion.getPoliticas(),configuracion.getQuantums());
             for (Computador computador : computadores) computador.setLatenciaRed(latencia);
             configuracion = nueva;
         } finally { mutex.release(); }

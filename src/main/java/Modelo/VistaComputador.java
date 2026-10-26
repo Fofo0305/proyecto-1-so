@@ -7,7 +7,7 @@ package Modelo;
 public record VistaComputador(int id, long ciclo, ModoCPU modo, int usada, int libre,
         String cpu, String nuevos, String listos, String bloqueados, String terminados,
         VistaProceso procesoCPU, VistaProceso[] colaNuevos, VistaProceso[] colaListos,
-        VistaProceso[] colaBloqueados, VistaProceso[] colaTerminados) {
+        VistaProceso[] colaBloqueados, VistaProceso[] colaTerminados, PoliticaPlanificacion politica, int quantum) {
     public VistaComputador {
         colaNuevos = colaNuevos.clone(); colaListos = colaListos.clone();
         colaBloqueados = colaBloqueados.clone(); colaTerminados = colaTerminados.clone();

@@ -27,6 +27,25 @@ public class Proceso {
     private int mar;
     private int restante;
     private int deadline;
+    private ParametrosES parametrosES = new ParametrosES(2,3);
+    private int ejecutadasRafaga;
+    private long esHasta;
+    private long llegada;
+    private long primeraRespuesta = -1;
+    private String resultado = "ACTIVO";
+    public void configurarES(ParametrosES p) { if (estado != EstadoProceso.NUEVO || tipo != TipoProceso.IO_BOUND || p==null) throw new IllegalStateException("E/S solo al crear IO_BOUND"); parametrosES=p; }
+    public ParametrosES getParametrosES() { return parametrosES; }
+    public void registrarLlegada(long ciclo) { llegada=ciclo; }
+    public void registrarRespuesta(long ciclo) { if(primeraRespuesta<0) primeraRespuesta=ciclo-llegada-1; }
+    public long getRespuesta() { return primeraRespuesta; }
+    public void cerrarResultado() { resultado=restante==0?"COMPLETADO":deadline==0?"VENCIDO":"CANCELADO"; }
+    public String getResultado() { return resultado; }
+    public boolean agotarRafaga(long ciclo) {
+        if(tipo!=TipoProceso.IO_BOUND || restante==0) return false;
+        if(++ejecutadasRafaga < parametrosES.rafaga()) return false;
+        ejecutadasRafaga=0; esHasta=ciclo+parametrosES.duracion(); return true;
+    }
+    public long getEsHasta() { return esHasta; }
 
     public Proceso(String nombre, int computador, TipoProceso tipo, int prioridad,
                    int memoria, int instrucciones, int deadline) {

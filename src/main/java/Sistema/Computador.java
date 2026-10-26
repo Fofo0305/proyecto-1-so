@@ -31,7 +31,15 @@ public class Computador implements ComponenteReloj {
     private record EsperaSemaforo(Proceso proceso, SemaforoSimulado semaforo) { }
     private final Cola<EsperaSemaforo> esperasSemaforos = new Cola<>();
     private final CPU cpu = new CPU();
-    private final Politica politica = new FCFS();
+    private Politica politica = new FCFS();
+    private Modelo.PoliticaPlanificacion tipoPolitica=Modelo.PoliticaPlanificacion.FCFS;
+    private int quantum=4, usadosQuantum;
+    private long ocupados;
+    private final Cola<Proceso> todos = new Cola<>();
+    private final RegistroSistema log = new RegistroSistema();
+    private final long[] historiaCiclos=new long[600];
+    private final double[] historiaUso=new double[600];
+    private int historiaInicio,historiaTamano;
     private final InterconexionBuffers interconexion;
     private int latenciaRed;
     private long ultimoCiclo;
@@ -74,6 +82,9 @@ public class Computador implements ComponenteReloj {
                     || cpu.getActual() == proceso) {
                 throw new IllegalArgumentException("El proceso ya pertenece al computador");
             }
+            proceso.registrarLlegada(ultimoCiclo);
+            todos.agregar(proceso);
+            log.agregar(ultimoCiclo,id,proceso.getId(),"CREACION",proceso.getNombre());
             nuevos.agregar(proceso);
         } finally {
             mutex.release();
@@ -103,6 +114,8 @@ public class Computador implements ComponenteReloj {
                 proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
                 nuevos.quitar();
                 listos.agregar(proceso);
+                politica.ordenar(listos);
+                log.agregar(cicloEnCurso>=0?cicloEnCurso:ultimoCiclo,id,proceso.getId(),"ADMISION","RAM reservada");
                 admitidos++;
             } else {
                 nuevos.agregar(nuevos.quitar());
@@ -140,11 +153,13 @@ public class Computador implements ComponenteReloj {
         if (espera != null) espera.semaforo().cancelarEspera(proceso);
         SemaforoSimulado[] transferencias = interconexion == null ? new SemaforoSimulado[0]
                 : interconexion.cancelarPendientes(proceso);
+        proceso.cerrarResultado();
+        log.agregar(cicloEnCurso>=0?cicloEnCurso:ultimoCiclo,id,proceso.getId(),"TERMINACION",proceso.getResultado());
         proceso.cambiarEstado(EstadoProceso.TERMINADO, MotivoBloqueo.NINGUNO);
         retirar(nuevos, proceso.getId());
         retirar(listos, proceso.getId());
         retirar(bloqueados, proceso.getId());
-        if (cpu.getActual() == proceso) cpu.retirar();
+        if (cpu.getActual() == proceso) { cpu.retirar(); usadosQuantum=0; }
         if (proceso.getContextoBuffer() != null)
             for (SemaforoSimulado semaforo : proceso.getContextoBuffer().abandonar()) {
                 senalizarBuffer(semaforo);
@@ -223,6 +238,7 @@ public class Computador implements ComponenteReloj {
             retirar(bloqueados, proceso.getId());
             proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
             listos.agregar(proceso);
+            politica.ordenar(listos);
             registrarEvento(proceso, TipoEventoBuffer.DESPERTAR_SEMAFORO, semaforo.getNombre());
             return true;
     }
@@ -254,14 +270,23 @@ public class Computador implements ComponenteReloj {
             admitirPendientes();
             Object[][] colasCiclo = {nuevos.instantanea(), listos.instantanea(), bloqueados.instantanea()};
             Proceso anterior = cpu.getActual();
+            politica.ordenar(listos);
+            if(anterior!=null && politica.debeApropiar(anterior,listos,usadosQuantum,quantum)) {
+                anterior.cambiarEstado(EstadoProceso.LISTO,MotivoBloqueo.NINGUNO);
+                cpu.retirar(); listos.agregar(anterior); politica.ordenar(listos); usadosQuantum=0;
+                log.agregar(ciclo,id,anterior.getId(),"APROPIACION",tipoPolitica.name());
+            }
             if (anterior != null) prepararAccesoRemoto(anterior, ciclo);
             while (cpu.getActual() == null) {
                 Proceso seleccionado = politica.seleccionar(listos);
                 if (seleccionado == null) break;
                 cpu.asignar(seleccionado);
+                usadosQuantum=0;
+                log.agregar(ciclo,id,seleccionado.getId(),"DESPACHO",tipoPolitica.name());
                 if (!prepararAccesoRemoto(seleccionado, ciclo)) break;
             }
             Proceso actual = cpu.getActual();
+            if(actual!=null) { actual.registrarRespuesta(ciclo); ocupados++; usadosQuantum++; }
             if (actual != null && actual.getContextoBuffer() != null) {
                 ContextoBuffer contexto = actual.getContextoBuffer();
                 if (contexto.getEtapa() == EtapaBuffer.INTERVALO) {
@@ -286,14 +311,25 @@ public class Computador implements ComponenteReloj {
             if (anterior != null && anterior.getEstado() != EstadoProceso.TERMINADO && anterior.getDeadline() == 0)
                 terminarRegistrado(anterior);
             finalizarEsperasRed(ciclo);
+            finalizarES(ciclo);
+            Proceso io=cpu.getActual();
+            if(io!=null && io.agotarRafaga(ciclo)) {
+                io.cambiarEstado(EstadoProceso.BLOQUEADO,MotivoBloqueo.ENTRADA_SALIDA);
+                cpu.retirar(); usadosQuantum=0; bloqueados.agregar(io);
+                log.agregar(ciclo,id,io.getId(),"BLOQUEO_ES","Hasta ciclo "+io.getEsHasta());
+            }
+            if(cpu.getActual()==null) usadosQuantum=0;
+            politica.ordenar(listos);
+            int indice=(historiaInicio+historiaTamano)%historiaCiclos.length;
+            if(historiaTamano==historiaCiclos.length) { indice=historiaInicio; historiaInicio=(historiaInicio+1)%historiaCiclos.length; } else historiaTamano++;
+            historiaCiclos[indice]=ciclo; historiaUso[indice]=100.0*ocupados/ciclo;
             admitirPendientes();
             ultimoCiclo = ciclo;
         } finally { cicloEnCurso = -1; mutex.release(); }
     }
 
     private void validarTipoEjecucion(Proceso proceso) {
-        if (proceso.getTipo() == TipoProceso.IO_BOUND)
-            throw new UnsupportedOperationException("Falta el modulo de IO_BOUND");
+        // Todos los tipos declarados son ejecutables.
     }
 
     private void ejecutarOperacionBuffer(Proceso proceso) {
@@ -372,6 +408,8 @@ public class Computador implements ComponenteReloj {
     }
 
     private void registrarEvento(Proceso proceso, TipoEventoBuffer tipo, String detalle) {
+        if (tipo != TipoEventoBuffer.TERMINACION)
+            log.agregar(cicloEnCurso>=0?cicloEnCurso:ultimoCiclo,id,proceso.getId(),tipo.name(),detalle);
         if (proceso.getContextoBuffer() != null)
             proceso.getBuffer().registrarEvento(cicloEnCurso >= 0 ? cicloEnCurso : ultimoCiclo,
                     id, proceso.getId(), tipo, detalle);
@@ -449,7 +487,7 @@ public class Computador implements ComponenteReloj {
                     actual == null ? "Sin proceso" : describirProceso(actual),
                     describirCola(nuevos), describirCola(listos), describirCola(bloqueados), describirCola(terminados),
                     actual == null ? null : vistaProceso(actual), vistasCola(nuevos), vistasCola(listos),
-                    vistasCola(bloqueados), vistasCola(terminados));
+                    vistasCola(bloqueados), vistasCola(terminados),tipoPolitica,quantum);
         } finally { mutex.release(); }
     }
 
@@ -461,7 +499,7 @@ public class Computador implements ComponenteReloj {
 
     private String describirOperacion(Proceso proceso) {
         ContextoBuffer contexto = proceso.getContextoBuffer();
-        if (contexto == null) return "";
+        if (contexto == null) return proceso.getTipo()==TipoProceso.IO_BOUND ? "E/S rafaga="+proceso.getParametrosES().rafaga()+" duracion="+proceso.getParametrosES().duracion()+" hasta="+proceso.getEsHasta() : "";
         String etapa = contexto.estaLimpiado()
                 ? (contexto.estaCancelado() ? "interrumpido en " + contexto.getEtapa() : "completado")
                 : contexto.getEtapa().name();
@@ -528,6 +566,34 @@ public class Computador implements ComponenteReloj {
                 + " | bloqueo=" + proceso.getMotivoBloqueo() + " | " + describirOperacion(proceso);
     }
 
+    private void finalizarES(long ciclo) {
+        for(Object x:bloqueados.instantanea()) { Proceso p=(Proceso)x;
+            if(p.getMotivoBloqueo()==MotivoBloqueo.ENTRADA_SALIDA && p.getEsHasta()<=ciclo) {
+                retirar(bloqueados,p.getId()); p.cambiarEstado(EstadoProceso.LISTO,MotivoBloqueo.NINGUNO);listos.agregar(p);
+                log.agregar(ciclo,id,p.getId(),"FIN_ES","Vuelve a listos");
+            }
+        }
+    }
+    public void cambiarPolitica(Modelo.PoliticaPlanificacion tipo,int q) {
+        if(tipo==null || q<1) throw new IllegalArgumentException("Politica y quantum positivo obligatorios");
+        mutex.acquireUninterruptibly();try {
+            politica=switch(tipo){case FCFS->new FCFS();case ROUND_ROBIN->new Planificacion.RoundRobin();case EDF->new Planificacion.EDF();case PRIORIDADES->new Planificacion.Prioridades();};
+            tipoPolitica=tipo;quantum=q;usadosQuantum=0;politica.ordenar(listos);
+            log.agregar(ultimoCiclo,id,0,"POLITICA",tipo+" quantum="+q);
+        }finally{mutex.release();}
+    }
+    public Modelo.PoliticaPlanificacion getPolitica(){mutex.acquireUninterruptibly();try{return tipoPolitica;}finally{mutex.release();}}
+    public int getQuantum(){mutex.acquireUninterruptibly();try{return quantum;}finally{mutex.release();}}
+    public Modelo.EventoSistema[] consultarEventos(){return log.consultar();}
+    public Modelo.VistaMetricas consultarMetricas(){mutex.acquireUninterruptibly();try {
+        int completos=0,vencidos=0,cancelados=0,respondidos=0;double respuesta=0,suma=0,cuadrados=0;
+        Object[] procesos=todos.instantanea();
+        for(Object x:procesos){Proceso p=(Proceso)x;switch(p.getResultado()){case "COMPLETADO"->completos++;case "VENCIDO"->vencidos++;case "CANCELADO"->cancelados++;}
+            if(p.getRespuesta()>=0){respondidos++;respuesta+=p.getRespuesta();} suma+=p.getPc();cuadrados+=(double)p.getPc()*p.getPc();}
+        long[] ciclos=new long[historiaTamano];double[] uso=new double[historiaTamano];
+        for(int i=0;i<ciclos.length;i++){int j=(historiaInicio+i)%historiaCiclos.length;ciclos[i]=historiaCiclos[j];uso[i]=historiaUso[j];}
+        return new Modelo.VistaMetricas(id,ultimoCiclo,ocupados,procesos.length,completos,vencidos,cancelados,respondidos,respondidos==0?0:respuesta/respondidos,cuadrados==0?0:suma*suma/(procesos.length*cuadrados),suma,cuadrados,ciclos,uso);
+    }finally{mutex.release();}}
     public int getId() { return id; }
     public Memoria getMemoria() { return memoria; }
 

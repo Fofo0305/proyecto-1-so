@@ -18,8 +18,7 @@ public class CPU implements ComponenteReloj {
     /** Asigna un proceso listo; FCFS lo conserva hasta terminar. */
     public void asignar(Proceso proceso) {
         if (actual != null) throw new IllegalStateException("La CPU esta ocupada");
-        if (proceso == null || proceso.getTipo() == TipoProceso.IO_BOUND
-                || proceso.getEstado() != EstadoProceso.LISTO
+        if (proceso == null || proceso.getEstado() != EstadoProceso.LISTO
                 || proceso.getRestante() == 0 || proceso.getDeadline() == 0)
             throw new IllegalArgumentException("Se requiere un proceso ejecutable listo y vigente");
         proceso.cambiarEstado(EstadoProceso.EJECUCION, MotivoBloqueo.NINGUNO);

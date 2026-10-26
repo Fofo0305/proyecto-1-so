@@ -9,4 +9,6 @@ import Modelo.Proceso;
  */
 public interface Politica {
     Proceso seleccionar(Cola<Proceso> listos);
+    default void ordenar(Cola<Proceso> listos) { }
+    default boolean debeApropiar(Proceso actual, Cola<Proceso> listos, int usados, int quantum) { return false; }
 }

@@ -39,7 +39,7 @@ public class PanelComputador extends JPanel {
         cpu.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
         cuerpo.add(cpu, BorderLayout.NORTH);
         colas.setOpaque(false);
-        String[] ayudas = {"Esperan RAM", "FIFO · el primero pasa a CPU", "Esperan un recurso", "Salieron de ejecucion"};
+        String[] ayudas = {"Esperan RAM", "Orden de la politica activa", "Esperan un recurso", "Salieron de ejecucion"};
         for (int i = 0; i < 4; i++) colas.add(crearCola(i, ayudas[i]));
         cuerpo.add(colas, BorderLayout.CENTER);
         add(resumen, BorderLayout.NORTH); add(cuerpo, BorderLayout.CENTER);
@@ -60,7 +60,7 @@ public class PanelComputador extends JPanel {
 
     /** Conserva los scrolls y sus modelos durante el refresco del PCB. */
     public void mostrar(VistaComputador vista) {
-        nombre.setText("Computador " + vista.id() + "   /   FCFS   /   ciclo " + vista.ciclo());
+        nombre.setText("Computador " + vista.id() + "   /   "+vista.politica()+" q="+vista.quantum()+"   /   ciclo " + vista.ciclo());
         int capacidad = vista.usada() + vista.libre();
         ram.setMaximum(capacidad); ram.setValue(vista.usada());
         ram.setString("RAM  " + vista.usada() + " / " + capacidad + "  ·  libre " + vista.libre());

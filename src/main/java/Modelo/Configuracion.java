@@ -9,6 +9,8 @@ public final class Configuracion {
     private final int duracionMs;
     private final int quantum;
     private final int latencia;
+    private PoliticaPlanificacion[] politicas;
+    private int[] quantums;
 
     public Configuracion(int[] ram, int duracionMs, int quantum, int latencia) {
         if (ram == null || ram.length < 2)
@@ -23,8 +25,18 @@ public final class Configuracion {
         this.duracionMs = duracionMs;
         this.quantum = quantum;
         this.latencia = latencia;
+        politicas=new PoliticaPlanificacion[ram.length];quantums=new int[ram.length];
+        for(int i=0;i<ram.length;i++){politicas[i]=PoliticaPlanificacion.FCFS;quantums[i]=quantum;}
     }
 
+    public Configuracion(int[] ram,int ms,int q,int latencia,PoliticaPlanificacion[] p,int[] qs) {
+        this(ram,ms,q,latencia);
+        if(p==null || qs==null || p.length!=ram.length || qs.length!=ram.length) throw new IllegalArgumentException("Politicas incompletas");
+        for(int i=0;i<p.length;i++) if(p[i]==null || qs[i]<1) throw new IllegalArgumentException("Politica o quantum invalido");
+        politicas=p.clone();quantums=qs.clone();
+    }
+    public PoliticaPlanificacion[] getPoliticas(){return politicas.clone();}
+    public int[] getQuantums(){return quantums.clone();}
     public int getCantidadComputadores() { return ram.length; }
     public int[] getRam() { return ram.clone(); }
     public int getDuracionMs() { return duracionMs; }

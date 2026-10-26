@@ -118,7 +118,7 @@ public class PanelComputadores extends JPanel {
         StringBuilder contenido = new StringBuilder();
         for (VistaComputador vista : ultimasVistas) {
             contenido.append("COMPUTADOR ").append(vista.id()).append(" | ciclo ").append(vista.ciclo())
-                    .append(" | FCFS | modo ").append(vista.modo()).append('\n');
+                    .append(" | ").append(vista.politica()).append(" q=").append(vista.quantum()).append(" | modo ").append(vista.modo()).append('\n');
             contenido.append("RAM usada/libre: ").append(vista.usada()).append('/').append(vista.libre()).append('\n');
             contenido.append("CPU: ").append(vista.cpu()).append("\n\nNUEVOS\n").append(vista.nuevos())
                     .append("\n\nLISTOS\n").append(vista.listos()).append("\n\nBLOQUEADOS\n").append(vista.bloqueados())

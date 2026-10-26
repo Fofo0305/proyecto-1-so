@@ -101,7 +101,7 @@
         </Component>
         <Component class="javax.swing.JLabel" name="valorPolitica">
           <Properties>
-            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;FCFS · disponible&lt;/b&gt;&lt;br&gt;Primero en llegar, primero en ejecutar&lt;br&gt;&lt;span style='color:#637089'&gt;Round Robin, EDF y Prioridades:&lt;br&gt;pendientes de implementacion&lt;/span&gt;&lt;/html&gt;" />
+            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;FCFS · politica inicial&lt;/b&gt;&lt;br&gt;Primero en llegar, primero en ejecutar&lt;br&gt;&lt;span style='color:#637089'&gt;Round Robin, EDF y Prioridades:&lt;br&gt;disponibles en Planificacion E/S y metricas&lt;/span&gt;&lt;/html&gt;" />
           </Properties>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
