@@ -225,7 +225,7 @@ Las pruebas recientes estan comentadas en `Main.Proyecto1SO2526.java`, con print
 
 Se conservan tres escenarios: flujo completo desde las acciones Swing, ventana de 900x680 sin maximizar y estabilidad del scroll. El flujo completo carga el ejemplo, crea un sexto proceso desde el formulario, cambia la duracion, inicia/pausa/reanuda/detiene, comprueba finalizacion y RAM, guarda/abre CSV y rechaza un archivo corrupto sin perder la sesion. Al cerrar verifica que no quedan trabajadores del reloj. Los archivos de esta prueba se eligen por ruta desde main, sin automatizar el dialogo del selector.
 
-Las ramas locales del domingo dependen en este orden: `feature/interfaz-configuracion` → `feature/visualizacion-computadores` → `feature/persistencia`. Se deben revisar e integrar respetando ese orden. La documentacion describe estos componentes; no sustituye el informe ni el UML de la entrega completa.
+Todas las ramas de features estan integradas en `main`: las 16 formaban una cadena lineal cuya punta, `feature/planificacion-es`, ya contenia a las demas, por lo que se mezclaron de una sola vez. `develop` apunta al mismo commit. La documentacion describe estos componentes; no sustituye el informe ni el UML de la entrega completa.
 
 ### Observacion de buffers
 
