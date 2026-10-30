@@ -31,7 +31,8 @@ Los registros admitidos son `AVILAOS`, `CONFIG`, `COMPUTADOR`, `PROCESO` y `BUFF
 
 - `Modelo`: PCB, configuracion, definiciones iniciales y vistas inmutables.
 - `EDD`: cola enlazada propia protegida por semaforo.
-- `Sistema.Computador`: admision, CPU, colas, deadlines y liberacion/readmision de RAM al terminar.
+- `Planificacion`: interfaz `Politica` y las cuatro politicas. `Ordenada` da la base estable de EDF y Prioridades; los empates conservan el orden de llegada a listos.
+- `Sistema.Computador`: admision, CPU, colas, deadlines, E/S, log de eventos, metricas y liberacion/readmision de RAM al terminar.
 - `Sistema.RelojGlobal`: coordina un avance por computador y ciclo; propaga fallos y cierra trabajadores.
 - `Sistema.ControladorSimulacion`: construye y controla sesiones sin depender de Swing.
 - `Interfaces`: formularios y lectura de vistas. Las operaciones que esperan trabajadores o acceden a archivos se realizan fuera del EDT.
