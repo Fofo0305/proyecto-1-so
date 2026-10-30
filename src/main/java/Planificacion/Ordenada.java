@@ -1,15 +1,47 @@
 package Planificacion;
+
 import EDD.Cola;
 import Modelo.Proceso;
-/** Insercion estable propia; los empates conservan el orden de llegada a listos. */
+
+/**
+ * Base de las politicas que prefieren el valor numerico menor. La ordenacion es una
+ * insercion estable propia: los empates conservan el orden de llegada a listos.
+ * @author Antony
+ */
 public abstract class Ordenada implements Politica {
- protected abstract int clave(Proceso p);
- public void ordenar(Cola<Proceso> listos) {
-  Object[] a=listos.instantanea();
-  for(int i=1;i<a.length;i++){ Object x=a[i]; int j=i-1; while(j>=0 && clave((Proceso)a[j])>clave((Proceso)x)){a[j+1]=a[j];j--;} a[j+1]=x; }
-  for(int i=0;i<a.length;i++) listos.quitar();
-  for(Object p:a) listos.agregar((Proceso)p);
- }
- public Proceso seleccionar(Cola<Proceso> listos) { ordenar(listos); return listos.quitar(); }
- public boolean debeApropiar(Proceso actual,Cola<Proceso> listos,int usados,int quantum) { ordenar(listos); return listos.getTamano()>0 && clave(listos.primero())<clave(actual); }
+
+    /** Valor que ordena al proceso dentro de la cola; gana el menor. */
+    protected abstract int clave(Proceso proceso);
+
+    @Override
+    public void ordenar(Cola<Proceso> listos) {
+        Object[] procesos = listos.instantanea();
+        for (int actual = 1; actual < procesos.length; actual++) {
+            Object movido = procesos[actual];
+            int anterior = actual - 1;
+            while (anterior >= 0 && clave((Proceso) procesos[anterior]) > clave((Proceso) movido)) {
+                procesos[anterior + 1] = procesos[anterior];
+                anterior--;
+            }
+            procesos[anterior + 1] = movido;
+        }
+        for (int posicion = 0; posicion < procesos.length; posicion++) {
+            listos.quitar();
+        }
+        for (Object proceso : procesos) {
+            listos.agregar((Proceso) proceso);
+        }
+    }
+
+    @Override
+    public Proceso seleccionar(Cola<Proceso> listos) {
+        ordenar(listos);
+        return listos.quitar();
+    }
+
+    @Override
+    public boolean debeApropiar(Proceso actual, Cola<Proceso> listos, int usados, int quantum) {
+        ordenar(listos);
+        return listos.getTamano() > 0 && clave(listos.primero()) < clave(actual);
+    }
 }
