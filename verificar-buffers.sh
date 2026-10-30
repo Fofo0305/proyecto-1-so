@@ -46,9 +46,9 @@ Pruebas.PruebaContadoresBuffers
 Pruebas.PruebaTiemposBloqueo
 Pruebas.PruebaObservacionIntegrada
 Pruebas.PruebaPanelLatencia
-Pruebas.PruebaIntegrante3
-Pruebas.PruebaPanelIntegrante3
-Pruebas.PruebaRelojIntegrante3"
+Pruebas.PruebaPoliticasES
+Pruebas.PruebaPanelPlanificacion
+Pruebas.PruebaRelojPoliticas"
 
 if [ "$INTERFAZ" -eq 1 ]; then
     PRUEBAS="$PRUEBAS

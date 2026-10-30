@@ -6,7 +6,7 @@ import java.awt.*;
 import java.util.concurrent.Semaphore;
 
 /** Panel de operaciones nuevas; capturas y solicitudes fuera del EDT. */
-public final class PanelIntegrante3 extends JPanel {
+public final class PanelPlanificacion extends JPanel {
  private final ControladorSimulacion controlador;
  private final JTextArea metricas=texto(),log=texto();
  private final GraficaUso grafica=new GraficaUso();
@@ -16,7 +16,7 @@ public final class PanelIntegrante3 extends JPanel {
  private final JTextField[] es=new JTextField[8];
  private final Semaphore lectura=new Semaphore(1);
  private final Timer timer=new Timer(300,e->actualizar());
- public PanelIntegrante3(ControladorSimulacion controlador) {
+ public PanelPlanificacion(ControladorSimulacion controlador) {
   this.controlador=controlador;setLayout(new BorderLayout(8,8));setBorder(BorderFactory.createEmptyBorder(10,12,10,12));
   JTabbedPane tabs=new JTabbedPane();
   JPanel operaciones=new JPanel(new BorderLayout(8,12));
