@@ -12,7 +12,9 @@ try {
     foreach ($pruebaBuffers in @('Pruebas.PruebaBuffer', 'Pruebas.PruebaRegistroBuffers', 'Pruebas.PruebaPanelBuffer',
             'Pruebas.PruebaSemaforos', 'Pruebas.PruebaBloqueoSemaforos', 'Pruebas.PruebaProductorConsumidorLocal',
             'Pruebas.PruebaAccesoRemoto', 'Pruebas.PruebaLimpiezaProductorConsumidor', 'Pruebas.PruebaEventosBuffers',
-            'Pruebas.PruebaContadoresBuffers', 'Pruebas.PruebaTiemposBloqueo', 'Pruebas.PruebaObservacionIntegrada')) {
+            'Pruebas.PruebaContadoresBuffers', 'Pruebas.PruebaTiemposBloqueo', 'Pruebas.PruebaObservacionIntegrada',
+            'Pruebas.PruebaPanelLatencia', 'Pruebas.PruebaIntegrante3', 'Pruebas.PruebaPanelIntegrante3',
+            'Pruebas.PruebaRelojIntegrante3')) {
         & $java -cp target/pruebas-buffers $pruebaBuffers
         if ($LASTEXITCODE -ne 0) { throw "Fallo $pruebaBuffers" }
     }
@@ -23,7 +25,5 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de buffers con la ventana.' }
         & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaProductorConsumidor
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de productor consumidor con la ventana.' }
-        & $java -cp target/pruebas-buffers Pruebas.PruebaPanelLatencia
-        if ($LASTEXITCODE -ne 0) { throw 'Fallo la configuracion de latencia desde Swing.' }
     }
 } finally { Pop-Location }

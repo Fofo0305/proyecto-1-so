@@ -1,0 +1,52 @@
+name: Verificar
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verificar-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pruebas:
+    name: Compilar y comprobar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # El pom fija --release 22, asi que un JDK posterior tambien sirve.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '22'
+
+      # Comprueba el mismo build que usa NetBeans al abrir el proyecto.
+      - name: Compilar con Maven
+        run: mvn -B clean test-compile
+
+      - name: Comprobaciones sin pantalla
+        run: ./verificar-buffers.sh --jdk "$JAVA_HOME"
+
+      # Las tres comprobaciones Swing necesitan un X server, aunque no muestran ventanas.
+      - name: Preparar pantalla virtual
+        run: |
+          if ! command -v xvfb-run > /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends xvfb
+          fi
+
+      - name: Comprobaciones con interfaz
+        run: xvfb-run -a ./verificar-buffers.sh --jdk "$JAVA_HOME" --interfaz
+
+      - name: Guardar capturas de la observacion de buffers
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-buffers
+          path: target/pruebas-buffers/*.png
+          if-no-files-found: ignore
