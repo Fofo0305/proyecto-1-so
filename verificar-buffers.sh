@@ -5,7 +5,7 @@
 #   ./verificar-buffers.sh [--jdk RUTA] [--interfaz]
 #
 # Sin --interfaz corre las 16 comprobaciones que no necesitan pantalla.
-# Con --interfaz agrega las 3 que crean ventanas Swing; en un servidor sin
+# Con --interfaz agrega las 6 que crean ventanas Swing; en un servidor sin
 # escritorio hay que envolverlas, por ejemplo con `xvfb-run -a`.
 set -eu
 
@@ -54,7 +54,10 @@ if [ "$INTERFAZ" -eq 1 ]; then
     PRUEBAS="$PRUEBAS
 Pruebas.PruebaPanelObservacion
 Pruebas.PruebaVentanaBuffers
-Pruebas.PruebaVentanaProductorConsumidor"
+Pruebas.PruebaVentanaProductorConsumidor
+Pruebas.PruebaFlujoCompleto
+Pruebas.PruebaVentanaNormal
+Pruebas.PruebaScrollColas"
 fi
 
 CANTIDAD=0

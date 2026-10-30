@@ -58,13 +58,13 @@ Ajustar la ruta al JDK instalado; sirve cualquier JDK 22 o posterior. Verifican 
 FIFO, acceso concurrente, reservas en el anfitrion, rechazos sin cambios, admision de
 procesos y reconstruccion CSV. Por defecto corren las 16 comprobaciones que no necesitan
 pantalla y devuelven error en la primera que falle. Con `-Interfaz` (o `--interfaz`)
-agregan las 3 que crean ventanas Swing: piden un escritorio o un X server, aunque no
+agregan las 6 que crean ventanas Swing: piden un escritorio o un X server, aunque no
 muestran la ventana. En un servidor sin escritorio basta envolverlas, por ejemplo
 `xvfb-run -a ./verificar-buffers.sh --jdk "$JAVA_HOME" --interfaz`.
 
 GitHub Actions corre lo mismo en cada push a `main` o `develop` y en cada pull request
 (`.github/workflows/verificar.yml`): el build de Maven que usa NetBeans, las 16
-comprobaciones sin pantalla y las 3 Swing bajo `xvfb-run`. Las capturas que genera la
+comprobaciones sin pantalla y las 6 Swing bajo `xvfb-run`. Las capturas que genera la
 prueba de observacion quedan como artefacto de la ejecucion.
 
 La pestana **Buffers** permite crear un buffer indicando nombre unico, capacidad y
@@ -231,9 +231,9 @@ concurrentes, bloqueo con CPU disponible, despertar entre computadores, vencimie
 y un intercalado determinista de una senal en transito. Las pruebas de primitivas
 usan procesos CPU-bound y las del motor ejecutan productores y consumidores reales.
 
-Las pruebas recientes estan comentadas en `Main.Proyecto1SO2526.java`, con prints y comprobaciones mediante `AssertionError`. Para repetir una, desactivar temporalmente el lanzamiento de la ventana, activar su bloque, compilar y ejecutar; restaurar despues el lanzamiento y el comentario. Las salidas y archivos temporales se escriben en `target`, ignorado por Git.
+Estas comprobaciones usan prints y `AssertionError`, como el resto. Las salidas y archivos temporales se escriben en `target`, ignorado por Git.
 
-Se conservan tres escenarios: flujo completo desde las acciones Swing, ventana de 900x680 sin maximizar y estabilidad del scroll. El flujo completo carga el ejemplo, crea un sexto proceso desde el formulario, cambia la duracion, inicia/pausa/reanuda/detiene, comprueba finalizacion y RAM, guarda/abre CSV y rechaza un archivo corrupto sin perder la sesion. Al cerrar verifica que no quedan trabajadores del reloj. Los archivos de esta prueba se eligen por ruta desde main, sin automatizar el dialogo del selector.
+Son tres escenarios, uno por programa: `PruebaFlujoCompleto` recorre el flujo completo desde las acciones Swing, `PruebaVentanaNormal` comprueba la ventana de 900x680 sin maximizar y `PruebaScrollColas` la estabilidad del scroll. Hasta ahora vivian comentados dentro de `Main.Proyecto1SO2526`, que volvio a ser solo el punto de entrada. El flujo completo carga el ejemplo, crea un sexto proceso desde el formulario, cambia la duracion, inicia/pausa/reanuda/detiene, comprueba finalizacion y RAM, guarda/abre CSV y rechaza un archivo corrupto sin perder la sesion. Al cerrar verifica que no quedan trabajadores del reloj. Los archivos de esta prueba se eligen por ruta desde main, sin automatizar el dialogo del selector.
 
 Todas las ramas de features estan integradas en `main`: las 16 formaban una cadena lineal cuya punta, `feature/planificacion-es`, ya contenia a las demas, por lo que se mezclaron de una sola vez. `develop` apunta al mismo commit. La documentacion describe estos componentes; no sustituye el informe ni el UML de la entrega completa.
 
@@ -262,7 +262,7 @@ pertenecen a la sesion: reiniciar o cargar CSV reconstruye la carga inicial sin
 restaurar eventos, contadores ni tiempos anteriores.
 
 Ejecutar cualquiera de los dos scripts con `-Interfaz` o `--interfaz` compila el proyecto
-y ejecuta los 19 programas de comprobacion. La prueba integrada de
+y ejecuta los 22 programas de comprobacion. La prueba integrada de
 observacion recorre 72 escenarios locales/remotos con vencimiento y cancelacion en
 distintos ciclos; compara eventos con modificaciones reales, perfiles con totales,
 lecturas repetidas, copias anteriores y limpieza de esperas. La prueba Swing valida

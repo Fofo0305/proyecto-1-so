@@ -25,5 +25,11 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de buffers con la ventana.' }
         & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaProductorConsumidor
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de productor consumidor con la ventana.' }
+        & $java -cp target/pruebas-buffers Pruebas.PruebaFlujoCompleto
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo el flujo completo desde las acciones Swing.' }
+        & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaNormal
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo la ventana sin maximizar.' }
+        & $java -cp target/pruebas-buffers Pruebas.PruebaScrollColas
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo la estabilidad del scroll de colas.' }
     }
 } finally { Pop-Location }
