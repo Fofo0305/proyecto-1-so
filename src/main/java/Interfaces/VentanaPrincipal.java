@@ -62,7 +62,7 @@ public class VentanaPrincipal extends JFrame {
         pestanas.addTab("Productor / consumidor", comunicantes);
         pestanas.addTab("Simulacion en vivo", panelComputadores);
         pestanas.addTab("Observacion de buffers", panelEstadoBuffers);
-        pestanas.addTab("Planificacion E/S y metricas", new PanelIntegrante3(controlador));
+        pestanas.addTab("Planificacion E/S y metricas", new PanelPlanificacion(controlador));
         contenido.add(pestanas, BorderLayout.CENTER);
         getContentPane().add(titulo, BorderLayout.NORTH);
         getContentPane().add(contenido, BorderLayout.CENTER);
