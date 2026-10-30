@@ -1,6 +1,6 @@
 # AvilaOS
 
-Simulador de un cluster con RAM independiente por computador, admision de procesos, CPU con FCFS y reloj global coordinado por semaforos.
+Simulador de un cluster con RAM independiente por computador, admision de procesos, CPU con cuatro politicas de planificacion (FCFS, Round Robin, EDF y Prioridades) y reloj global coordinado por semaforos. Incluye buffers compartidos con semaforos simulados, productores y consumidores locales o remotos, procesos con E/S, log de eventos y metricas por computador.
 
 ## Ejecutar en NetBeans
 
@@ -21,7 +21,7 @@ En Simulacion en vivo, el selector permite enfocar un computador. Las tarjetas m
 
 La configuracion explica la RAM por equipo y la duracion del ciclo; destaca el campo que debe corregirse antes de aplicar. Los parametros de integracion se despliegan bajo demanda. El resumen de computadores muestra CPU activas, procesos en espera, terminados y RAM total sin reemplazar las lecturas individuales de cada equipo.
 
-La ventana abre dentro del area util de la pantalla, sin maximizar. Los controles del reloj usan dos filas; los formularios se pueden recorrer verticalmente y las colas se distribuyen en dos columnas cuando el ancho es reducido. Procesos comparte el estilo y las ayudas de Configuracion. FCFS es la unica politica ejecutable: Round Robin, EDF y Prioridades figuran como pendientes, sin simular su ejecucion.
+La ventana abre dentro del area util de la pantalla, sin maximizar. Los controles del reloj usan dos filas; los formularios se pueden recorrer verticalmente y las colas se distribuyen en dos columnas cuando el ancho es reducido. Procesos comparte el estilo y las ayudas de Configuracion. Las cuatro politicas son ejecutables y se eligen **por computador**: FCFS, Round Robin con quantum, EDF por deadline mas cercano y Prioridades por menor numero. Round Robin, EDF y Prioridades piden apropiacion; FCFS no la pide nunca.
 
 Los botones de archivos guardan y leen CSV UTF-8. Se escribe version 2 cuando hay productores o consumidores, y version 1 para cargas CPU-bound; se leen ambas versiones. Se conserva la configuracion y la carga **inicial**: cargar reconstruye los procesos con PC y ciclo cero, nuevos identificadores y sus instrucciones y deadlines originales. No es una reanudacion del estado de ejecucion. El archivo completo se valida antes de reemplazar la sesion; detener el reloj antes de cargar.
 
