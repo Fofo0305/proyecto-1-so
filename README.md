@@ -43,14 +43,24 @@ La implementacion ejecuta CPU_BOUND, PRODUCTOR y CONSUMIDOR locales o remotos co
 
 ## Pruebas y ramas
 
-Para comprobar el almacenamiento de buffers y su registro con RAM desde PowerShell,
-ejecutar `./verificar-buffers.ps1 -Jdk 'C:/Program Files/Java/jdk-22'` (ajustar la ruta
-al JDK instalado). Compila el proyecto y las comprobaciones de `src/test/java/Pruebas`
-sin dependencias externas. Verifica capacidad, FIFO, acceso concurrente, reservas
-en el anfitrion, rechazos sin cambios, admision de procesos y reconstruccion CSV.
-El script devuelve un error si falla una comprobacion; no abre la interfaz grafica.
-Con `-Interfaz` comprueba ademas la creacion desde la ventana principal y el rechazo
-de duplicados; requiere un entorno de escritorio, aunque no muestra la ventana.
+Hay dos scripts equivalentes que compilan el proyecto y corren las comprobaciones de
+`src/test/java/Pruebas`, sin dependencias externas:
+
+- Windows: `./verificar-buffers.ps1 -Jdk 'C:/Program Files/Java/jdk-22'`
+- macOS y Linux: `./verificar-buffers.sh --jdk "$JAVA_HOME"`
+
+Ajustar la ruta al JDK instalado; sirve cualquier JDK 22 o posterior. Verifican capacidad,
+FIFO, acceso concurrente, reservas en el anfitrion, rechazos sin cambios, admision de
+procesos y reconstruccion CSV. Por defecto corren las 16 comprobaciones que no necesitan
+pantalla y devuelven error en la primera que falle. Con `-Interfaz` (o `--interfaz`)
+agregan las 3 que crean ventanas Swing: piden un escritorio o un X server, aunque no
+muestran la ventana. En un servidor sin escritorio basta envolverlas, por ejemplo
+`xvfb-run -a ./verificar-buffers.sh --jdk "$JAVA_HOME" --interfaz`.
+
+GitHub Actions corre lo mismo en cada push a `main` o `develop` y en cada pull request
+(`.github/workflows/verificar.yml`): el build de Maven que usa NetBeans, las 16
+comprobaciones sin pantalla y las 3 Swing bajo `xvfb-run`. Las capturas que genera la
+prueba de observacion quedan como artefacto de la ejecucion.
 
 La pestana **Buffers** permite crear un buffer indicando nombre unico, capacidad y
 computador anfitrion. Configurar primero el cluster. La capacidad completa reserva
@@ -246,8 +256,8 @@ parte transcurrida de esperas abiertas y los episodios cancelados. Las metricas
 pertenecen a la sesion: reiniciar o cargar CSV reconstruye la carga inicial sin
 restaurar eventos, contadores ni tiempos anteriores.
 
-Ejecutar `./verificar-buffers.ps1 -Jdk 'C:/Program Files/Java/jdk-22' -Interfaz`
-compila con Java 22 y ejecuta 16 programas de comprobacion. La prueba integrada de
+Ejecutar cualquiera de los dos scripts con `-Interfaz` o `--interfaz` compila el proyecto
+y ejecuta los 19 programas de comprobacion. La prueba integrada de
 observacion recorre 72 escenarios locales/remotos con vencimiento y cancelacion en
 distintos ciclos; compara eventos con modificaciones reales, perfiles con totales,
 lecturas repetidas, copias anteriores y limpieza de esperas. La prueba Swing valida
