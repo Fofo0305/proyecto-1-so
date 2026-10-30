@@ -1,6 +1,6 @@
 # AvilaOS
 
-Simulador de un cluster con RAM independiente por computador, admision de procesos, CPU con FCFS y reloj global coordinado por semaforos.
+Simulador de un cluster con RAM independiente por computador, admision de procesos, CPU con cuatro politicas de planificacion (FCFS, Round Robin, EDF y Prioridades) y reloj global coordinado por semaforos. Incluye buffers compartidos con semaforos simulados, productores y consumidores locales o remotos, procesos con E/S, log de eventos y metricas por computador.
 
 ## Ejecutar en NetBeans
 
@@ -21,17 +21,18 @@ En Simulacion en vivo, el selector permite enfocar un computador. Las tarjetas m
 
 La configuracion explica la RAM por equipo y la duracion del ciclo; destaca el campo que debe corregirse antes de aplicar. Los parametros de integracion se despliegan bajo demanda. El resumen de computadores muestra CPU activas, procesos en espera, terminados y RAM total sin reemplazar las lecturas individuales de cada equipo.
 
-La ventana abre dentro del area util de la pantalla, sin maximizar. Los controles del reloj usan dos filas; los formularios se pueden recorrer verticalmente y las colas se distribuyen en dos columnas cuando el ancho es reducido. Procesos comparte el estilo y las ayudas de Configuracion. FCFS es la unica politica ejecutable: Round Robin, EDF y Prioridades figuran como pendientes, sin simular su ejecucion.
+La ventana abre dentro del area util de la pantalla, sin maximizar. Los controles del reloj usan dos filas; los formularios se pueden recorrer verticalmente y las colas se distribuyen en dos columnas cuando el ancho es reducido. Procesos comparte el estilo y las ayudas de Configuracion. Las cuatro politicas son ejecutables y se eligen **por computador**: FCFS, Round Robin con quantum, EDF por deadline mas cercano y Prioridades por menor numero. Round Robin, EDF y Prioridades piden apropiacion; FCFS no la pide nunca.
 
-Los botones de archivos guardan y leen CSV UTF-8. Se escribe version 2 cuando hay productores o consumidores, y version 1 para cargas CPU-bound; se leen ambas versiones. Se conserva la configuracion y la carga **inicial**: cargar reconstruye los procesos con PC y ciclo cero, nuevos identificadores y sus instrucciones y deadlines originales. No es una reanudacion del estado de ejecucion. El archivo completo se valida antes de reemplazar la sesion; detener el reloj antes de cargar.
+Los botones de archivos guardan y leen CSV UTF-8. La version se elige segun el contenido: **3** cuando hay procesos `IO_BOUND` o algun computador usa una politica distinta de FCFS o un quantum propio, **2** cuando hay productores o consumidores, y **1** para cargas CPU-bound; se leen las tres versiones. Se conserva la configuracion y la carga **inicial**: cargar reconstruye los procesos con PC y ciclo cero, nuevos identificadores y sus instrucciones y deadlines originales. No es una reanudacion del estado de ejecucion. El archivo completo se valida antes de reemplazar la sesion; detener el reloj antes de cargar.
 
-Los registros admitidos son `AVILAOS`, `CONFIG`, `COMPUTADOR`, `PROCESO` y `BUFFER`. Los nombres pueden contener comas, comillas y saltos de linea mediante el escape CSV. Los buffers cargados reservan una unidad de RAM por posicion en su anfitrion y comienzan vacios. En version 2 los registros de productor/consumidor agregan nombre de buffer, intervalo y elementos objetivo despues del tipo.
+Los registros admitidos son `AVILAOS`, `CONFIG`, `COMPUTADOR`, `PROCESO` y `BUFFER`. Los nombres pueden contener comas, comillas y saltos de linea mediante el escape CSV. Los buffers cargados reservan una unidad de RAM por posicion en su anfitrion y comienzan vacios. En version 2 los registros de productor/consumidor agregan nombre de buffer, intervalo y elementos objetivo despues del tipo. En version 3 cada `COMPUTADOR` agrega su politica y su quantum, y los procesos `IO_BOUND` agregan rafaga de CPU y duracion de la espera despues del tipo.
 
 ## Integracion
 
 - `Modelo`: PCB, configuracion, definiciones iniciales y vistas inmutables.
 - `EDD`: cola enlazada propia protegida por semaforo.
-- `Sistema.Computador`: admision, CPU, colas, deadlines y liberacion/readmision de RAM al terminar.
+- `Planificacion`: interfaz `Politica` y las cuatro politicas. `Ordenada` da la base estable de EDF y Prioridades; los empates conservan el orden de llegada a listos.
+- `Sistema.Computador`: admision, CPU, colas, deadlines, E/S, log de eventos, metricas y liberacion/readmision de RAM al terminar.
 - `Sistema.RelojGlobal`: coordina un avance por computador y ciclo; propaga fallos y cierra trabajadores.
 - `Sistema.ControladorSimulacion`: construye y controla sesiones sin depender de Swing.
 - `Interfaces`: formularios y lectura de vistas. Las operaciones que esperan trabajadores o acceden a archivos se realizan fuera del EDT.
@@ -39,7 +40,11 @@ Los registros admitidos son `AVILAOS`, `CONFIG`, `COMPUTADOR`, `PROCESO` y `BUFF
 
 Las vistas son coherentes por computador. Durante un ciclo en curso, dos computadores pueden mostrar ciclos diferentes hasta que ambos confirmen su avance. No modificar las colas de un computador desde la GUI: usar las operaciones del controlador y del computador.
 
-La implementacion ejecuta CPU_BOUND, PRODUCTOR y CONSUMIDOR locales o remotos con FCFS. La latencia de red se aplica a cada operacion remota; quantum queda para Round Robin. El nucleo ofrece `cederCPU` para integrar apropiacion sin perder contexto; FCFS no la solicita automaticamente. E/S, politicas avanzadas, log global y metricas completas siguen pendientes.
+La implementacion ejecuta CPU_BOUND, IO_BOUND, PRODUCTOR y CONSUMIDOR, locales o remotos, con cualquiera de las cuatro politicas. La latencia de red se aplica a cada operacion remota y el quantum solo lo consume Round Robin. La apropiacion ocurre dentro de `avanzarCiclo`: la politica decide con `debeApropiar`, el proceso retirado vuelve a listos conservando su contexto y queda un evento `APROPIACION`. `cederCPU` sigue disponible como primitiva manual para forzar un cambio de contexto; el nucleo no la invoca por si mismo.
+
+`ControladorSimulacion.cambiarPolitica(equipo, tipo, quantum)` cambia la politica de un computador con el reloj en marcha y `crearProcesoES(...)` crea un proceso `IO_BOUND` con su rafaga y la duracion de su espera. Ambas quedan en la configuracion, por lo que se guardan en el CSV version 3.
+
+`Sistema.RegistroSistema` es un anillo acotado de 1024 eventos por computador y registra el ciclo de vida del proceso (`CREACION`, `ADMISION`, `DESPACHO`, `APROPIACION`, `BLOQUEO_ES`, `FIN_ES`, `TERMINACION`) y los cambios de politica (`POLITICA`). Tambien recibe los sucesos del motor de buffers de `TipoEventoBuffer` (`PRODUCCION`, `CONSUMO`, bloqueos y despertares de semaforo y de red, `DEVOLUCION_PERMISO`); su `TERMINACION` no se duplica, porque ya la anota el ciclo de vida del proceso. `Computador.consultarEventos()` entrega los de un equipo y `ControladorSimulacion.consultarLog()` los mezcla ordenados por ciclo y computador. `Modelo.VistaMetricas` acompaña a cada computador con ciclos, ocupacion, creados, completados, vencidos, cancelados, tiempo de respuesta, equidad de Jain e historial de uso, y calcula `throughput()`, `utilizacion()` y `cumplimiento()`. `Interfaces.PanelIntegrante3` presenta metricas, log y buffers en una sola pestaña, con `Interfaces.GraficaUso` para el historial de uso por computador.
 
 ## Pruebas y ramas
 
@@ -220,7 +225,7 @@ Las pruebas recientes estan comentadas en `Main.Proyecto1SO2526.java`, con print
 
 Se conservan tres escenarios: flujo completo desde las acciones Swing, ventana de 900x680 sin maximizar y estabilidad del scroll. El flujo completo carga el ejemplo, crea un sexto proceso desde el formulario, cambia la duracion, inicia/pausa/reanuda/detiene, comprueba finalizacion y RAM, guarda/abre CSV y rechaza un archivo corrupto sin perder la sesion. Al cerrar verifica que no quedan trabajadores del reloj. Los archivos de esta prueba se eligen por ruta desde main, sin automatizar el dialogo del selector.
 
-Las ramas locales del domingo dependen en este orden: `feature/interfaz-configuracion` → `feature/visualizacion-computadores` → `feature/persistencia`. Se deben revisar e integrar respetando ese orden. La documentacion describe estos componentes; no sustituye el informe ni el UML de la entrega completa.
+Todas las ramas de features estan integradas en `main`: las 16 formaban una cadena lineal cuya punta, `feature/planificacion-es`, ya contenia a las demas, por lo que se mezclaron de una sola vez. `develop` apunta al mismo commit. La documentacion describe estos componentes; no sustituye el informe ni el UML de la entrega completa.
 
 ### Observacion de buffers
 
