@@ -12,6 +12,10 @@ import Modelo.SemaforoSimulado;
 import Modelo.ContextoBuffer;
 import Modelo.EtapaBuffer;
 import Modelo.TipoEventoBuffer;
+import Modelo.ParametrosES;
+import Modelo.PoliticaPlanificacion;
+import Modelo.EventoSistema;
+import Modelo.VistaMetricas;
 import Planificacion.Politica;
 import Planificacion.FCFS;
 import java.util.concurrent.Semaphore;
@@ -320,9 +324,15 @@ public class Computador implements ComponenteReloj {
             }
             if(cpu.getActual()==null) usadosQuantum=0;
             politica.ordenar(listos);
-            int indice=(historiaInicio+historiaTamano)%historiaCiclos.length;
-            if(historiaTamano==historiaCiclos.length) { indice=historiaInicio; historiaInicio=(historiaInicio+1)%historiaCiclos.length; } else historiaTamano++;
-            historiaCiclos[indice]=ciclo; historiaUso[indice]=100.0*ocupados/ciclo;
+            int indice = (historiaInicio + historiaTamano) % historiaCiclos.length;
+            if (historiaTamano == historiaCiclos.length) {
+                indice = historiaInicio;
+                historiaInicio = (historiaInicio + 1) % historiaCiclos.length;
+            } else {
+                historiaTamano++;
+            }
+            historiaCiclos[indice] = ciclo;
+            historiaUso[indice] = 100.0 * ocupados / ciclo;
             admitirPendientes();
             ultimoCiclo = ciclo;
         } finally { cicloEnCurso = -1; mutex.release(); }
@@ -499,7 +509,11 @@ public class Computador implements ComponenteReloj {
 
     private String describirOperacion(Proceso proceso) {
         ContextoBuffer contexto = proceso.getContextoBuffer();
-        if (contexto == null) return proceso.getTipo()==TipoProceso.IO_BOUND ? "E/S rafaga="+proceso.getParametrosES().rafaga()+" duracion="+proceso.getParametrosES().duracion()+" hasta="+proceso.getEsHasta() : "";
+        if (contexto == null) {
+            if (proceso.getTipo() != TipoProceso.IO_BOUND) return "";
+            ParametrosES es = proceso.getParametrosES();
+            return "E/S rafaga=" + es.rafaga() + " duracion=" + es.duracion() + " hasta=" + proceso.getEsHasta();
+        }
         String etapa = contexto.estaLimpiado()
                 ? (contexto.estaCancelado() ? "interrumpido en " + contexto.getEtapa() : "completado")
                 : contexto.getEtapa().name();
@@ -574,26 +588,96 @@ public class Computador implements ComponenteReloj {
             }
         }
     }
-    public void cambiarPolitica(Modelo.PoliticaPlanificacion tipo,int q) {
-        if(tipo==null || q<1) throw new IllegalArgumentException("Politica y quantum positivo obligatorios");
-        mutex.acquireUninterruptibly();try {
-            politica=switch(tipo){case FCFS->new FCFS();case ROUND_ROBIN->new Planificacion.RoundRobin();case EDF->new Planificacion.EDF();case PRIORIDADES->new Planificacion.Prioridades();};
-            tipoPolitica=tipo;quantum=q;usadosQuantum=0;politica.ordenar(listos);
-            log.agregar(ultimoCiclo,id,0,"POLITICA",tipo+" quantum="+q);
-        }finally{mutex.release();}
+    /** Cambia la politica y el quantum, reordena listos y deja un evento POLITICA. */
+    public void cambiarPolitica(PoliticaPlanificacion tipo, int nuevoQuantum) {
+        if (tipo == null || nuevoQuantum < 1) {
+            throw new IllegalArgumentException("Politica y quantum positivo obligatorios");
+        }
+        mutex.acquireUninterruptibly();
+        try {
+            politica = switch (tipo) {
+                case FCFS -> new FCFS();
+                case ROUND_ROBIN -> new Planificacion.RoundRobin();
+                case EDF -> new Planificacion.EDF();
+                case PRIORIDADES -> new Planificacion.Prioridades();
+            };
+            tipoPolitica = tipo;
+            quantum = nuevoQuantum;
+            usadosQuantum = 0;
+            politica.ordenar(listos);
+            log.agregar(ultimoCiclo, id, 0, "POLITICA", tipo + " quantum=" + nuevoQuantum);
+        } finally {
+            mutex.release();
+        }
     }
-    public Modelo.PoliticaPlanificacion getPolitica(){mutex.acquireUninterruptibly();try{return tipoPolitica;}finally{mutex.release();}}
-    public int getQuantum(){mutex.acquireUninterruptibly();try{return quantum;}finally{mutex.release();}}
-    public Modelo.EventoSistema[] consultarEventos(){return log.consultar();}
-    public Modelo.VistaMetricas consultarMetricas(){mutex.acquireUninterruptibly();try {
-        int completos=0,vencidos=0,cancelados=0,respondidos=0;double respuesta=0,suma=0,cuadrados=0;
-        Object[] procesos=todos.instantanea();
-        for(Object x:procesos){Proceso p=(Proceso)x;switch(p.getResultado()){case "COMPLETADO"->completos++;case "VENCIDO"->vencidos++;case "CANCELADO"->cancelados++;}
-            if(p.getRespuesta()>=0){respondidos++;respuesta+=p.getRespuesta();} suma+=p.getPc();cuadrados+=(double)p.getPc()*p.getPc();}
-        long[] ciclos=new long[historiaTamano];double[] uso=new double[historiaTamano];
-        for(int i=0;i<ciclos.length;i++){int j=(historiaInicio+i)%historiaCiclos.length;ciclos[i]=historiaCiclos[j];uso[i]=historiaUso[j];}
-        return new Modelo.VistaMetricas(id,ultimoCiclo,ocupados,procesos.length,completos,vencidos,cancelados,respondidos,respondidos==0?0:respuesta/respondidos,cuadrados==0?0:suma*suma/(procesos.length*cuadrados),suma,cuadrados,ciclos,uso);
-    }finally{mutex.release();}}
+
+    public PoliticaPlanificacion getPolitica() {
+        mutex.acquireUninterruptibly();
+        try {
+            return tipoPolitica;
+        } finally {
+            mutex.release();
+        }
+    }
+
+    public int getQuantum() {
+        mutex.acquireUninterruptibly();
+        try {
+            return quantum;
+        } finally {
+            mutex.release();
+        }
+    }
+
+    /** Copia del anillo de eventos de este computador. */
+    public EventoSistema[] consultarEventos() {
+        return log.consultar();
+    }
+
+    /**
+     * Metricas del equipo. La equidad de Jain usa las instrucciones recibidas por todos
+     * los procesos creados, y la historia de uso viene del anillo de ciclos recientes.
+     */
+    public VistaMetricas consultarMetricas() {
+        mutex.acquireUninterruptibly();
+        try {
+            int completos = 0;
+            int vencidos = 0;
+            int cancelados = 0;
+            int respondidos = 0;
+            double respuesta = 0;
+            double suma = 0;
+            double cuadrados = 0;
+            Object[] procesos = todos.instantanea();
+            for (Object elemento : procesos) {
+                Proceso proceso = (Proceso) elemento;
+                switch (proceso.getResultado()) {
+                    case "COMPLETADO" -> completos++;
+                    case "VENCIDO" -> vencidos++;
+                    case "CANCELADO" -> cancelados++;
+                }
+                if (proceso.getRespuesta() >= 0) {
+                    respondidos++;
+                    respuesta += proceso.getRespuesta();
+                }
+                suma += proceso.getPc();
+                cuadrados += (double) proceso.getPc() * proceso.getPc();
+            }
+            long[] ciclos = new long[historiaTamano];
+            double[] uso = new double[historiaTamano];
+            for (int posicion = 0; posicion < ciclos.length; posicion++) {
+                int indice = (historiaInicio + posicion) % historiaCiclos.length;
+                ciclos[posicion] = historiaCiclos[indice];
+                uso[posicion] = historiaUso[indice];
+            }
+            double respuestaMedia = respondidos == 0 ? 0 : respuesta / respondidos;
+            double equidad = cuadrados == 0 ? 0 : suma * suma / (procesos.length * cuadrados);
+            return new VistaMetricas(id, ultimoCiclo, ocupados, procesos.length, completos, vencidos,
+                    cancelados, respondidos, respuestaMedia, equidad, suma, cuadrados, ciclos, uso);
+        } finally {
+            mutex.release();
+        }
+    }
     public int getId() { return id; }
     public Memoria getMemoria() { return memoria; }
 
