@@ -10,7 +10,7 @@ import javax.swing.*;
 public final class PruebaPanelPlanificacion {
     public static void main(String[] args) throws Exception {
         try (ControladorSimulacion controlador = new ControladorSimulacion()) {
-            controlador.configurar(new Configuracion(new int[] {32}, 10, 4, 0));
+            controlador.configurar(new Configuracion(new int[] {32}, 10, 4));
             PanelPlanificacion[] panel = new PanelPlanificacion[1];
             SwingUtilities.invokeAndWait(() -> {
                 panel[0] = new PanelPlanificacion(controlador);

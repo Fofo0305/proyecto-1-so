@@ -88,7 +88,7 @@ public class ControladorSimulacion implements AutoCloseable {
             comprobarDisponible();
             computador.cambiarPolitica(tipo, quantum);
             configuracion = new Configuracion(configuracion.getRam(), configuracion.getDuracionMs(),
-                    quantum, 0, new PoliticaPlanificacion[] {tipo}, new int[] {quantum});
+                    quantum, new PoliticaPlanificacion[] {tipo}, new int[] {quantum});
         } finally { mutex.release(); }
     }
 
@@ -140,7 +140,7 @@ public class ControladorSimulacion implements AutoCloseable {
         mutex.acquireUninterruptibly();
         try {
             comprobarDisponible();
-            configuracion = new Configuracion(configuracion.getRam(), duracionMs, configuracion.getQuantum(), 0,
+            configuracion = new Configuracion(configuracion.getRam(), duracionMs, configuracion.getQuantum(),
                     configuracion.getPoliticas(), configuracion.getQuantums());
             reloj.setDuracionMs(duracionMs);
         } finally { mutex.release(); }

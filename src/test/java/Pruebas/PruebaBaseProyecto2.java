@@ -15,11 +15,11 @@ public final class PruebaBaseProyecto2 {
 
     public static void main(String[] args) {
         try {
-            new Configuracion(new int[0], 300, 4, 0);
+            new Configuracion(new int[0], 300, 4);
             throw new AssertionError("Se acepto una simulacion sin computadores");
         } catch (IllegalArgumentException esperado) { }
         try {
-            new Configuracion(new int[] {64, 64}, 300, 4, 0);
+            new Configuracion(new int[] {64, 64}, 300, 4);
             throw new AssertionError("Se acepto mas de un computador");
         } catch (IllegalArgumentException esperado) { }
         if (TipoProceso.values().length != 2) {
@@ -30,7 +30,7 @@ public final class PruebaBaseProyecto2 {
             throw new AssertionError("Se acepto un proceso dirigido a un segundo computador");
         } catch (IllegalArgumentException esperado) { }
 
-        Configuracion configuracion = new Configuracion(new int[] {64}, 300, 4, 0);
+        Configuracion configuracion = new Configuracion(new int[] {64}, 300, 4);
         if (configuracion.getCantidadComputadores() != 1 || configuracion.getRam()[0] != 64) {
             throw new AssertionError("La configuracion no representa un unico computador");
         }

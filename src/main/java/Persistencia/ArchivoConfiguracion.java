@@ -109,7 +109,7 @@ public final class ArchivoConfiguracion {
             throw new IllegalArgumentException("Falta CONFIG o COMPUTADOR");
         DefinicionProceso[] carga = new DefinicionProceso[procesos.getTamano()];
         for (int i = 0; i < carga.length; i++) carga[i] = procesos.quitar();
-        Configuracion configuracion = new Configuracion(new int[] {ram}, parametros[0], parametros[1], 0,
+        Configuracion configuracion = new Configuracion(new int[] {ram}, parametros[0], parametros[1],
                 new PoliticaPlanificacion[] {politica}, new int[] {quantumEquipo});
         return new CargaInicial(configuracion, carga);
     }

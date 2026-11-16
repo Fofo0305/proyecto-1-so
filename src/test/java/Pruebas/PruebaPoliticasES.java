@@ -14,7 +14,7 @@ public final class PruebaPoliticasES {
 
     private static ControladorSimulacion crear() {
         ControladorSimulacion controlador = new ControladorSimulacion();
-        controlador.configurar(new Configuracion(new int[] {64}, 1, 2, 0));
+        controlador.configurar(new Configuracion(new int[] {64}, 1, 2));
         return controlador;
     }
 

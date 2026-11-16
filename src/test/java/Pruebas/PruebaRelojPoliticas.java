@@ -8,7 +8,7 @@ import Sistema.ControladorSimulacion;
 public final class PruebaRelojPoliticas {
     public static void main(String[] args) throws Exception {
         try (ControladorSimulacion controlador = new ControladorSimulacion()) {
-            controlador.configurar(new Configuracion(new int[] {64}, 2, 2, 0));
+            controlador.configurar(new Configuracion(new int[] {64}, 2, 2));
             controlador.crearProcesoES("IO", 1, 2, 4, 30, 1000, 2, 2);
             controlador.iniciar();
             for (int i = 0; i < 40; i++) {

@@ -62,7 +62,7 @@ public class Memoria {
     }
 
     /**
-     * Reserva RAM para un propietario único, por ejemplo proceso:ID o buffer:ID.
+     * Reserva RAM para un propietario único, por ejemplo proceso:ID.
      * @param propietario identificador del propietario
      * @param cantidad unidades solicitadas
      * @return false si no hay espacio; true si se registró la reserva
