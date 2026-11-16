@@ -1,4 +1,15 @@
 package Planificacion;
+
 import Modelo.Proceso;
-/** Menor numero representa mayor prioridad. */
-public final class Prioridades extends Ordenada { protected int clave(Proceso p) { return p.getPrioridad(); } }
+
+/**
+ * Prioridad estatica: un numero menor representa mayor prioridad.
+ * @author Antony
+ */
+public final class Prioridades extends Ordenada {
+
+    @Override
+    protected int clave(Proceso proceso) {
+        return proceso.getPrioridad();
+    }
+}

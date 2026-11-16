@@ -13,8 +13,8 @@ try {
             'Pruebas.PruebaSemaforos', 'Pruebas.PruebaBloqueoSemaforos', 'Pruebas.PruebaProductorConsumidorLocal',
             'Pruebas.PruebaAccesoRemoto', 'Pruebas.PruebaLimpiezaProductorConsumidor', 'Pruebas.PruebaEventosBuffers',
             'Pruebas.PruebaContadoresBuffers', 'Pruebas.PruebaTiemposBloqueo', 'Pruebas.PruebaObservacionIntegrada',
-            'Pruebas.PruebaPanelLatencia', 'Pruebas.PruebaIntegrante3', 'Pruebas.PruebaPanelIntegrante3',
-            'Pruebas.PruebaRelojIntegrante3')) {
+            'Pruebas.PruebaPanelLatencia', 'Pruebas.PruebaPoliticasES', 'Pruebas.PruebaPanelPlanificacion',
+            'Pruebas.PruebaRelojPoliticas')) {
         & $java -cp target/pruebas-buffers $pruebaBuffers
         if ($LASTEXITCODE -ne 0) { throw "Fallo $pruebaBuffers" }
     }
@@ -25,5 +25,11 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de buffers con la ventana.' }
         & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaProductorConsumidor
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de productor consumidor con la ventana.' }
+        & $java -cp target/pruebas-buffers Pruebas.PruebaFlujoCompleto
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo el flujo completo desde las acciones Swing.' }
+        & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaNormal
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo la ventana sin maximizar.' }
+        & $java -cp target/pruebas-buffers Pruebas.PruebaScrollColas
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo la estabilidad del scroll de colas.' }
     }
 } finally { Pop-Location }

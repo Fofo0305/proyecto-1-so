@@ -1,3 +1,15 @@
 package Planificacion;
+
 import Modelo.Proceso;
-public final class EDF extends Ordenada { protected int clave(Proceso p) { return p.getDeadline(); } }
+
+/**
+ * Earliest Deadline First: gana el proceso cuyo plazo vence antes.
+ * @author Antony
+ */
+public final class EDF extends Ordenada {
+
+    @Override
+    protected int clave(Proceso proceso) {
+        return proceso.getDeadline();
+    }
+}

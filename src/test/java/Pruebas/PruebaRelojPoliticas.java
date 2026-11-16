@@ -2,7 +2,7 @@ package Pruebas;
 import Sistema.*;import Modelo.*;
 import static Pruebas.PruebaSemaforos.verificar;
 /** Reloj real y cambios concurrentes de politica y lecturas, con cierre acotado. */
-public final class PruebaRelojIntegrante3 {
+public final class PruebaRelojPoliticas {
  public static void main(String[] args)throws Exception{
   try(ControladorSimulacion c=new ControladorSimulacion()){
    c.configurar(new Configuracion(new int[]{64,64},2,2,2));c.crearBuffer("B",2,1);

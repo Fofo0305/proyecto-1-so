@@ -4,7 +4,7 @@ import Sistema.*;
 import Persistencia.ArchivoConfiguracion;
 import java.nio.file.*;
 import static Pruebas.PruebaSemaforos.verificar;
-public final class PruebaIntegrante3 {
+public final class PruebaPoliticasES {
  static ControladorSimulacion crear(){ControladorSimulacion c=new ControladorSimulacion();c.configurar(new Configuracion(new int[]{64,64},1,2,3));return c;}
  public static void main(String[] args)throws Exception{
   for(PoliticaPlanificacion politica:PoliticaPlanificacion.values()) probar(politica);

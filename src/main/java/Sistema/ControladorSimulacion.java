@@ -10,6 +10,10 @@ import Modelo.DefinicionBuffer;
 import Modelo.Buffer;
 import Modelo.SemaforoSimulado;
 import Modelo.ParametrosBuffer;
+import Modelo.ParametrosES;
+import Modelo.PoliticaPlanificacion;
+import Modelo.EventoSistema;
+import Modelo.VistaMetricas;
 import EDD.Cola;
 import java.util.concurrent.Semaphore;
 
@@ -96,34 +100,102 @@ public class ControladorSimulacion implements AutoCloseable {
         } finally { mutex.release(); }
     }
 
-    /** Crea un productor o consumidor sin modificar recursos si la solicitud es invalida. */
-    public Proceso crearProcesoES(String nombre,int equipo,int prioridad,int memoria,int instrucciones,int deadline,int rafaga,int duracion) {
-        Modelo.ParametrosES es=new Modelo.ParametrosES(rafaga,duracion);
-        mutex.acquireUninterruptibly();try {
+    /** Crea un proceso IO_BOUND sin modificar recursos si la solicitud es invalida. */
+    public Proceso crearProcesoES(String nombre, int equipo, int prioridad, int memoria,
+            int instrucciones, int deadline, int rafaga, int duracion) {
+        ParametrosES es = new ParametrosES(rafaga, duracion);
+        mutex.acquireUninterruptibly();
+        try {
             comprobarDisponible();
-            if(equipo<1 || equipo>computadores.length) throw new IllegalArgumentException("Computador inexistente");
-            if(memoria>computadores[equipo-1].getMemoria().getCapacidad()) throw new IllegalArgumentException("Memoria superior a RAM");
-            DefinicionProceso d=new DefinicionProceso(nombre,equipo,prioridad,memoria,instrucciones,deadline,TipoProceso.IO_BOUND,null,es);
-            Proceso p=d.crearProceso();computadores[equipo-1].recibirProceso(p);computadores[equipo-1].admitirProcesos();cargaProcesos.agregar(d);return p;
-        }finally{mutex.release();}
+            if (equipo < 1 || equipo > computadores.length) {
+                throw new IllegalArgumentException("Computador inexistente");
+            }
+            if (memoria > computadores[equipo - 1].getMemoria().getCapacidad()) {
+                throw new IllegalArgumentException("Memoria superior a RAM");
+            }
+            DefinicionProceso definicion = new DefinicionProceso(nombre, equipo, prioridad, memoria,
+                    instrucciones, deadline, TipoProceso.IO_BOUND, null, es);
+            Proceso proceso = definicion.crearProceso();
+            computadores[equipo - 1].recibirProceso(proceso);
+            computadores[equipo - 1].admitirProcesos();
+            cargaProcesos.agregar(definicion);
+            return proceso;
+        } finally {
+            mutex.release();
+        }
     }
-    public void cambiarPolitica(int equipo,Modelo.PoliticaPlanificacion tipo,int quantum) {
-        mutex.acquireUninterruptibly();try {
-            comprobarDisponible();if(equipo<1 || equipo>computadores.length) throw new IllegalArgumentException("Computador inexistente");
-            computadores[equipo-1].cambiarPolitica(tipo,quantum);
-            Modelo.PoliticaPlanificacion[] ps=configuracion.getPoliticas();int[] qs=configuracion.getQuantums();ps[equipo-1]=tipo;qs[equipo-1]=quantum;
-            configuracion=new Configuracion(configuracion.getRam(),configuracion.getDuracionMs(),configuracion.getQuantum(),configuracion.getLatencia(),ps,qs);
-        }finally{mutex.release();}
+
+    /** Cambia la politica y el quantum de un computador, y los conserva en la configuracion. */
+    public void cambiarPolitica(int equipo, PoliticaPlanificacion tipo, int quantum) {
+        mutex.acquireUninterruptibly();
+        try {
+            comprobarDisponible();
+            if (equipo < 1 || equipo > computadores.length) {
+                throw new IllegalArgumentException("Computador inexistente");
+            }
+            computadores[equipo - 1].cambiarPolitica(tipo, quantum);
+            PoliticaPlanificacion[] politicas = configuracion.getPoliticas();
+            int[] quantums = configuracion.getQuantums();
+            politicas[equipo - 1] = tipo;
+            quantums[equipo - 1] = quantum;
+            configuracion = new Configuracion(configuracion.getRam(), configuracion.getDuracionMs(),
+                    configuracion.getQuantum(), configuracion.getLatencia(), politicas, quantums);
+        } finally {
+            mutex.release();
+        }
     }
-    public Modelo.VistaMetricas[] consultarMetricas(){mutex.acquireUninterruptibly();try {
-        if(computadores==null) return new Modelo.VistaMetricas[0];
-        Modelo.VistaMetricas[] a=new Modelo.VistaMetricas[computadores.length];for(int i=0;i<a.length;i++)a[i]=computadores[i].consultarMetricas();return a;
-    }finally{mutex.release();}}
-    public Modelo.EventoSistema[] consultarLog(){mutex.acquireUninterruptibly();try{
-        Cola<Modelo.EventoSistema> eventos=new Cola<>();if(computadores!=null)for(Computador c:computadores)for(Modelo.EventoSistema e:c.consultarEventos())eventos.agregar(e);
-        Modelo.EventoSistema[] a=new Modelo.EventoSistema[eventos.getTamano()];for(int i=0;i<a.length;i++)a[i]=eventos.quitar();
-        for(int i=1;i<a.length;i++){Modelo.EventoSistema e=a[i];int j=i-1;while(j>=0 && (a[j].ciclo()>e.ciclo() || (a[j].ciclo()==e.ciclo() && a[j].computador()>e.computador()))){a[j+1]=a[j];j--;}a[j+1]=e;}return a;
-    }finally{mutex.release();}}
+    /** Una lectura de metricas por computador, en el orden del cluster. */
+    public VistaMetricas[] consultarMetricas() {
+        mutex.acquireUninterruptibly();
+        try {
+            if (computadores == null) {
+                return new VistaMetricas[0];
+            }
+            VistaMetricas[] vistas = new VistaMetricas[computadores.length];
+            for (int equipo = 0; equipo < vistas.length; equipo++) {
+                vistas[equipo] = computadores[equipo].consultarMetricas();
+            }
+            return vistas;
+        } finally {
+            mutex.release();
+        }
+    }
+
+    /**
+     * Mezcla los anillos de eventos de todos los computadores. La insercion es estable y
+     * ordena por ciclo y, dentro del mismo ciclo, por numero de computador.
+     */
+    public EventoSistema[] consultarLog() {
+        mutex.acquireUninterruptibly();
+        try {
+            Cola<EventoSistema> eventos = new Cola<>();
+            if (computadores != null) {
+                for (Computador computador : computadores) {
+                    for (EventoSistema evento : computador.consultarEventos()) {
+                        eventos.agregar(evento);
+                    }
+                }
+            }
+            EventoSistema[] mezcla = new EventoSistema[eventos.getTamano()];
+            for (int posicion = 0; posicion < mezcla.length; posicion++) {
+                mezcla[posicion] = eventos.quitar();
+            }
+            for (int actual = 1; actual < mezcla.length; actual++) {
+                EventoSistema evento = mezcla[actual];
+                int anterior = actual - 1;
+                while (anterior >= 0 && (mezcla[anterior].ciclo() > evento.ciclo()
+                        || (mezcla[anterior].ciclo() == evento.ciclo()
+                        && mezcla[anterior].computador() > evento.computador()))) {
+                    mezcla[anterior + 1] = mezcla[anterior];
+                    anterior--;
+                }
+                mezcla[anterior + 1] = evento;
+            }
+            return mezcla;
+        } finally {
+            mutex.release();
+        }
+    }
     public Proceso crearProcesoBuffer(String nombre, int computador, int prioridad, int memoria,
             int deadline, TipoProceso tipo, String nombreBuffer, int intervalo, int elementos) {
         ParametrosBuffer parametros = new ParametrosBuffer(nombreBuffer, intervalo, elementos);
