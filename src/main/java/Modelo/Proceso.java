@@ -94,17 +94,12 @@ public class Proceso {
 
     public void cambiarEstado(EstadoProceso nuevo, MotivoBloqueo motivo) {
         if (nuevo == null || motivo == null) throw new IllegalArgumentException("El estado y el motivo son obligatorios");
-        if ((nuevo == EstadoProceso.BLOQUEADO) != (motivo != MotivoBloqueo.NINGUNO))
+        boolean destinoBloqueado = nuevo == EstadoProceso.BLOQUEADO
+                || nuevo == EstadoProceso.BLOQUEADO_SUSPENDIDO;
+        if (destinoBloqueado != (motivo != MotivoBloqueo.NINGUNO))
             throw new IllegalArgumentException("El motivo no corresponde al estado");
-        boolean permitido = switch (estado) {
-            case NUEVO -> nuevo == EstadoProceso.LISTO || nuevo == EstadoProceso.TERMINADO;
-            case LISTO -> nuevo == EstadoProceso.EJECUCION || nuevo == EstadoProceso.TERMINADO;
-            case EJECUCION -> nuevo == EstadoProceso.LISTO || nuevo == EstadoProceso.BLOQUEADO || nuevo == EstadoProceso.TERMINADO;
-            case BLOQUEADO -> nuevo == EstadoProceso.LISTO || nuevo == EstadoProceso.TERMINADO;
-            case LISTO_SUSPENDIDO, BLOQUEADO_SUSPENDIDO -> false;
-            case TERMINADO -> false;
-        };
-        if (!permitido) throw new IllegalStateException("Transicion no permitida: " + estado + " -> " + nuevo);
+        if (!estado.permiteTransicionA(nuevo))
+            throw new IllegalStateException("Transicion no permitida: " + estado + " -> " + nuevo);
         estado = nuevo;
         motivoBloqueo = motivo;
     }
