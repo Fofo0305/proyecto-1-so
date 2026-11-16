@@ -1,9 +1,13 @@
 package Pruebas;
 
+import Modelo.DefinicionProceso;
 import Modelo.EstadoProceso;
 import Modelo.MotivoBloqueo;
+import Modelo.OperacionES;
+import Modelo.ParametrosES;
 import Modelo.Proceso;
 import Modelo.TipoProceso;
+import Sistema.Computador;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
@@ -13,10 +17,53 @@ public final class PruebaModeloSieteEstados {
 
     public static void main(String[] args) throws Exception {
         probarEnumsObligatorios();
+        probarMatrizCompleta();
         probarTransicionesSuspendidas();
         probarOperacionDeDiscoEnPCB();
+        probarContratoDefinicion();
         probarEstructurasPropias();
         System.out.println("OK: enums, PCB, siete estados y estructuras enlazadas propias");
+    }
+
+    private static void probarMatrizCompleta() {
+        EstadoProceso[] estados = EstadoProceso.values();
+        boolean[][] permitidas = {
+            {false, true,  false, false, false, false, true},
+            {false, false, true,  false, true,  false, true},
+            {false, true,  false, true,  false, false, true},
+            {false, true,  false, false, false, true,  true},
+            {false, true,  false, false, false, false, true},
+            {false, false, false, true,  true,  false, true},
+            {false, false, false, false, false, false, false}
+        };
+        for (int origen = 0; origen < estados.length; origen++)
+            for (int destino = 0; destino < estados.length; destino++)
+                verificar(estados[origen].permiteTransicionA(estados[destino]) == permitidas[origen][destino],
+                        "Matriz incorrecta: " + estados[origen] + " -> " + estados[destino]);
+
+        Proceso sinMotivo = proceso("Sin motivo");
+        sinMotivo.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+        sinMotivo.cambiarEstado(EstadoProceso.EJECUCION, MotivoBloqueo.NINGUNO);
+        esperarArgumento(() -> sinMotivo.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.NINGUNO),
+                "BLOQUEADO sin motivo");
+
+        Proceso suspendidoSinMotivo = proceso("Suspendido sin motivo");
+        suspendidoSinMotivo.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+        suspendidoSinMotivo.cambiarEstado(EstadoProceso.EJECUCION, MotivoBloqueo.NINGUNO);
+        suspendidoSinMotivo.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.ENTRADA_SALIDA);
+        esperarArgumento(() -> suspendidoSinMotivo.cambiarEstado(
+                EstadoProceso.BLOQUEADO_SUSPENDIDO, MotivoBloqueo.NINGUNO), "BLOQUEADO_SUSPENDIDO sin motivo");
+
+        Proceso motivoSobrante = proceso("Motivo sobrante");
+        esperarArgumento(() -> motivoSobrante.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.ENTRADA_SALIDA),
+                "estado no bloqueado con motivo");
+    }
+
+    private static void esperarArgumento(Runnable operacion, String caso) {
+        try {
+            operacion.run();
+            throw new AssertionError("Se acepto " + caso);
+        } catch (IllegalArgumentException esperado) { }
     }
 
     private static void probarEnumsObligatorios() throws Exception {
@@ -73,6 +120,49 @@ public final class PruebaModeloSieteEstados {
                 "El PCB no conserva la operacion de disco");
         verificar("/usuarios/notas.txt".equals(Proceso.class.getMethod("getRutaObjetivo").invoke(proceso)),
                 "El PCB no conserva la ruta objetivo");
+    }
+
+    private static void probarContratoDefinicion() {
+        DefinicionProceso definicion = new DefinicionProceso("Lectura", 1, 0, 4, 2, 20,
+                OperacionES.LEER, "/usuarios/notas.txt");
+        Proceso lectura = definicion.crearProceso();
+        verificar(lectura.getOperacionES() == OperacionES.LEER
+                && "/usuarios/notas.txt".equals(lectura.getRutaObjetivo()),
+                "DefinicionProceso no transfiere la solicitud al PCB");
+
+        esperarArgumento(() -> new DefinicionProceso("Relativa", 1, 0, 4, 2, 20,
+                OperacionES.LEER, "usuarios/notas.txt"), "ruta relativa");
+        esperarArgumento(() -> new DefinicionProceso("Dos mecanismos", 1, 0, 4, 2, 20,
+                TipoProceso.IO_BOUND, new ParametrosES(1, 1), OperacionES.LEER, "/archivo"),
+                "E/S temporal y de disco simultaneas");
+
+        DefinicionProceso suspension = new DefinicionProceso("Suspension", 1, 0, 4, 2, 20,
+                OperacionES.SUSPENDER, null);
+        verificar(suspension.crearProceso().getRutaObjetivo() == null,
+                "La suspension exige una ruta de archivo artificial");
+
+        Proceso repetido = proceso("Repetido");
+        repetido.configurarOperacionDisco(OperacionES.LEER, "/archivo");
+        esperarEstado(() -> repetido.configurarOperacionDisco(OperacionES.LEER, "/otro"),
+                "configurar la operacion dos veces");
+
+        Proceso admitido = proceso("Admitido");
+        admitido.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+        esperarEstado(() -> admitido.configurarOperacionDisco(OperacionES.LEER, "/archivo"),
+                "configurar la operacion despues de NUEVO");
+
+        Computador computador = new Computador(1, 64);
+        esperarArgumento(() -> computador.recibirProceso(proceso("Incompleto")),
+                "admitir un IO_BOUND sin mecanismo de E/S");
+        verificar(computador.consultarVista().colaNuevos().length == 0,
+                "El computador registro un PCB incompleto");
+    }
+
+    private static void esperarEstado(Runnable operacion, String caso) {
+        try {
+            operacion.run();
+            throw new AssertionError("Se permitio " + caso);
+        } catch (IllegalStateException esperado) { }
     }
 
     private static void probarEstructurasPropias() throws Exception {
