@@ -9,7 +9,7 @@ try {
     $fuentesBuffers = @(Get-ChildItem src/main/java,src/test/java -Recurse -Filter *.java | ForEach-Object FullName)
     & $compilador -encoding UTF-8 --release 22 -d target/pruebas-buffers @fuentesBuffers
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la compilacion.' }
-    foreach ($pruebaBuffers in @('Pruebas.PruebaBuffer', 'Pruebas.PruebaRegistroBuffers', 'Pruebas.PruebaPanelBuffer',
+    foreach ($pruebaBuffers in @('Pruebas.PruebaBaseProyecto2', 'Pruebas.PruebaBuffer', 'Pruebas.PruebaRegistroBuffers', 'Pruebas.PruebaPanelBuffer',
             'Pruebas.PruebaSemaforos', 'Pruebas.PruebaBloqueoSemaforos', 'Pruebas.PruebaProductorConsumidorLocal',
             'Pruebas.PruebaAccesoRemoto', 'Pruebas.PruebaLimpiezaProductorConsumidor', 'Pruebas.PruebaEventosBuffers',
             'Pruebas.PruebaContadoresBuffers', 'Pruebas.PruebaTiemposBloqueo', 'Pruebas.PruebaObservacionIntegrada',

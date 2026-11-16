@@ -1,0 +1,43 @@
+package Pruebas;
+
+import Modelo.CargaInicial;
+import Modelo.Configuracion;
+import Modelo.DefinicionBuffer;
+import Modelo.DefinicionProceso;
+import Modelo.EstadoProceso;
+import Modelo.VistaComputador;
+import Sistema.ControladorSimulacion;
+
+/** Contrato mínimo que debe conservar la reestructuración hacia Proyecto 2. @author Adolfo */
+public final class PruebaBaseProyecto2 {
+    private PruebaBaseProyecto2() { }
+
+    public static void main(String[] args) {
+        Configuracion configuracion = new Configuracion(new int[] {64}, 300, 4, 0);
+        if (configuracion.getCantidadComputadores() != 1 || configuracion.getRam()[0] != 64) {
+            throw new AssertionError("La configuracion no representa un unico computador");
+        }
+
+        CargaInicial carga = new CargaInicial(configuracion,
+                new DefinicionProceso[] {new DefinicionProceso("Base P2", 1, 0, 16, 2, 20)},
+                new DefinicionBuffer[0]);
+
+        try (ControladorSimulacion controlador = new ControladorSimulacion()) {
+            controlador.cargarCarga(carga);
+            VistaComputador[] inicial = controlador.consultarVistas();
+            if (inicial.length != 1 || inicial[0].usada() != 16 || inicial[0].colaListos().length != 1) {
+                throw new AssertionError("El proceso no fue admitido en el computador unico");
+            }
+
+            controlador.avanzarCiclo();
+            VistaComputador vista = controlador.consultarVistas()[0];
+            if (vista.ciclo() != 1 || vista.procesoCPU() == null
+                    || vista.procesoCPU().estado() != EstadoProceso.EJECUCION
+                    || vista.procesoCPU().restante() != 1) {
+                throw new AssertionError("El computador unico no avanzo exactamente un ciclo");
+            }
+        }
+
+        System.out.println("OK: configuracion, admision y reloj con un solo computador");
+    }
+}

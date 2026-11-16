@@ -33,7 +33,8 @@ mkdir -p "$SALIDA"
 find src/main/java src/test/java -name '*.java' > "$SALIDA/fuentes.txt"
 "$COMPILADOR" -encoding UTF-8 --release 22 -d "$SALIDA" "@$SALIDA/fuentes.txt"
 
-PRUEBAS="Pruebas.PruebaBuffer
+PRUEBAS="Pruebas.PruebaBaseProyecto2
+Pruebas.PruebaBuffer
 Pruebas.PruebaRegistroBuffers
 Pruebas.PruebaPanelBuffer
 Pruebas.PruebaSemaforos
