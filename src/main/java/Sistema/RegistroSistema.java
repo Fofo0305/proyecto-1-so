@@ -6,7 +6,7 @@ import java.util.concurrent.Semaphore;
 /**
  * Anillo acotado de eventos de un computador; no adquiere bloqueos de otros nucleos.
  * Al llenarse descarta el evento mas antiguo, pero la secuencia local sigue creciendo.
- * @author Antony
+ * @author Adolfo
  */
 public final class RegistroSistema {
 

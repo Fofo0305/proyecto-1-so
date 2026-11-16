@@ -4,7 +4,7 @@ import Modelo.Proceso;
 
 /**
  * Earliest Deadline First: gana el proceso cuyo plazo vence antes.
- * @author Antony
+ * @author Adolfo
  */
 public final class EDF extends Ordenada {
 

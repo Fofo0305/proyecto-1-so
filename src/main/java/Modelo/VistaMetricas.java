@@ -6,7 +6,7 @@ package Modelo;
  * La ocupacion incluye las instrucciones de usuario y las operaciones de sistema de los
  * procesos. La equidad de Jain usa las instrucciones recibidas por todos los procesos
  * creados en el equipo.
- * @author Antony
+ * @author Adolfo
  */
 public record VistaMetricas(
         int computador, long ciclos, long ocupados,

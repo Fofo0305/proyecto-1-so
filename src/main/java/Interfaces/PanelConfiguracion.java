@@ -3,7 +3,7 @@ package Interfaces;
 import Modelo.Configuracion;
 
 /**
- * Entrada de parámetros iniciales del clúster.
+ * Entrada de parámetros iniciales de la simulación.
  * @author Adolfo
  */
 public class PanelConfiguracion extends javax.swing.JPanel {
@@ -11,19 +11,11 @@ public class PanelConfiguracion extends javax.swing.JPanel {
 
     /** Lee los campos y valida su formato antes de construir la configuración. */
     public Configuracion leerConfiguracion() {
-        for (javax.swing.JTextField campo : new javax.swing.JTextField[] {campoCantidad, campoRam, campoCiclo, campoQuantum, campoLatencia})
+        for (javax.swing.JTextField campo : new javax.swing.JTextField[] {campoRam, campoCiclo, campoQuantum})
             campo.setBorder(javax.swing.UIManager.getBorder("TextField.border"));
-        int cantidad = leerEntero(campoCantidad, "Computadores", 2, Integer.MAX_VALUE);
-        String[] valores = campoRam.getText().split(",", -1);
-        if (cantidad != valores.length) throw rechazar(campoRam, "Indica una RAM por computador. Para dos equipos: 64,96");
-        int[] ram = new int[valores.length];
-        for (int i = 0; i < ram.length; i++) {
-            try { ram[i] = Integer.parseInt(valores[i].trim()); }
-            catch (NumberFormatException error) { throw rechazar(campoRam, "La RAM del computador " + (i + 1) + " debe ser un entero positivo"); }
-            if (ram[i] < 1) throw rechazar(campoRam, "La RAM del computador " + (i + 1) + " debe ser positiva");
-        }
-        return new Configuracion(ram, leerEntero(campoCiclo, "Duracion del ciclo en ms", 1, 60000),
-                leerEntero(campoQuantum, "Quantum", 1, Integer.MAX_VALUE), leerEntero(campoLatencia, "Latencia", 0, Integer.MAX_VALUE));
+        int ram = leerEntero(campoRam, "RAM", 1, Integer.MAX_VALUE);
+        return new Configuracion(new int[] {ram}, leerEntero(campoCiclo, "Duracion del ciclo en ms", 1, 60000),
+                leerEntero(campoQuantum, "Quantum", 1, Integer.MAX_VALUE));
     }
 
     private int leerEntero(javax.swing.JTextField campo, String nombre, int minimo, int maximo) {
@@ -37,27 +29,17 @@ public class PanelConfiguracion extends javax.swing.JPanel {
 
     private IllegalArgumentException rechazar(javax.swing.JTextField campo, String mensaje) {
         campo.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(190, 67, 67), 2));
-        if (campo == campoQuantum || campo == campoLatencia) { opciones.setSelected(true); avanzados.setVisible(true); revalidate(); }
+        if (campo == campoQuantum) { opciones.setSelected(true); avanzados.setVisible(true); revalidate(); }
         campo.requestFocusInWindow(); campo.selectAll();
         return new IllegalArgumentException(mensaje);
     }
     /** Carga una configuración para editarla o reconstruir una simulación. */
     public void mostrarConfiguracion(Configuracion configuracion) {
         if (configuracion == null) throw new IllegalArgumentException("La configuracion es obligatoria");
-        campoCantidad.setText(Integer.toString(configuracion.getCantidadComputadores()));
-        int[] ram = configuracion.getRam();
-        StringBuilder texto = new StringBuilder();
-        for (int i = 0; i < ram.length; i++) {
-            if (i > 0) texto.append(',');
-            texto.append(ram[i]);
-        }
-        campoRam.setText(texto.toString());
+        campoRam.setText(Integer.toString(configuracion.getRam()[0]));
         campoCiclo.setText(Integer.toString(configuracion.getDuracionMs()));
         campoQuantum.setText(Integer.toString(configuracion.getQuantum()));
-        campoLatencia.setText(Integer.toString(configuracion.getLatencia()));
     }
-
-    public void mostrarLatencia(int latencia) { campoLatencia.setText(Integer.toString(latencia)); }
 
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -69,10 +51,11 @@ public class PanelConfiguracion extends javax.swing.JPanel {
         add(introduccion, java.awt.BorderLayout.NORTH);
         formulario = new javax.swing.JPanel(new java.awt.GridBagLayout());
         formulario.setOpaque(false);
-        etiquetaCantidad = new javax.swing.JLabel("<html><b>Computadores</b><br><span style='color:#637089'>Al menos dos equipos independientes</span></html>");
-        campoCantidad = new javax.swing.JTextField("2", 12);
-        etiquetaRam = new javax.swing.JLabel("<html><b>Memoria por computador</b><br><span style='color:#637089'>Ejemplo para dos equipos: 64,96</span></html>");
-        campoRam = new javax.swing.JTextField("128,128", 12);
+        etiquetaCantidad = new javax.swing.JLabel("<html><b>Computadores</b><br><span style='color:#637089'>Proyecto 2 comienza con un unico equipo</span></html>");
+        campoCantidad = new javax.swing.JTextField("1", 12);
+        campoCantidad.setEditable(false);
+        etiquetaRam = new javax.swing.JLabel("<html><b>Memoria del computador</b><br><span style='color:#637089'>Unidades de RAM disponibles</span></html>");
+        campoRam = new javax.swing.JTextField("128", 12);
         etiquetaCiclo = new javax.swing.JLabel("<html><b>Velocidad de simulacion</b><br><span style='color:#637089'>Milisegundos por ciclo<br>Mayor valor = mas lento</span></html>");
         campoCiclo = new javax.swing.JTextField("700", 12);
         etiquetaPolitica = new javax.swing.JLabel("Orden de ejecucion");
@@ -81,9 +64,7 @@ public class PanelConfiguracion extends javax.swing.JPanel {
         avanzados = new javax.swing.JPanel(new java.awt.GridBagLayout()); avanzados.setOpaque(false);
         etiquetaQuantum = new javax.swing.JLabel("Quantum inicial");
         campoQuantum = new javax.swing.JTextField("4", 12);
-        etiquetaLatencia = new javax.swing.JLabel("Latencia de red (ciclos)");
-        campoLatencia = new javax.swing.JTextField("0", 12);
-        aviso = new javax.swing.JLabel("<html>La latencia se aplica a accesos remotos; quantum queda para Round Robin.<br>Aplicar crea una sesion nueva.<br>Deten el reloj antes de cambiar la configuracion.</html>");
+        aviso = new javax.swing.JLabel("<html>El quantum se usa con Round Robin.<br>Aplicar crea una sesion nueva.<br>Deten el reloj antes de cambiar la configuracion.</html>");
         aviso.setForeground(new java.awt.Color(93, 108, 130));
         java.awt.GridBagConstraints c;
         c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=0; c.anchor=java.awt.GridBagConstraints.WEST; c.insets=new java.awt.Insets(0,0,20,24); formulario.add(etiquetaCantidad,c);
@@ -98,17 +79,15 @@ public class PanelConfiguracion extends javax.swing.JPanel {
         c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=5; c.gridwidth=2; c.anchor=java.awt.GridBagConstraints.WEST; formulario.add(avanzados,c);
         c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=0; c.insets=new java.awt.Insets(0,0,12,24); c.anchor=java.awt.GridBagConstraints.WEST; avanzados.add(etiquetaQuantum,c);
         c = new java.awt.GridBagConstraints(); c.gridx=1; c.gridy=0; c.insets=new java.awt.Insets(0,0,12,0); avanzados.add(campoQuantum,c);
-        c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=1; c.insets=new java.awt.Insets(0,0,12,24); c.anchor=java.awt.GridBagConstraints.WEST; avanzados.add(etiquetaLatencia,c);
-        c = new java.awt.GridBagConstraints(); c.gridx=1; c.gridy=1; c.insets=new java.awt.Insets(0,0,12,0); avanzados.add(campoLatencia,c);
         c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=6; c.gridwidth=2; c.anchor=java.awt.GridBagConstraints.WEST; formulario.add(aviso,c);
         c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=7; c.weighty=1; formulario.add(javax.swing.Box.createVerticalGlue(),c);
         add(formulario, java.awt.BorderLayout.CENTER);
-        campoCantidad.setToolTipText("Ejemplo: 2"); campoCantidad.setName("cantidad");
-        campoRam.setToolTipText("Ejemplo: 64,96 para dos computadores"); campoRam.setName("ram");
+        campoCantidad.setToolTipText("Proyecto 2 utiliza un computador"); campoCantidad.setName("cantidad");
+        campoRam.setToolTipText("Ejemplo: 128"); campoRam.setName("ram");
         campoCiclo.setToolTipText("Entre 1 y 60000 ms. Recomendado: 700 para observar procesos"); campoCiclo.setName("ciclo");
-        campoQuantum.setName("quantum"); campoLatencia.setName("latencia");
+        campoQuantum.setName("quantum");
         etiquetaCantidad.setLabelFor(campoCantidad); etiquetaRam.setLabelFor(campoRam); etiquetaCiclo.setLabelFor(campoCiclo);
-        for (javax.swing.JTextField campo : new javax.swing.JTextField[] {campoCantidad, campoRam, campoCiclo, campoQuantum, campoLatencia}) {
+        for (javax.swing.JTextField campo : new javax.swing.JTextField[] {campoCantidad, campoRam, campoCiclo, campoQuantum}) {
             campo.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 14));
             campo.setMargin(new java.awt.Insets(6, 8, 6, 8));
         }
@@ -118,7 +97,7 @@ public class PanelConfiguracion extends javax.swing.JPanel {
     private javax.swing.JPanel formulario, avanzados;
     private javax.swing.JCheckBox opciones;
     private javax.swing.JLabel introduccion, aviso;
-    private javax.swing.JTextField campoCantidad, campoRam, campoCiclo, campoQuantum, campoLatencia;
-    private javax.swing.JLabel etiquetaCantidad, etiquetaRam, etiquetaCiclo, etiquetaQuantum, etiquetaLatencia, etiquetaPolitica, valorPolitica;
+    private javax.swing.JTextField campoCantidad, campoRam, campoCiclo, campoQuantum;
+    private javax.swing.JLabel etiquetaCantidad, etiquetaRam, etiquetaCiclo, etiquetaQuantum, etiquetaPolitica, valorPolitica;
     // End of variables declaration//GEN-END:variables
 }

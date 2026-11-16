@@ -6,7 +6,7 @@ import Modelo.Proceso;
 /**
  * Base de las politicas que prefieren el valor numerico menor. La ordenacion es una
  * insercion estable propia: los empates conservan el orden de llegada a listos.
- * @author Antony
+ * @author Adolfo
  */
 public abstract class Ordenada implements Politica {
 

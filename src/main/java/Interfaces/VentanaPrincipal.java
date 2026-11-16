@@ -11,19 +11,12 @@ public class VentanaPrincipal extends JFrame {
     private final Sistema.ControladorSimulacion controlador = new Sistema.ControladorSimulacion();
     private final PanelConfiguracion panelConfiguracion = new PanelConfiguracion();
     private final PanelProceso panelProceso = new PanelProceso();
-    private final PanelBuffer panelBuffer = new PanelBuffer();
-    private final PanelProductorConsumidor panelProductorConsumidor = new PanelProductorConsumidor();
-    private final PanelEstadoBuffers panelEstadoBuffers = new PanelEstadoBuffers(controlador);
     private final PanelControles panelControles = new PanelControles(controlador);
     private final PanelComputadores panelComputadores = new PanelComputadores(controlador);
     private final PanelArchivos panelArchivos = new PanelArchivos(controlador, this::mostrarCarga);
     private final JButton botonConfigurar = new JButton("Aplicar configuracion");
     private final JButton botonCrear = new JButton("Crear proceso CPU-bound");
-    private final JButton botonCrearBuffer = new JButton("Crear buffer y reservar RAM");
-    private final JButton botonCrearComunicante = new JButton("Crear productor o consumidor");
-    private final JLabel estado = new JLabel("Configure el cluster para comenzar");
-    private final PanelLatenciaRed panelLatenciaRed = new PanelLatenciaRed(controlador,
-            panelConfiguracion::mostrarLatencia, estado::setText);
+    private final JLabel estado = new JLabel("Configure la simulacion para comenzar");
     private final JTabbedPane pestanas = new JTabbedPane();
 
     public VentanaPrincipal() {
@@ -41,27 +34,9 @@ public class VentanaPrincipal extends JFrame {
 
         procesos.add(botonCrear, BorderLayout.SOUTH);
         botonCrear.addActionListener(evento -> crearProceso());
-        JPanel buffers = new JPanel(new BorderLayout(8, 8));
-        JPanel formularioBuffers = new JPanel(new BorderLayout());
-        JPanel cabeceraBuffers = new JPanel(new BorderLayout());
-        cabeceraBuffers.add(panelBuffer, BorderLayout.CENTER);
-        cabeceraBuffers.add(panelLatenciaRed, BorderLayout.SOUTH);
-        formularioBuffers.add(cabeceraBuffers, BorderLayout.NORTH);
-        buffers.add(conScroll(formularioBuffers), BorderLayout.CENTER);
-        buffers.add(botonCrearBuffer, BorderLayout.SOUTH);
-        botonCrearBuffer.addActionListener(evento -> crearBuffer());
         pestanas.addTab("Configuracion", configuracion);
         pestanas.addTab("Procesos", procesos);
-        pestanas.addTab("Buffers", buffers);
-        JPanel comunicantes = new JPanel(new BorderLayout(8,8));
-        JPanel camposComunicantes = new JPanel(new BorderLayout());
-        camposComunicantes.add(panelProductorConsumidor, BorderLayout.NORTH);
-        comunicantes.add(conScroll(camposComunicantes), BorderLayout.CENTER);
-        comunicantes.add(botonCrearComunicante, BorderLayout.SOUTH);
-        botonCrearComunicante.addActionListener(evento -> crearProductorConsumidor());
-        pestanas.addTab("Productor / consumidor", comunicantes);
         pestanas.addTab("Simulacion en vivo", panelComputadores);
-        pestanas.addTab("Observacion de buffers", panelEstadoBuffers);
         pestanas.addTab("Planificacion E/S y metricas", new PanelPlanificacion(controlador));
         contenido.add(pestanas, BorderLayout.CENTER);
         getContentPane().add(titulo, BorderLayout.NORTH);
@@ -74,7 +49,7 @@ public class VentanaPrincipal extends JFrame {
         titulo.setFont(new Font("SansSerif", Font.BOLD, 20));
         titulo.setForeground(new Color(30, 49, 77));
         titulo.setBorder(BorderFactory.createEmptyBorder(18, 16, 4, 16));
-        botonConfigurar.setText("Crear cluster y abrir simulacion");
+        botonConfigurar.setText("Crear computador y abrir simulacion");
         botonConfigurar.setFont(new Font("SansSerif", Font.BOLD, 14));
         botonConfigurar.setMargin(new Insets(10, 16, 10, 16));
         botonConfigurar.setToolTipText("Reemplaza la sesion actual con los datos del formulario");
@@ -122,61 +97,7 @@ public class VentanaPrincipal extends JFrame {
 
     }
 
-    /** Captura el formulario en EDT y reserva la RAM fuera del hilo de Swing. */
-    public void crearBuffer() {
-        if (!botonCrearBuffer.isEnabled()) return;
-        final String[] campos = panelBuffer.leerCampos();
-        try {
-            PanelBuffer.validarCampos(campos);
-        } catch (IllegalArgumentException error) {
-            estado.setText(error.getMessage());
-            return;
-        }
-        botonCrearBuffer.setEnabled(false);
-        estado.setText("Creando buffer...");
-        Thread trabajo = new Thread(() -> {
-            try {
-                Modelo.Buffer<Object> creado = PanelBuffer.crearBuffer(controlador, campos);
-                SwingUtilities.invokeLater(() -> {
-                    estado.setText("Buffer " + creado.getNombre() + " creado en computador "
-                            + creado.getAnfitrion() + " | RAM reservada: " + creado.getCapacidad());
-                    panelComputadores.actualizar();
-                });
-            } catch (RuntimeException error) {
-                SwingUtilities.invokeLater(() -> estado.setText(error.getMessage()));
-            } finally {
-                SwingUtilities.invokeLater(() -> botonCrearBuffer.setEnabled(true));
-            }
-        }, "Crear-buffer");
-        trabajo.setDaemon(true);
-        trabajo.start();
-    }
-
-    public void crearProductorConsumidor() {
-        if (!botonCrearComunicante.isEnabled()) return;
-        final String[] campos = panelProductorConsumidor.leerCampos();
-        try { PanelProductorConsumidor.validarCampos(campos); }
-        catch (IllegalArgumentException error) { estado.setText(error.getMessage()); return; }
-        botonCrearComunicante.setEnabled(false);
-        estado.setText("Creando productor o consumidor...");
-        Thread trabajador = new Thread(() -> {
-            try {
-                Modelo.Proceso proceso = PanelProductorConsumidor.crearProceso(controlador, campos);
-                SwingUtilities.invokeLater(() -> {
-                    estado.setText("Proceso " + proceso.getId() + " creado: " + proceso.getTipo());
-                    panelComputadores.actualizar();
-                });
-            } catch (RuntimeException error) {
-                SwingUtilities.invokeLater(() -> estado.setText(error.getMessage()));
-            } finally {
-                SwingUtilities.invokeLater(() -> botonCrearComunicante.setEnabled(true));
-            }
-        }, "Crear-productor-consumidor");
-        trabajador.setDaemon(true);
-        trabajador.start();
-    }
-
-    /** Lee en EDT y construye el clúster fuera del hilo de interfaz. */
+    /** Lee en EDT y construye el computador fuera del hilo de interfaz. */
     public void aplicarConfiguracion() {
         final Modelo.Configuracion configuracion;
         try {
@@ -193,7 +114,9 @@ public class VentanaPrincipal extends JFrame {
             try {
                 controlador.configurar(configuracion);
                 aplicada = true;
-                mensaje = "Cluster configurado: " + configuracion.getCantidadComputadores() + " computadores, politica FCFS";
+                int cantidad = configuracion.getCantidadComputadores();
+                mensaje = "Simulacion configurada: " + cantidad + (cantidad == 1 ? " computador" : " computadores")
+                        + ", politica FCFS";
             } catch (RuntimeException error) {
                 mensaje = error.getMessage();
             }
@@ -202,14 +125,13 @@ public class VentanaPrincipal extends JFrame {
             SwingUtilities.invokeLater(() -> {
                 estado.setText(resultado);
                 if (actualizarControles) {
-                    panelLatenciaRed.mostrarLatencia(configuracion.getLatencia());
                     panelControles.prepararSesion(configuracion.getDuracionMs());
                     pestanas.setSelectedComponent(panelComputadores);
                     panelComputadores.actualizar();
                 }
                 botonConfigurar.setEnabled(true);
             });
-        }, "Configurar-cluster");
+        }, "Configurar-computador");
         trabajo.setDaemon(true);
         trabajo.start();
     }
@@ -222,11 +144,9 @@ public class VentanaPrincipal extends JFrame {
     }
     public PanelConfiguracion getPanelConfiguracion() { return panelConfiguracion; }
     public PanelProceso getPanelProceso() { return panelProceso; }
-    public PanelProductorConsumidor getPanelProductorConsumidor() { return panelProductorConsumidor; }
     public void mostrarProcesos() { pestanas.setSelectedIndex(1); }
     private void mostrarCarga(Modelo.CargaInicial carga) {
         panelConfiguracion.mostrarConfiguracion(carga.getConfiguracion());
-        panelLatenciaRed.mostrarLatencia(carga.getConfiguracion().getLatencia());
         panelControles.prepararSesion(carga.getConfiguracion().getDuracionMs());
         estado.setText("Carga inicial lista. Pulse Iniciar.");
         panelComputadores.actualizar();
@@ -238,14 +158,13 @@ public class VentanaPrincipal extends JFrame {
     public PanelControles getPanelControles() { return panelControles; }
     public PanelComputadores getPanelComputadores() { return panelComputadores; }
     public PanelArchivos getPanelArchivos() { return panelArchivos; }
-    public PanelLatenciaRed getPanelLatenciaRed() { return panelLatenciaRed; }
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
         titulo = new javax.swing.JLabel();
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle("AvilaOS - Simulador distribuido");
+        setTitle("AvilaOS - Sistema de archivos y procesos");
         titulo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         titulo.setText("AvilaOS - Configuracion del simulador");
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());

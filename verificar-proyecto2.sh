@@ -1,11 +1,11 @@
 #!/bin/sh
 # Compila el proyecto y corre las comprobaciones de src/test/java/Pruebas.
-# Equivalente de verificar-buffers.ps1 para macOS y Linux.
+# Equivalente de verificar-proyecto2.ps1 para macOS y Linux.
 #
-#   ./verificar-buffers.sh [--jdk RUTA] [--interfaz]
+#   ./verificar-proyecto2.sh [--jdk RUTA] [--interfaz]
 #
-# Sin --interfaz corre las 16 comprobaciones que no necesitan pantalla.
-# Con --interfaz agrega las 6 que crean ventanas Swing; en un servidor sin
+# Sin --interfaz corre las 3 comprobaciones que no necesitan pantalla.
+# Con --interfaz agrega las 2 que crean componentes Swing; en un servidor sin
 # escritorio hay que envolverlas, por ejemplo con `xvfb-run -a`.
 set -eu
 
@@ -27,36 +27,19 @@ fi
 COMPILADOR="$JDK/bin/javac"
 JAVA="$JDK/bin/java"
 cd "$(dirname "$0")"
-SALIDA=target/pruebas-buffers
+SALIDA=target/pruebas-proyecto2
 mkdir -p "$SALIDA"
 
 find src/main/java src/test/java -name '*.java' > "$SALIDA/fuentes.txt"
 "$COMPILADOR" -encoding UTF-8 --release 22 -d "$SALIDA" "@$SALIDA/fuentes.txt"
 
-PRUEBAS="Pruebas.PruebaBuffer
-Pruebas.PruebaRegistroBuffers
-Pruebas.PruebaPanelBuffer
-Pruebas.PruebaSemaforos
-Pruebas.PruebaBloqueoSemaforos
-Pruebas.PruebaProductorConsumidorLocal
-Pruebas.PruebaAccesoRemoto
-Pruebas.PruebaLimpiezaProductorConsumidor
-Pruebas.PruebaEventosBuffers
-Pruebas.PruebaContadoresBuffers
-Pruebas.PruebaTiemposBloqueo
-Pruebas.PruebaObservacionIntegrada
-Pruebas.PruebaPanelLatencia
+PRUEBAS="Pruebas.PruebaBaseProyecto2
 Pruebas.PruebaPoliticasES
-Pruebas.PruebaPanelPlanificacion
 Pruebas.PruebaRelojPoliticas"
 
 if [ "$INTERFAZ" -eq 1 ]; then
     PRUEBAS="$PRUEBAS
-Pruebas.PruebaPanelObservacion
-Pruebas.PruebaVentanaBuffers
-Pruebas.PruebaVentanaProductorConsumidor
-Pruebas.PruebaFlujoCompleto
-Pruebas.PruebaVentanaNormal
+Pruebas.PruebaPanelPlanificacion
 Pruebas.PruebaScrollColas"
 fi
 

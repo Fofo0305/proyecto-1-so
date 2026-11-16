@@ -26,8 +26,8 @@ public class RelojGlobal implements AutoCloseable {
     public RelojGlobal(ComponenteReloj[] componentes, FinalizadorCiclo finalizador) {
         if (finalizador == null) throw new IllegalArgumentException("El finalizador es obligatorio");
         this.finalizador = finalizador;
-        if (componentes == null || componentes.length < 2)
-            throw new IllegalArgumentException("Se requieren al menos dos componentes");
+        if (componentes == null || componentes.length < 1)
+            throw new IllegalArgumentException("Se requiere al menos un componente");
         for (int i = 0; i < componentes.length; i++) {
             if (componentes[i] == null) throw new IllegalArgumentException("Componente nulo");
             for (int j = 0; j < i; j++)
