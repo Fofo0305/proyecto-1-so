@@ -20,7 +20,9 @@ public class Proceso {
     private int mar;
     private int restante;
     private int deadline;
-    private ParametrosES parametrosES = new ParametrosES(2, 3);
+    private ParametrosES parametrosES;
+    private OperacionES operacionES;
+    private String rutaObjetivo;
     private int ejecutadasRafaga;
     private long esHasta;
     private long llegada;
@@ -50,13 +52,40 @@ public class Proceso {
     }
 
     public void configurarES(ParametrosES parametros) {
-        if (estado != EstadoProceso.NUEVO || tipo != TipoProceso.IO_BOUND || parametros == null)
+        if (estado != EstadoProceso.NUEVO || tipo != TipoProceso.IO_BOUND || parametros == null
+                || parametrosES != null || operacionES != null)
             throw new IllegalStateException("E/S solo al crear IO_BOUND");
         parametrosES = parametros;
     }
 
+    /** Asocia una solicitud de disco al PCB antes de admitir el proceso. */
+    public void configurarOperacionDisco(OperacionES operacion, String ruta) {
+        if (estado != EstadoProceso.NUEVO || tipo != TipoProceso.IO_BOUND || operacion == null
+                || parametrosES != null || operacionES != null)
+            throw new IllegalStateException("La operacion de disco solo se configura una vez en un IO_BOUND nuevo");
+        validarDestino(operacion, ruta);
+        operacionES = operacion;
+        rutaObjetivo = ruta;
+    }
+
+    /** Indica si el PCB ya puede entrar a las colas del computador. */
+    public boolean tieneConfiguracionValida() {
+        boolean esTemporal = parametrosES != null;
+        boolean esDisco = operacionES != null;
+        return tipo == TipoProceso.CPU_BOUND ? !esTemporal && !esDisco : esTemporal != esDisco;
+    }
+
+    static void validarDestino(OperacionES operacion, String ruta) {
+        if (operacion.requiereRuta()) {
+            if (ruta == null || ruta.isBlank() || ruta.charAt(0) != '/')
+                throw new IllegalArgumentException("La ruta objetivo debe ser absoluta");
+        } else if (ruta != null) {
+            throw new IllegalArgumentException("Suspender y reactivar no utilizan una ruta de archivo");
+        }
+    }
+
     public boolean agotarRafaga(long ciclo) {
-        if (tipo != TipoProceso.IO_BOUND || restante == 0) return false;
+        if (tipo != TipoProceso.IO_BOUND || parametrosES == null || restante == 0) return false;
         if (++ejecutadasRafaga < parametrosES.rafaga()) return false;
         ejecutadasRafaga = 0;
         esHasta = ciclo + parametrosES.duracion();
@@ -108,6 +137,8 @@ public class Proceso {
     public int getRestante() { return restante; }
     public int getDeadline() { return deadline; }
     public ParametrosES getParametrosES() { return parametrosES; }
+    public OperacionES getOperacionES() { return operacionES; }
+    public String getRutaObjetivo() { return rutaObjetivo; }
     public long getEsHasta() { return esHasta; }
     public long getRespuesta() { return primeraRespuesta; }
     public String getResultado() { return resultado; }

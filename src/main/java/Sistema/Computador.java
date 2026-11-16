@@ -47,8 +47,9 @@ public class Computador implements ComponenteReloj {
     }
 
     public void recibirProceso(Proceso proceso) {
-        if (proceso == null || proceso.getComputador() != id || proceso.getEstado() != EstadoProceso.NUEVO)
-            throw new IllegalArgumentException("El proceso debe ser nuevo y pertenecer al computador");
+        if (proceso == null || proceso.getComputador() != id || proceso.getEstado() != EstadoProceso.NUEVO
+                || !proceso.tieneConfiguracionValida())
+            throw new IllegalArgumentException("El proceso debe estar configurado, ser nuevo y pertenecer al computador");
         mutex.acquireUninterruptibly();
         try {
             if (contiene(nuevos, proceso.getId()) || contiene(listos, proceso.getId())
@@ -249,7 +250,10 @@ public class Computador implements ComponenteReloj {
 
     private String describirOperacion(Proceso proceso) {
         if (proceso.getTipo() != TipoProceso.IO_BOUND) return "";
+        if (proceso.getOperacionES() != null)
+            return proceso.getOperacionES() + (proceso.getRutaObjetivo() == null ? "" : " " + proceso.getRutaObjetivo());
         ParametrosES es = proceso.getParametrosES();
+        if (es == null) return "E/S sin configurar";
         return "E/S rafaga=" + es.rafaga() + " duracion=" + es.duracion() + " hasta=" + proceso.getEsHasta();
     }
 
