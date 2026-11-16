@@ -6,7 +6,5 @@ package Modelo;
  */
 public enum MotivoBloqueo {
     NINGUNO,
-    ENTRADA_SALIDA,
-    SEMAFORO,
-    RED
+    ENTRADA_SALIDA
 }

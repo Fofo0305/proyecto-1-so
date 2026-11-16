@@ -4,8 +4,8 @@
 #
 #   ./verificar-buffers.sh [--jdk RUTA] [--interfaz]
 #
-# Sin --interfaz corre las 17 comprobaciones que no necesitan pantalla.
-# Con --interfaz agrega las 6 que crean ventanas Swing; en un servidor sin
+# Sin --interfaz corre las 3 comprobaciones que no necesitan pantalla.
+# Con --interfaz agrega las 2 que crean componentes Swing; en un servidor sin
 # escritorio hay que envolverlas, por ejemplo con `xvfb-run -a`.
 set -eu
 
@@ -34,30 +34,12 @@ find src/main/java src/test/java -name '*.java' > "$SALIDA/fuentes.txt"
 "$COMPILADOR" -encoding UTF-8 --release 22 -d "$SALIDA" "@$SALIDA/fuentes.txt"
 
 PRUEBAS="Pruebas.PruebaBaseProyecto2
-Pruebas.PruebaBuffer
-Pruebas.PruebaRegistroBuffers
-Pruebas.PruebaPanelBuffer
-Pruebas.PruebaSemaforos
-Pruebas.PruebaBloqueoSemaforos
-Pruebas.PruebaProductorConsumidorLocal
-Pruebas.PruebaAccesoRemoto
-Pruebas.PruebaLimpiezaProductorConsumidor
-Pruebas.PruebaEventosBuffers
-Pruebas.PruebaContadoresBuffers
-Pruebas.PruebaTiemposBloqueo
-Pruebas.PruebaObservacionIntegrada
-Pruebas.PruebaPanelLatencia
 Pruebas.PruebaPoliticasES
-Pruebas.PruebaPanelPlanificacion
 Pruebas.PruebaRelojPoliticas"
 
 if [ "$INTERFAZ" -eq 1 ]; then
     PRUEBAS="$PRUEBAS
-Pruebas.PruebaPanelObservacion
-Pruebas.PruebaVentanaBuffers
-Pruebas.PruebaVentanaProductorConsumidor
-Pruebas.PruebaFlujoCompleto
-Pruebas.PruebaVentanaNormal
+Pruebas.PruebaPanelPlanificacion
 Pruebas.PruebaScrollColas"
 fi
 

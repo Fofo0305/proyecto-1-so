@@ -14,7 +14,7 @@ import java.util.concurrent.Semaphore;
  * procesos IO_BOUND y muestra metricas, grafica de uso y log global.
  *
  * Las solicitudes y las lecturas se hacen fuera del EDT; el EDT solo presenta el texto.
- * @author Antony
+ * @author Adolfo
  */
 public final class PanelPlanificacion extends JPanel {
 
@@ -136,7 +136,7 @@ public final class PanelPlanificacion extends JPanel {
         super.removeNotify();
     }
 
-    /** Lee metricas, log y buffers en un trabajador; ignora la llamada si hay otra en curso. */
+    /** Lee metricas y log en un trabajador; ignora la llamada si hay otra en curso. */
     public void actualizar() {
         if (!lectura.tryAcquire()) {
             return;
@@ -145,7 +145,6 @@ public final class PanelPlanificacion extends JPanel {
             try {
                 VistaMetricas[] vistas = controlador.consultarMetricas();
                 EventoSistema[] eventos = controlador.consultarLog();
-                VistaObservacionBuffers buffers = controlador.consultarObservacionBuffers();
 
                 StringBuilder informe = new StringBuilder(
                         "Utilizacion acumulada incluye usuario y operaciones de sistema; sin costo de cambio de contexto.\n");
@@ -191,17 +190,6 @@ public final class PanelPlanificacion extends JPanel {
                         usoGlobal, throughputGlobal, respuestaMedia, cumplimientoGlobal, jainGlobal));
                 informe.append("Sin muestras: 0. Cumplimiento excluye cancelados y procesos activos.\n")
                         .append("En ejecucion las capturas por equipo pueden corresponder a ciclos vecinos.\n");
-                for (VistaContadoresBuffer contador : buffers.contadores()) {
-                    informe.append("Buffer ").append(contador.nombre())
-                            .append(": producidos=").append(contador.producidos())
-                            .append(" consumidos=").append(contador.consumidos()).append('\n');
-                }
-                for (VistaBloqueosBuffer bloqueo : buffers.bloqueos()) {
-                    informe.append("Espera semaforos ").append(bloqueo.nombre())
-                            .append(": ciclos=").append(bloqueo.ciclosSemaforo())
-                            .append(" promedio=").append(bloqueo.promedioSemaforo()).append('\n');
-                }
-
                 StringBuilder bitacora = new StringBuilder(
                         "Ultimos 1024 eventos por computador. Orden: ciclo, computador, secuencia local.\n");
                 for (EventoSistema evento : eventos) {

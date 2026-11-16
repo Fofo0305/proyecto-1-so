@@ -13,14 +13,14 @@ public final class Configuracion {
     private int[] quantums;
 
     public Configuracion(int[] ram, int duracionMs, int quantum, int latencia) {
-        if (ram == null || ram.length < 1)
-            throw new IllegalArgumentException("Se requiere al menos un computador");
+        if (ram == null || ram.length != 1)
+            throw new IllegalArgumentException("Proyecto 2 requiere exactamente un computador");
         for (int capacidad : ram)
             if (capacidad < 1) throw new IllegalArgumentException("La RAM de cada computador debe ser positiva");
         if (duracionMs < 1 || duracionMs > 60000)
             throw new IllegalArgumentException("El ciclo debe durar entre 1 y 60000 ms");
         if (quantum < 1) throw new IllegalArgumentException("El quantum debe ser positivo");
-        if (latencia < 0) throw new IllegalArgumentException("La latencia no puede ser negativa");
+        if (latencia != 0) throw new IllegalArgumentException("Proyecto 2 no utiliza latencia de red");
         this.ram = ram.clone();
         this.duracionMs = duracionMs;
         this.quantum = quantum;

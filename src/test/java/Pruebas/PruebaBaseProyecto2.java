@@ -2,9 +2,9 @@ package Pruebas;
 
 import Modelo.CargaInicial;
 import Modelo.Configuracion;
-import Modelo.DefinicionBuffer;
 import Modelo.DefinicionProceso;
 import Modelo.EstadoProceso;
+import Modelo.TipoProceso;
 import Modelo.VistaComputador;
 import Interfaces.PanelConfiguracion;
 import Sistema.ControladorSimulacion;
@@ -18,6 +18,17 @@ public final class PruebaBaseProyecto2 {
             new Configuracion(new int[0], 300, 4, 0);
             throw new AssertionError("Se acepto una simulacion sin computadores");
         } catch (IllegalArgumentException esperado) { }
+        try {
+            new Configuracion(new int[] {64, 64}, 300, 4, 0);
+            throw new AssertionError("Se acepto mas de un computador");
+        } catch (IllegalArgumentException esperado) { }
+        if (TipoProceso.values().length != 2) {
+            throw new AssertionError("Persisten tipos productor o consumidor");
+        }
+        try {
+            new DefinicionProceso("Equipo inexistente", 2, 0, 8, 1, 10);
+            throw new AssertionError("Se acepto un proceso dirigido a un segundo computador");
+        } catch (IllegalArgumentException esperado) { }
 
         Configuracion configuracion = new Configuracion(new int[] {64}, 300, 4, 0);
         if (configuracion.getCantidadComputadores() != 1 || configuracion.getRam()[0] != 64) {
@@ -29,14 +40,21 @@ public final class PruebaBaseProyecto2 {
         }
 
         CargaInicial carga = new CargaInicial(configuracion,
-                new DefinicionProceso[] {new DefinicionProceso("Base P2", 1, 0, 16, 2, 20)},
-                new DefinicionBuffer[0]);
+                new DefinicionProceso[] {new DefinicionProceso("Base P2", 1, 0, 16, 2, 20)});
 
         try (ControladorSimulacion controlador = new ControladorSimulacion()) {
             controlador.cargarCarga(carga);
             VistaComputador[] inicial = controlador.consultarVistas();
             if (inicial.length != 1 || inicial[0].usada() != 16 || inicial[0].colaListos().length != 1) {
                 throw new AssertionError("El proceso no fue admitido en el computador unico");
+            }
+            try {
+                controlador.crearProceso("Equipo inexistente", 2, 0, 8, 1, 10);
+                throw new AssertionError("El controlador acepto un proceso para el equipo 2");
+            } catch (IllegalArgumentException esperado) { }
+            VistaComputador despuesDelRechazo = controlador.consultarVistas()[0];
+            if (despuesDelRechazo.usada() != 16 || despuesDelRechazo.colaListos().length != 1) {
+                throw new AssertionError("El rechazo modifico la sesion cargada");
             }
 
             controlador.avanzarCiclo();

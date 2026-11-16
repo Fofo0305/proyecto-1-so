@@ -9,26 +9,14 @@ try {
     $fuentesBuffers = @(Get-ChildItem src/main/java,src/test/java -Recurse -Filter *.java | ForEach-Object FullName)
     & $compilador -encoding UTF-8 --release 22 -d target/pruebas-buffers @fuentesBuffers
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la compilacion.' }
-    foreach ($pruebaBuffers in @('Pruebas.PruebaBaseProyecto2', 'Pruebas.PruebaBuffer', 'Pruebas.PruebaRegistroBuffers', 'Pruebas.PruebaPanelBuffer',
-            'Pruebas.PruebaSemaforos', 'Pruebas.PruebaBloqueoSemaforos', 'Pruebas.PruebaProductorConsumidorLocal',
-            'Pruebas.PruebaAccesoRemoto', 'Pruebas.PruebaLimpiezaProductorConsumidor', 'Pruebas.PruebaEventosBuffers',
-            'Pruebas.PruebaContadoresBuffers', 'Pruebas.PruebaTiemposBloqueo', 'Pruebas.PruebaObservacionIntegrada',
-            'Pruebas.PruebaPanelLatencia', 'Pruebas.PruebaPoliticasES', 'Pruebas.PruebaPanelPlanificacion',
+    foreach ($pruebaBuffers in @('Pruebas.PruebaBaseProyecto2', 'Pruebas.PruebaPoliticasES',
             'Pruebas.PruebaRelojPoliticas')) {
         & $java -cp target/pruebas-buffers $pruebaBuffers
         if ($LASTEXITCODE -ne 0) { throw "Fallo $pruebaBuffers" }
     }
     if ($Interfaz) {
-        & $java -cp target/pruebas-buffers Pruebas.PruebaPanelObservacion
-        if ($LASTEXITCODE -ne 0) { throw 'Fallo la observacion Swing de buffers.' }
-        & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaBuffers
-        if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de buffers con la ventana.' }
-        & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaProductorConsumidor
-        if ($LASTEXITCODE -ne 0) { throw 'Fallo la integracion de productor consumidor con la ventana.' }
-        & $java -cp target/pruebas-buffers Pruebas.PruebaFlujoCompleto
-        if ($LASTEXITCODE -ne 0) { throw 'Fallo el flujo completo desde las acciones Swing.' }
-        & $java -cp target/pruebas-buffers Pruebas.PruebaVentanaNormal
-        if ($LASTEXITCODE -ne 0) { throw 'Fallo la ventana sin maximizar.' }
+        & $java -cp target/pruebas-buffers Pruebas.PruebaPanelPlanificacion
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo el panel de planificacion.' }
         & $java -cp target/pruebas-buffers Pruebas.PruebaScrollColas
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la estabilidad del scroll de colas.' }
     }
