@@ -95,6 +95,13 @@ public final class PruebaModeloSieteEstados {
         verificar((boolean) arbolTipo.getMethod("eliminarSubarbol", nodoTipo).invoke(arbol, usuarios),
                 "El arbol no elimina un subarbol");
         verificar((int) arbolTipo.getMethod("getTamano").invoke(arbol) == 1, "El arbol no descuenta descendientes");
+        try {
+            arbolTipo.getMethod("eliminarSubarbol", nodoTipo).invoke(arbol, usuarios);
+            throw new AssertionError("Un nodo separado continua perteneciendo al arbol");
+        } catch (java.lang.reflect.InvocationTargetException esperado) {
+            verificar(esperado.getCause() instanceof IllegalArgumentException,
+                    "El arbol no distingue un nodo separado");
+        }
     }
 
     private static Proceso proceso(String nombre) {
