@@ -16,8 +16,8 @@ public final class InterconexionBuffers implements FinalizadorCiclo {
     private Computador[] equipos;
 
     public void conectar(Computador[] equipos) {
-        if (this.equipos != null || equipos == null || equipos.length < 2)
-            throw new IllegalArgumentException("La interconexion requiere un cluster nuevo");
+        if (this.equipos != null || equipos == null || equipos.length < 1)
+            throw new IllegalArgumentException("La interconexion requiere una simulacion nueva");
         this.equipos = equipos.clone();
     }
 

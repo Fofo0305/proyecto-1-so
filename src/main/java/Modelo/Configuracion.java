@@ -1,7 +1,7 @@
 package Modelo;
 
 /**
- * Parámetros iniciales del clúster, independientes de las ventanas.
+ * Parámetros iniciales de la simulación, independientes de las ventanas.
  * @author Adolfo
  */
 public final class Configuracion {
@@ -13,8 +13,8 @@ public final class Configuracion {
     private int[] quantums;
 
     public Configuracion(int[] ram, int duracionMs, int quantum, int latencia) {
-        if (ram == null || ram.length < 2)
-            throw new IllegalArgumentException("Se requieren al menos dos computadores");
+        if (ram == null || ram.length < 1)
+            throw new IllegalArgumentException("Se requiere al menos un computador");
         for (int capacidad : ram)
             if (capacidad < 1) throw new IllegalArgumentException("La RAM de cada computador debe ser positiva");
         if (duracionMs < 1 || duracionMs > 60000)
