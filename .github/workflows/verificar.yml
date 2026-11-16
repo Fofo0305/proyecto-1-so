@@ -30,9 +30,9 @@ jobs:
         run: mvn -B clean test-compile
 
       - name: Comprobaciones sin pantalla
-        run: ./verificar-buffers.sh --jdk "$JAVA_HOME"
+        run: ./verificar-proyecto2.sh --jdk "$JAVA_HOME"
 
-      # Las tres comprobaciones Swing necesitan un X server, aunque no muestran ventanas.
+      # Las dos comprobaciones Swing necesitan un X server, aunque no muestran ventanas.
       - name: Preparar pantalla virtual
         run: |
           if ! command -v xvfb-run > /dev/null; then
@@ -41,12 +41,4 @@ jobs:
           fi
 
       - name: Comprobaciones con interfaz
-        run: xvfb-run -a ./verificar-buffers.sh --jdk "$JAVA_HOME" --interfaz
-
-      - name: Guardar capturas de la observacion de buffers
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: capturas-buffers
-          path: target/pruebas-buffers/*.png
-          if-no-files-found: ignore
+        run: xvfb-run -a ./verificar-proyecto2.sh --jdk "$JAVA_HOME" --interfaz

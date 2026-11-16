@@ -7,7 +7,7 @@ import java.awt.*;
 /**
  * Series de utilizacion acumulada por CPU, sobre el anillo de los ultimos 600 ciclos
  * que entrega cada VistaMetricas.
- * @author Antony
+ * @author Adolfo
  */
 public final class GraficaUso extends JPanel {
 

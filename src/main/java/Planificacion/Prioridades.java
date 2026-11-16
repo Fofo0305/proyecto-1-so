@@ -4,7 +4,7 @@ import Modelo.Proceso;
 
 /**
  * Prioridad estatica: un numero menor representa mayor prioridad.
- * @author Antony
+ * @author Adolfo
  */
 public final class Prioridades extends Ordenada {
 

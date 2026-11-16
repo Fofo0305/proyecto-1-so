@@ -6,7 +6,7 @@ import Modelo.Proceso;
 /**
  * Turno circular: entrega la CPU al primero de listos y la retira cuando el proceso en
  * ejecucion agota su quantum y hay alguien esperando.
- * @author Antony
+ * @author Adolfo
  */
 public final class RoundRobin implements Politica {
 

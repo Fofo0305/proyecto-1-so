@@ -22,7 +22,7 @@ public final class PanelPlanificacion extends JPanel {
     private final JTextArea metricas = texto();
     private final JTextArea log = texto();
     private final GraficaUso grafica = new GraficaUso();
-    private final JLabel resultado = new JLabel("Configure el cluster antes de aplicar cambios.");
+    private final JLabel resultado = new JLabel("Configure el computador antes de aplicar cambios.");
     private final JTextField equipo = new JTextField("1", 4);
     private final JTextField quantum = new JTextField("2", 4);
     private final JComboBox<PoliticaPlanificacion> politica = new JComboBox<>(PoliticaPlanificacion.values());

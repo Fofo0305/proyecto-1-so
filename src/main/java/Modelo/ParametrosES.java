@@ -2,7 +2,7 @@ package Modelo;
 
 /**
  * Rafaga de CPU y duracion de una espera de E/S, en ciclos enteros positivos.
- * @author Antony
+ * @author Adolfo
  */
 public record ParametrosES(int rafaga, int duracion) {
 

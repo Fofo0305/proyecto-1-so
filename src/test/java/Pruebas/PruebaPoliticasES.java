@@ -41,7 +41,7 @@ public final class PruebaPoliticasES {
             controlador.avanzarCiclo();
             verificar(io.getEstado() == EstadoProceso.LISTO, "No retorna al cumplir E/S");
 
-            Path archivo = Path.of("target/pruebas-buffers/io-roundtrip.csv");
+            Path archivo = Path.of("target/pruebas-proyecto2/io-roundtrip.csv");
             controlador.cambiarPolitica(1, PoliticaPlanificacion.EDF, 5);
             ArchivoConfiguracion.guardar(archivo, controlador.getCargaInicial());
             controlador.cargarCarga(ArchivoConfiguracion.cargar(archivo));

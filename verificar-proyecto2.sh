@@ -1,8 +1,8 @@
 #!/bin/sh
 # Compila el proyecto y corre las comprobaciones de src/test/java/Pruebas.
-# Equivalente de verificar-buffers.ps1 para macOS y Linux.
+# Equivalente de verificar-proyecto2.ps1 para macOS y Linux.
 #
-#   ./verificar-buffers.sh [--jdk RUTA] [--interfaz]
+#   ./verificar-proyecto2.sh [--jdk RUTA] [--interfaz]
 #
 # Sin --interfaz corre las 3 comprobaciones que no necesitan pantalla.
 # Con --interfaz agrega las 2 que crean componentes Swing; en un servidor sin
@@ -27,7 +27,7 @@ fi
 COMPILADOR="$JDK/bin/javac"
 JAVA="$JDK/bin/java"
 cd "$(dirname "$0")"
-SALIDA=target/pruebas-buffers
+SALIDA=target/pruebas-proyecto2
 mkdir -p "$SALIDA"
 
 find src/main/java src/test/java -name '*.java' > "$SALIDA/fuentes.txt"
