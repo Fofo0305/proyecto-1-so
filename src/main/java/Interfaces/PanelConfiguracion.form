@@ -28,7 +28,7 @@
       <SubComponents>
         <Component class="javax.swing.JLabel" name="etiquetaCantidad">
           <Properties>
-            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Computadores&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;Al menos dos equipos independientes&lt;/span&gt;&lt;/html&gt;" />
+            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Computadores&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;Proyecto 2 comienza con un unico equipo&lt;/span&gt;&lt;/html&gt;" />
           </Properties>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
@@ -38,7 +38,7 @@
         </Component>
         <Component class="javax.swing.JTextField" name="campoCantidad">
           <Properties>
-            <Property name="text" type="java.lang.String" value="2" />
+            <Property name="text" type="java.lang.String" value="1" />
             <Property name="columns" type="int" value="12" />
           </Properties>
           <Constraints>
@@ -49,7 +49,7 @@
         </Component>
         <Component class="javax.swing.JLabel" name="etiquetaRam">
           <Properties>
-            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Memoria por computador&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;Ejemplo para dos equipos: 64,96&lt;/span&gt;&lt;/html&gt;" />
+            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Memoria del computador&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;Unidades de RAM disponibles&lt;/span&gt;&lt;/html&gt;" />
           </Properties>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
@@ -59,7 +59,7 @@
         </Component>
         <Component class="javax.swing.JTextField" name="campoRam">
           <Properties>
-            <Property name="text" type="java.lang.String" value="128,128" />
+            <Property name="text" type="java.lang.String" value="128" />
             <Property name="columns" type="int" value="12" />
           </Properties>
           <Constraints>

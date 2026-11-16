@@ -193,7 +193,9 @@ public class VentanaPrincipal extends JFrame {
             try {
                 controlador.configurar(configuracion);
                 aplicada = true;
-                mensaje = "Cluster configurado: " + configuracion.getCantidadComputadores() + " computadores, politica FCFS";
+                int cantidad = configuracion.getCantidadComputadores();
+                mensaje = "Simulacion configurada: " + cantidad + (cantidad == 1 ? " computador" : " computadores")
+                        + ", politica FCFS";
             } catch (RuntimeException error) {
                 mensaje = error.getMessage();
             }

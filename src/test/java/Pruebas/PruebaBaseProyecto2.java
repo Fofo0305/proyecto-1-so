@@ -6,6 +6,7 @@ import Modelo.DefinicionBuffer;
 import Modelo.DefinicionProceso;
 import Modelo.EstadoProceso;
 import Modelo.VistaComputador;
+import Interfaces.PanelConfiguracion;
 import Sistema.ControladorSimulacion;
 
 /** Contrato mínimo que debe conservar la reestructuración hacia Proyecto 2. @author Adolfo */
@@ -13,9 +14,18 @@ public final class PruebaBaseProyecto2 {
     private PruebaBaseProyecto2() { }
 
     public static void main(String[] args) {
+        try {
+            new Configuracion(new int[0], 300, 4, 0);
+            throw new AssertionError("Se acepto una simulacion sin computadores");
+        } catch (IllegalArgumentException esperado) { }
+
         Configuracion configuracion = new Configuracion(new int[] {64}, 300, 4, 0);
         if (configuracion.getCantidadComputadores() != 1 || configuracion.getRam()[0] != 64) {
             throw new AssertionError("La configuracion no representa un unico computador");
+        }
+        Configuracion formulario = new PanelConfiguracion().leerConfiguracion();
+        if (formulario.getCantidadComputadores() != 1 || formulario.getRam()[0] != 128) {
+            throw new AssertionError("El formulario no propone la base de un solo computador");
         }
 
         CargaInicial carga = new CargaInicial(configuracion,

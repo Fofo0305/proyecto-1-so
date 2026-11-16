@@ -7,7 +7,7 @@ Simulador de un cluster con RAM independiente por computador, admision de proces
 1. Instalar y registrar JDK 22 en las plataformas Java de NetBeans.
 2. Abrir esta carpeta como proyecto Maven y seleccionar JDK 22 para el proyecto.
 3. Ejecutar `Main.Proyecto1SO2526`. La ventana se crea en el EDT de Swing.
-4. En Configuracion indicar al menos dos computadores, su RAM separada por comas y la duracion del ciclo. Aplicar la configuracion antes de crear procesos.
+4. En Configuracion dejar un computador, indicar su RAM y la duracion del ciclo. Aplicar la configuracion antes de crear procesos.
 5. Crear procesos CPU_BOUND en la pestaña de procesos y controlar el reloj con Iniciar, Pausar, Reanudar y Detener. Despues de detener, aplicar o cargar una configuracion para comenzar otra sesion.
 6. Consultar CPU, PCB, RAM y colas en la pestaña de computadores. Cerrar la ventana solicita el cierre del reloj fuera del EDT.
 
@@ -56,7 +56,7 @@ Hay dos scripts equivalentes que compilan el proyecto y corren las comprobacione
 
 Ajustar la ruta al JDK instalado; sirve cualquier JDK 22 o posterior. Verifican capacidad,
 FIFO, acceso concurrente, reservas en el anfitrion, rechazos sin cambios, admision de
-procesos y reconstruccion CSV. Por defecto corren las 16 comprobaciones que no necesitan
+procesos y reconstruccion CSV. Por defecto corren las 17 comprobaciones que no necesitan
 pantalla y devuelven error en la primera que falle. Con `-Interfaz` (o `--interfaz`)
 agregan las 6 que crean ventanas Swing: piden un escritorio o un X server, aunque no
 muestran la ventana. En un servidor sin escritorio basta envolverlas, por ejemplo
@@ -262,7 +262,7 @@ pertenecen a la sesion: reiniciar o cargar CSV reconstruye la carga inicial sin
 restaurar eventos, contadores ni tiempos anteriores.
 
 Ejecutar cualquiera de los dos scripts con `-Interfaz` o `--interfaz` compila el proyecto
-y ejecuta los 22 programas de comprobacion. La prueba integrada de
+y ejecuta los 23 programas de comprobacion. La prueba integrada de
 observacion recorre 72 escenarios locales/remotos con vencimiento y cancelacion en
 distintos ciclos; compara eventos con modificaciones reales, perfiles con totales,
 lecturas repetidas, copias anteriores y limpieza de esperas. La prueba Swing valida

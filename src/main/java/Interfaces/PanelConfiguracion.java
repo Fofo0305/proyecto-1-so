@@ -3,7 +3,7 @@ package Interfaces;
 import Modelo.Configuracion;
 
 /**
- * Entrada de parámetros iniciales del clúster.
+ * Entrada de parámetros iniciales de la simulación.
  * @author Adolfo
  */
 public class PanelConfiguracion extends javax.swing.JPanel {
@@ -13,9 +13,9 @@ public class PanelConfiguracion extends javax.swing.JPanel {
     public Configuracion leerConfiguracion() {
         for (javax.swing.JTextField campo : new javax.swing.JTextField[] {campoCantidad, campoRam, campoCiclo, campoQuantum, campoLatencia})
             campo.setBorder(javax.swing.UIManager.getBorder("TextField.border"));
-        int cantidad = leerEntero(campoCantidad, "Computadores", 2, Integer.MAX_VALUE);
+        int cantidad = leerEntero(campoCantidad, "Computadores", 1, Integer.MAX_VALUE);
         String[] valores = campoRam.getText().split(",", -1);
-        if (cantidad != valores.length) throw rechazar(campoRam, "Indica una RAM por computador. Para dos equipos: 64,96");
+        if (cantidad != valores.length) throw rechazar(campoRam, "Indica una capacidad de RAM por computador");
         int[] ram = new int[valores.length];
         for (int i = 0; i < ram.length; i++) {
             try { ram[i] = Integer.parseInt(valores[i].trim()); }
@@ -69,10 +69,10 @@ public class PanelConfiguracion extends javax.swing.JPanel {
         add(introduccion, java.awt.BorderLayout.NORTH);
         formulario = new javax.swing.JPanel(new java.awt.GridBagLayout());
         formulario.setOpaque(false);
-        etiquetaCantidad = new javax.swing.JLabel("<html><b>Computadores</b><br><span style='color:#637089'>Al menos dos equipos independientes</span></html>");
-        campoCantidad = new javax.swing.JTextField("2", 12);
-        etiquetaRam = new javax.swing.JLabel("<html><b>Memoria por computador</b><br><span style='color:#637089'>Ejemplo para dos equipos: 64,96</span></html>");
-        campoRam = new javax.swing.JTextField("128,128", 12);
+        etiquetaCantidad = new javax.swing.JLabel("<html><b>Computadores</b><br><span style='color:#637089'>Proyecto 2 comienza con un unico equipo</span></html>");
+        campoCantidad = new javax.swing.JTextField("1", 12);
+        etiquetaRam = new javax.swing.JLabel("<html><b>Memoria del computador</b><br><span style='color:#637089'>Unidades de RAM disponibles</span></html>");
+        campoRam = new javax.swing.JTextField("128", 12);
         etiquetaCiclo = new javax.swing.JLabel("<html><b>Velocidad de simulacion</b><br><span style='color:#637089'>Milisegundos por ciclo<br>Mayor valor = mas lento</span></html>");
         campoCiclo = new javax.swing.JTextField("700", 12);
         etiquetaPolitica = new javax.swing.JLabel("Orden de ejecucion");
@@ -103,8 +103,8 @@ public class PanelConfiguracion extends javax.swing.JPanel {
         c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=6; c.gridwidth=2; c.anchor=java.awt.GridBagConstraints.WEST; formulario.add(aviso,c);
         c = new java.awt.GridBagConstraints(); c.gridx=0; c.gridy=7; c.weighty=1; formulario.add(javax.swing.Box.createVerticalGlue(),c);
         add(formulario, java.awt.BorderLayout.CENTER);
-        campoCantidad.setToolTipText("Ejemplo: 2"); campoCantidad.setName("cantidad");
-        campoRam.setToolTipText("Ejemplo: 64,96 para dos computadores"); campoRam.setName("ram");
+        campoCantidad.setToolTipText("Proyecto 2 utiliza un computador"); campoCantidad.setName("cantidad");
+        campoRam.setToolTipText("Ejemplo: 128"); campoRam.setName("ram");
         campoCiclo.setToolTipText("Entre 1 y 60000 ms. Recomendado: 700 para observar procesos"); campoCiclo.setName("ciclo");
         campoQuantum.setName("quantum"); campoLatencia.setName("latencia");
         etiquetaCantidad.setLabelFor(campoCantidad); etiquetaRam.setLabelFor(campoRam); etiquetaCiclo.setLabelFor(campoCiclo);
