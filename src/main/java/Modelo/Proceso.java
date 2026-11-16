@@ -72,6 +72,7 @@ public class Proceso {
             case LISTO -> nuevo == EstadoProceso.EJECUCION || nuevo == EstadoProceso.TERMINADO;
             case EJECUCION -> nuevo == EstadoProceso.LISTO || nuevo == EstadoProceso.BLOQUEADO || nuevo == EstadoProceso.TERMINADO;
             case BLOQUEADO -> nuevo == EstadoProceso.LISTO || nuevo == EstadoProceso.TERMINADO;
+            case LISTO_SUSPENDIDO, BLOQUEADO_SUSPENDIDO -> false;
             case TERMINADO -> false;
         };
         if (!permitido) throw new IllegalStateException("Transicion no permitida: " + estado + " -> " + nuevo);
