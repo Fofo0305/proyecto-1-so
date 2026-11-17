@@ -34,12 +34,31 @@ public final class PruebaDiscoPlanificacion {
             verificar(invocar(bloque, "propietario") == null, "Un bloque nuevo aparece ocupado");
             verificar((int) invocar(bloque, "siguiente") == -1, "Un bloque libre tiene enlace");
         }
+        bloques[0] = null;
+        Object[] segundaLectura = (Object[]) discoTipo.getMethod("consultarBloques").invoke(disco);
+        verificar(segundaLectura[0] != null, "La vista permite modificar el mapa interno");
 
         esperarConstructorInvalido(discoTipo, 99, 10, 50);
         esperarConstructorInvalido(discoTipo, 501, 10, 50);
         esperarConstructorInvalido(discoTipo, 200, 0, 50);
         esperarConstructorInvalido(discoTipo, 200, 200, 50);
+        esperarConstructorInvalido(discoTipo, 200, 50, -1);
         esperarConstructorInvalido(discoTipo, 200, 50, 200);
+
+        verificarConfiguracionLimite(discoTipo, 100, 1, 0, 99);
+        verificarConfiguracionLimite(discoTipo, 500, 499, 499, 1);
+    }
+
+    private static void verificarConfiguracionLimite(Class<?> discoTipo, int total, int swap,
+            int cabeza, int inicioSwap) throws Exception {
+        Object disco = discoTipo.getConstructor(int.class, int.class, int.class).newInstance(total, swap, cabeza);
+        verificar((int) discoTipo.getMethod("getTotalBloques").invoke(disco) == total, "Total no configurable");
+        verificar((int) discoTipo.getMethod("getTamanoSwap").invoke(disco) == swap, "Swap no configurable");
+        verificar((int) discoTipo.getMethod("getPosicionCabezal").invoke(disco) == cabeza, "Cabezal no configurable");
+        Object[] bloques = (Object[]) discoTipo.getMethod("consultarBloques").invoke(disco);
+        for (int i = 0; i < bloques.length; i++)
+            verificar(invocar(bloques[i], "area").toString().equals(i < inicioSwap ? "DATOS" : "SWAP"),
+                    "Frontera configurable de swap incorrecta");
     }
 
     private static void probarCasosDeProcesos() throws Exception {
