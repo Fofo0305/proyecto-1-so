@@ -10,9 +10,52 @@ public final class PruebaDiscoPlanificacion {
 
     public static void main(String[] args) throws Exception {
         probarBloquesCabezalYSwap();
+        probarContratoPolitica();
         probarCasosDeProcesos();
         probarAnexoConDesplazamientos();
         System.out.println("OK: bloques, swap y casos FIFO, SSTF, SCAN y C-SCAN del enunciado");
+    }
+
+    private static void probarContratoPolitica() throws Exception {
+        Class<?> contrato = Class.forName("PlanificacionDisco.PoliticaPlanificacionDisco");
+        verificar(contrato.isInterface(), "La politica de disco debe ser una interfaz");
+        Method tipo = contrato.getMethod("getTipo");
+        Method planificar = contrato.getMethod("planificar", int.class, int.class,
+                Class.forName("Modelo.DireccionDisco"), int[].class);
+        verificar(tipo.getReturnType() == PoliticaDisco.class
+                && !java.lang.reflect.Modifier.isStatic(tipo.getModifiers()), "getTipo no respeta el contrato");
+
+        Class<?> resultadoTipo = Class.forName("Modelo.ResultadoPlanificacionDisco");
+        verificar(planificar.getReturnType() == resultadoTipo
+                && !java.lang.reflect.Modifier.isStatic(planificar.getModifiers()), "planificar no respeta el contrato");
+        Class<?> movimientoTipo = Class.forName("Modelo.MovimientoCabezalDisco");
+        Class<?> direccionTipo = Class.forName("Modelo.DireccionDisco");
+        int[] original = {4, 8};
+        Object[] movimientos = (Object[]) java.lang.reflect.Array.newInstance(movimientoTipo, 2);
+        movimientos[0] = movimientoTipo.getConstructor(int.class, boolean.class, boolean.class)
+                .newInstance(4, true, true);
+        movimientos[1] = movimientoTipo.getConstructor(int.class, boolean.class, boolean.class)
+                .newInstance(8, true, true);
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        Object ascendente = Enum.valueOf((Class<? extends Enum>) direccionTipo, "ASCENDENTE");
+        Object resultado = resultadoTipo.getConstructor(int[].class, movimientos.getClass(), long.class, direccionTipo)
+                .newInstance(original, movimientos, 4L, ascendente);
+        original[0] = 99;
+        movimientos[0] = null;
+        int[] primeraVista = (int[]) invocar(resultado, "orden");
+        primeraVista[1] = 99;
+        int[] segundaVista = (int[]) invocar(resultado, "orden");
+        verificar(segundaVista[0] == 4 && segundaVista[1] == 8,
+                "El resultado expone su arreglo mutable");
+        Object[] primeraRuta = (Object[]) invocar(resultado, "movimientos");
+        primeraRuta[1] = null;
+        Object[] segundaRuta = (Object[]) invocar(resultado, "movimientos");
+        verificar(segundaRuta[0] != null && segundaRuta[1] != null,
+                "El resultado expone el arreglo de movimientos");
+        verificar((long) invocar(resultado, "desplazamientoTotal") == 4L,
+                "El resultado no conserva el desplazamiento");
+        verificar(invocar(resultado, "direccionFinal") == ascendente,
+                "El resultado no conserva la direccion final");
     }
 
     private static void probarBloquesCabezalYSwap() throws Exception {
