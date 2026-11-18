@@ -11,9 +11,44 @@ public final class PruebaDiscoPlanificacion {
     public static void main(String[] args) throws Exception {
         probarBloquesCabezalYSwap();
         probarContratoPolitica();
+        probarValidacionPoliticasBasicas();
         probarCasosDeProcesos();
         probarAnexoConDesplazamientos();
         System.out.println("OK: bloques, swap y casos FIFO, SSTF, SCAN y C-SCAN del enunciado");
+    }
+
+    private static void probarValidacionPoliticasBasicas() throws Exception {
+        Class<?> direccionTipo = Class.forName("Modelo.DireccionDisco");
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        Object ascendente = Enum.valueOf((Class<? extends Enum>) direccionTipo, "ASCENDENTE");
+        for (String clase : new String[] {"PlanificacionDisco.FIFO", "PlanificacionDisco.SSTF"}) {
+            Object politica = Class.forName(clase).getConstructor().newInstance();
+            Method planificar = politica.getClass().getMethod("planificar", int.class,
+                    int.class, direccionTipo, int[].class);
+            Object vacio = planificar.invoke(politica, 0, 200, ascendente, new int[0]);
+            verificar(((int[]) invocar(vacio, "orden")).length == 0
+                    && (long) invocar(vacio, "desplazamientoTotal") == 0L
+                    && invocar(vacio, "direccionFinal") == ascendente,
+                    "La cola vacia no conserva un resultado neutro");
+            esperarPlanInvalido(planificar, politica, -1, 200, ascendente, new int[] {1});
+            esperarPlanInvalido(planificar, politica, 200, 200, ascendente, new int[] {1});
+            esperarPlanInvalido(planificar, politica, 0, 0, ascendente, new int[] {1});
+            esperarPlanInvalido(planificar, politica, 0, 200, ascendente, new int[] {-1});
+            esperarPlanInvalido(planificar, politica, 0, 200, ascendente, new int[] {200});
+            esperarPlanInvalido(planificar, politica, 0, 200, null, new int[] {1});
+            esperarPlanInvalido(planificar, politica, 0, 200, ascendente, null);
+        }
+    }
+
+    private static void esperarPlanInvalido(Method metodo, Object politica, int cabeza,
+            int total, Object direccion, int[] solicitudes) throws Exception {
+        try {
+            metodo.invoke(politica, cabeza, total, direccion, solicitudes);
+            throw new AssertionError("Se aceptaron parametros invalidos de planificacion");
+        } catch (InvocationTargetException esperado) {
+            verificar(esperado.getCause() instanceof IllegalArgumentException,
+                    "La politica falla con una excepcion incorrecta");
+        }
     }
 
     private static void probarContratoPolitica() throws Exception {
@@ -108,6 +143,9 @@ public final class PruebaDiscoPlanificacion {
         int[] solicitudes = {95, 180, 34, 119, 11, 123, 62, 64};
         verificarPlan(PoliticaDisco.FIFO, 50, solicitudes, new int[] {95, 180, 34, 119, 11, 123, 62, 64}, -1);
         verificarPlan(PoliticaDisco.SSTF, 50, solicitudes, new int[] {62, 64, 34, 11, 95, 119, 123, 180}, -1);
+        verificarPlan(PoliticaDisco.FIFO, 50, new int[] {40}, new int[] {40}, 10);
+        verificarPlan(PoliticaDisco.SSTF, 50, new int[] {40, 60, 40, 60},
+                new int[] {40, 40, 60, 60}, 30);
         verificarPlan(PoliticaDisco.SCAN, 50, solicitudes, new int[] {62, 64, 95, 119, 123, 180, 34, 11}, -1);
         verificarPlan(PoliticaDisco.C_SCAN, 50, solicitudes, new int[] {62, 64, 95, 119, 123, 180, 11, 34}, -1);
     }
@@ -125,12 +163,39 @@ public final class PruebaDiscoPlanificacion {
             int[] ordenEsperado, int desplazamientoEsperado) throws Exception {
         Class<?> direccionTipo = Class.forName("Modelo.DireccionDisco");
         Object ascendente = Enum.valueOf((Class<? extends Enum>) direccionTipo, "ASCENDENTE");
-        Class<?> planificadorTipo = Class.forName("PlanificacionDisco.PlanificadorDisco");
-        Method planificar = planificadorTipo.getMethod("planificar", PoliticaDisco.class, int.class,
+        String clase = switch (politica) {
+            case FIFO -> "FIFO";
+            case SSTF -> "SSTF";
+            case SCAN -> "SCAN";
+            case C_SCAN -> "CSCAN";
+        };
+        Object estrategia = Class.forName("PlanificacionDisco." + clase).getConstructor().newInstance();
+        verificar(estrategia.getClass().getMethod("getTipo").invoke(estrategia) == politica,
+                "La estrategia informa un tipo incorrecto");
+        Method planificar = estrategia.getClass().getMethod("planificar", int.class,
                 int.class, direccionTipo, int[].class);
-        Object resultado = planificar.invoke(null, politica, cabeza, 200, ascendente, solicitudes);
+        int[] entradaOriginal = solicitudes.clone();
+        Object resultado = planificar.invoke(estrategia, cabeza, 200, ascendente, solicitudes);
+        verificarArreglo(solicitudes, entradaOriginal, "La politica modifica la cola recibida");
         int[] orden = (int[]) invocar(resultado, "orden");
         verificarArreglo(orden, ordenEsperado, "Orden incorrecto para " + politica);
+        Object[] movimientos = (Object[]) invocar(resultado, "movimientos");
+        if (politica == PoliticaDisco.FIFO || politica == PoliticaDisco.SSTF) {
+            verificar(movimientos.length == orden.length, "Recorrido incompleto para " + politica);
+            int posicion = cabeza;
+            String direccionEsperada = "ASCENDENTE";
+            for (int i = 0; i < movimientos.length; i++) {
+                verificar((int) invocar(movimientos[i], "destino") == orden[i]
+                        && (boolean) invocar(movimientos[i], "contabilizaDesplazamiento")
+                        && (boolean) invocar(movimientos[i], "atiendeSolicitud"),
+                        "Movimiento directo incorrecto para " + politica);
+                if (orden[i] > posicion) direccionEsperada = "ASCENDENTE";
+                else if (orden[i] < posicion) direccionEsperada = "DESCENDENTE";
+                posicion = orden[i];
+            }
+            verificar(invocar(resultado, "direccionFinal").toString().equals(direccionEsperada),
+                    "Direccion final incorrecta para " + politica);
+        }
         if (desplazamientoEsperado >= 0)
             verificar((long) invocar(resultado, "desplazamientoTotal") == desplazamientoEsperado,
                     "Desplazamiento incorrecto para " + politica);
