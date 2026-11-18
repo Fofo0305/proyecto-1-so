@@ -8,6 +8,7 @@ import Modelo.OperacionES;
 import Modelo.PoliticaDisco;
 import Modelo.ResultadoPlanificacionDisco;
 import Modelo.VistaBloqueDisco;
+import Modelo.VistaMetricasDisco;
 import Modelo.VistaSolicitudDisco;
 import PlanificacionDisco.FIFO;
 import PlanificacionDisco.PoliticaPlanificacionDisco;
@@ -24,6 +25,10 @@ public final class Disco implements ComponenteReloj {
     private final int posicionesPorCiclo;
     private final Cola<SolicitudDisco> pendientes = new Cola<>();
     private final Cola<SolicitudDisco> completadas = new Cola<>();
+    private final RegistroSistema log = new RegistroSistema();
+    private final long[] atendidasPorPolitica = new long[PoliticaDisco.values().length];
+    private final long[] historiaCiclos = new long[600];
+    private final long[] historiaDesplazamiento = new long[600];
     private int posicionCabezal;
     private DireccionDisco direccion = DireccionDisco.ASCENDENTE;
     private PoliticaPlanificacionDisco politica = new FIFO();
@@ -32,6 +37,14 @@ public final class Disco implements ComponenteReloj {
     private int indiceRuta;
     private long siguienteSolicitud = 1;
     private long ultimoCiclo;
+    private long desplazamientoTotal;
+    private long solicitudesIniciadas;
+    private long solicitudesAtendidas;
+    private long esperaAcumulada;
+    private long suspensiones;
+    private long reactivaciones;
+    private int historiaInicio;
+    private int historiaTamano;
 
     public Disco(int totalBloques, int bloquesSwap, int cabezalInicial) {
         this(totalBloques, bloquesSwap, cabezalInicial, 1);
@@ -70,6 +83,8 @@ public final class Disco implements ComponenteReloj {
             SolicitudDisco solicitud = new SolicitudDisco(siguienteSolicitud++, procesoId,
                     operacion, bloqueObjetivo, bloquesTrabajo, ultimoCiclo);
             pendientes.agregar(solicitud);
+            log.agregar(ultimoCiclo, 1, procesoId, "SOLICITUD_DISCO",
+                    "S" + solicitud.getId() + " " + operacion + " bloque=" + bloqueObjetivo);
             return solicitud.consultar().id();
         } finally { mutex.release(); }
     }
@@ -77,7 +92,10 @@ public final class Disco implements ComponenteReloj {
     public void cambiarPolitica(PoliticaPlanificacionDisco nuevaPolitica) {
         if (nuevaPolitica == null) throw new IllegalArgumentException("La politica es obligatoria");
         mutex.acquireUninterruptibly();
-        try { politica = nuevaPolitica; }
+        try {
+            politica = nuevaPolitica;
+            log.agregar(ultimoCiclo, 1, 0, "POLITICA_DISCO", nuevaPolitica.getTipo().name());
+        }
         finally { mutex.release(); }
     }
 
@@ -85,21 +103,23 @@ public final class Disco implements ComponenteReloj {
         mutex.acquireUninterruptibly();
         try {
             if (ciclo != ultimoCiclo + 1) throw new IllegalArgumentException("El ciclo debe ser consecutivo");
-            if (activa == null) prepararSiguiente();
+            if (activa == null) prepararSiguiente(ciclo);
             if (activa != null && !avanzarCabezal()) {
                 activa.trabajarBloque();
                 if (activa.termino()) {
+                    registrarFinalizacion(activa, ciclo);
                     completadas.agregar(activa);
                     activa = null;
                     rutaActiva = new MovimientoCabezalDisco[0];
                     indiceRuta = 0;
                 }
             }
+            registrarHistoria(ciclo);
             ultimoCiclo = ciclo;
         } finally { mutex.release(); }
     }
 
-    private void prepararSiguiente() {
+    private void prepararSiguiente(long ciclo) {
         Object[] espera = pendientes.instantanea();
         if (espera.length == 0) return;
         int[] objetivos = new int[espera.length];
@@ -115,6 +135,12 @@ public final class Disco implements ComponenteReloj {
         System.arraycopy(recorrido, 0, rutaActiva, 0, rutaActiva.length);
         indiceRuta = 0;
         activa = retirarPrimeraEnBloque(recorrido[fin].destino());
+        activa.iniciar(politica.getTipo(), ciclo);
+        solicitudesIniciadas++;
+        esperaAcumulada += activa.getTiempoEspera();
+        log.agregar(ciclo, 1, activa.getProcesoId(), "DISCO_ATIENDE",
+                "S" + activa.getId() + " bloque=" + activa.getBloqueObjetivo()
+                + " (" + activa.getPoliticaSeleccion() + ")");
     }
 
     private SolicitudDisco retirarPrimeraEnBloque(int bloque) {
@@ -146,10 +172,30 @@ public final class Disco implements ComponenteReloj {
             direccion = diferencia > 0 ? DireccionDisco.ASCENDENTE : DireccionDisco.DESCENDENTE;
             int avance = Math.min(Math.abs(diferencia), posicionesPorCiclo);
             posicionCabezal += diferencia > 0 ? avance : -avance;
+            desplazamientoTotal += avance;
             if (posicionCabezal == movimiento.destino()) indiceRuta++;
             return true;
         }
         return false;
+    }
+
+    private void registrarFinalizacion(SolicitudDisco solicitud, long ciclo) {
+        solicitudesAtendidas++;
+        atendidasPorPolitica[solicitud.getPoliticaSeleccion().ordinal()]++;
+        if (solicitud.getOperacion() == OperacionES.SUSPENDER) suspensiones++;
+        else if (solicitud.getOperacion() == OperacionES.REACTIVAR) reactivaciones++;
+        log.agregar(ciclo, 1, solicitud.getProcesoId(), "DISCO_COMPLETA",
+                "S" + solicitud.getId() + " " + solicitud.getOperacion());
+    }
+
+    private void registrarHistoria(long ciclo) {
+        int indice = (historiaInicio + historiaTamano) % historiaCiclos.length;
+        if (historiaTamano == historiaCiclos.length) {
+            indice = historiaInicio;
+            historiaInicio = (historiaInicio + 1) % historiaCiclos.length;
+        } else historiaTamano++;
+        historiaCiclos[indice] = ciclo;
+        historiaDesplazamiento[indice] = desplazamientoTotal;
     }
 
     public VistaSolicitudDisco[] consultarCola() {
@@ -169,6 +215,26 @@ public final class Disco implements ComponenteReloj {
         try { return activa == null ? null : activa.consultar(); }
         finally { mutex.release(); }
     }
+
+    public VistaMetricasDisco consultarMetricas() {
+        mutex.acquireUninterruptibly();
+        try {
+            long[] ciclos = new long[historiaTamano];
+            long[] desplazamientos = new long[historiaTamano];
+            for (int i = 0; i < historiaTamano; i++) {
+                int indice = (historiaInicio + i) % historiaCiclos.length;
+                ciclos[i] = historiaCiclos[indice];
+                desplazamientos[i] = historiaDesplazamiento[indice];
+            }
+            double esperaPromedio = solicitudesIniciadas == 0 ? 0
+                    : (double) esperaAcumulada / solicitudesIniciadas;
+            return new VistaMetricasDisco(ultimoCiclo, desplazamientoTotal,
+                    solicitudesAtendidas, esperaPromedio, suspensiones, reactivaciones,
+                    atendidasPorPolitica, ciclos, desplazamientos);
+        } finally { mutex.release(); }
+    }
+
+    public Modelo.EventoSistema[] consultarEventos() { return log.consultar(); }
 
     private VistaSolicitudDisco[] vistas(Cola<SolicitudDisco> cola) {
         Object[] elementos = cola.instantanea();
