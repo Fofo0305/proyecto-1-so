@@ -11,6 +11,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la compilacion.' }
     foreach ($pruebaProyecto2 in @('Pruebas.PruebaBaseProyecto2', 'Pruebas.PruebaModeloSieteEstados',
             'Pruebas.PruebaDiscoPlanificacion', 'Pruebas.PruebaPoliticasES',
+            'Pruebas.PruebaDiscoReloj',
             'Pruebas.PruebaRelojPoliticas')) {
         & $java -cp target/pruebas-proyecto2 $pruebaProyecto2
         if ($LASTEXITCODE -ne 0) { throw "Fallo $pruebaProyecto2" }
