@@ -13,15 +13,66 @@ public final class PruebaDiscoPlanificacion {
         probarContratoPolitica();
         probarValidacionPoliticasBasicas();
         probarCasosDeProcesos();
+        probarRecorridosDeBarrido();
         probarAnexoConDesplazamientos();
         System.out.println("OK: bloques, swap y casos FIFO, SSTF, SCAN y C-SCAN del enunciado");
+    }
+
+    private static void probarRecorridosDeBarrido() throws Exception {
+        verificarBarrido("SCAN", "ASCENDENTE", new int[] {82, 17, 43, 140, 24, 16, 190},
+                new int[] {82, 140, 190, 43, 24, 17, 16},
+                new int[] {82, 140, 190, 199, 43, 24, 17, 16}, 3, -1, 332, "DESCENDENTE");
+        verificarBarrido("CSCAN", "ASCENDENTE", new int[] {82, 17, 43, 140, 24, 16, 190},
+                new int[] {82, 140, 190, 16, 17, 24, 43},
+                new int[] {82, 140, 190, 199, 0, 16, 17, 24, 43}, 3, 4, 192, "ASCENDENTE");
+        verificarBarrido("SCAN", "DESCENDENTE", new int[] {20, 80},
+                new int[] {20, 80}, new int[] {20, 0, 80}, 1, -1, 130, "ASCENDENTE");
+        verificarBarrido("CSCAN", "DESCENDENTE", new int[] {20, 80},
+                new int[] {20, 80}, new int[] {20, 0, 199, 80}, 1, 2, 169, "DESCENDENTE");
+        verificarBarrido("SCAN", "ASCENDENTE", new int[] {50, 50, 60, 40},
+                new int[] {50, 50, 60, 40}, new int[] {50, 50, 60, 199, 40},
+                3, -1, 308, "DESCENDENTE");
+        verificarBarrido("CSCAN", "ASCENDENTE", new int[] {50, 50, 60, 40},
+                new int[] {50, 50, 60, 40}, new int[] {50, 50, 60, 199, 0, 40},
+                3, 4, 189, "ASCENDENTE");
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void verificarBarrido(String clase, String direccionInicial, int[] solicitudes,
+            int[] ordenEsperado, int[] destinos, int extremo, int salto,
+            long desplazamiento, String direccionFinal) throws Exception {
+        Class<?> direccionTipo = Class.forName("Modelo.DireccionDisco");
+        Object direccion = Enum.valueOf((Class<? extends Enum>) direccionTipo, direccionInicial);
+        Object politica = Class.forName("PlanificacionDisco." + clase).getConstructor().newInstance();
+        Method planificar = politica.getClass().getMethod("planificar", int.class,
+                int.class, direccionTipo, int[].class);
+        int[] entradaOriginal = solicitudes.clone();
+        Object resultado = planificar.invoke(politica, 50, 200, direccion, solicitudes);
+        verificarArreglo(solicitudes, entradaOriginal, "El barrido modifica la cola recibida");
+        verificarArreglo((int[]) invocar(resultado, "orden"), ordenEsperado,
+                "Orden de barrido incorrecto para " + clase);
+        Object[] movimientos = (Object[]) invocar(resultado, "movimientos");
+        verificar(movimientos.length == destinos.length, "Cantidad de movimientos incorrecta para " + clase);
+        for (int i = 0; i < movimientos.length; i++) {
+            verificar((int) invocar(movimientos[i], "destino") == destinos[i],
+                    "Destino incorrecto para " + clase + " en " + i);
+            boolean atiende = (boolean) invocar(movimientos[i], "atiendeSolicitud");
+            boolean contabiliza = (boolean) invocar(movimientos[i], "contabilizaDesplazamiento");
+            verificar(atiende == (i != extremo && i != salto), "Atencion incorrecta para " + clase);
+            verificar(contabiliza == (i != salto), "Metrica incorrecta para " + clase);
+        }
+        verificar((long) invocar(resultado, "desplazamientoTotal") == desplazamiento,
+                "Desplazamiento de recorrido incorrecto para " + clase);
+        verificar(invocar(resultado, "direccionFinal").toString().equals(direccionFinal),
+                "Direccion final de recorrido incorrecta para " + clase);
     }
 
     private static void probarValidacionPoliticasBasicas() throws Exception {
         Class<?> direccionTipo = Class.forName("Modelo.DireccionDisco");
         @SuppressWarnings({"unchecked", "rawtypes"})
         Object ascendente = Enum.valueOf((Class<? extends Enum>) direccionTipo, "ASCENDENTE");
-        for (String clase : new String[] {"PlanificacionDisco.FIFO", "PlanificacionDisco.SSTF"}) {
+        for (String clase : new String[] {"PlanificacionDisco.FIFO", "PlanificacionDisco.SSTF",
+                "PlanificacionDisco.SCAN", "PlanificacionDisco.CSCAN"}) {
             Object politica = Class.forName(clase).getConstructor().newInstance();
             Method planificar = politica.getClass().getMethod("planificar", int.class,
                     int.class, direccionTipo, int[].class);

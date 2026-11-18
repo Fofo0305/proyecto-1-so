@@ -21,17 +21,27 @@ abstract class PoliticaBaseDisco implements PoliticaPlanificacionDisco {
     protected final ResultadoPlanificacionDisco resultadoDirecto(int posicionCabezal,
             DireccionDisco direccionInicial, int[] orden) {
         MovimientoCabezalDisco[] movimientos = new MovimientoCabezalDisco[orden.length];
-        long desplazamiento = 0;
         int posicion = posicionCabezal;
         DireccionDisco direccion = direccionInicial;
         for (int i = 0; i < orden.length; i++) {
             int destino = orden[i];
-            desplazamiento += Math.abs((long) destino - posicion);
             if (destino > posicion) direccion = DireccionDisco.ASCENDENTE;
             else if (destino < posicion) direccion = DireccionDisco.DESCENDENTE;
             movimientos[i] = new MovimientoCabezalDisco(destino, true, true);
             posicion = destino;
         }
-        return new ResultadoPlanificacionDisco(orden, movimientos, desplazamiento, direccion);
+        return resultadoRecorrido(posicionCabezal, direccion, orden, movimientos);
+    }
+
+    protected final ResultadoPlanificacionDisco resultadoRecorrido(int posicionCabezal,
+            DireccionDisco direccionFinal, int[] orden, MovimientoCabezalDisco[] movimientos) {
+        long desplazamiento = 0;
+        int posicion = posicionCabezal;
+        for (MovimientoCabezalDisco movimiento : movimientos) {
+            if (movimiento.contabilizaDesplazamiento())
+                desplazamiento += Math.abs((long) movimiento.destino() - posicion);
+            posicion = movimiento.destino();
+        }
+        return new ResultadoPlanificacionDisco(orden, movimientos, desplazamiento, direccionFinal);
     }
 }
