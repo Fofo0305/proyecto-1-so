@@ -4,7 +4,7 @@
 #
 #   ./verificar-proyecto2.sh [--jdk RUTA] [--interfaz]
 #
-# Sin --interfaz corre las 4 comprobaciones que no necesitan pantalla.
+# Sin --interfaz corre las 7 comprobaciones que no necesitan pantalla.
 # Con --interfaz agrega las 2 que crean componentes Swing; en un servidor sin
 # escritorio hay que envolverlas, por ejemplo con `xvfb-run -a`.
 set -eu
@@ -35,6 +35,9 @@ find src/main/java src/test/java -name '*.java' > "$SALIDA/fuentes.txt"
 
 PRUEBAS="Pruebas.PruebaBaseProyecto2
 Pruebas.PruebaModeloSieteEstados
+Pruebas.PruebaDiscoPlanificacion
+Pruebas.PruebaDiscoReloj
+Pruebas.PruebaMetricasDisco
 Pruebas.PruebaPoliticasES
 Pruebas.PruebaRelojPoliticas"
 

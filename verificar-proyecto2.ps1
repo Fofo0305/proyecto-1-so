@@ -9,7 +9,10 @@ try {
     $fuentesProyecto2 = @(Get-ChildItem src/main/java,src/test/java -Recurse -Filter *.java | ForEach-Object FullName)
     & $compilador -encoding UTF-8 --release 22 -d target/pruebas-proyecto2 @fuentesProyecto2
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la compilacion.' }
-    foreach ($pruebaProyecto2 in @('Pruebas.PruebaBaseProyecto2', 'Pruebas.PruebaModeloSieteEstados', 'Pruebas.PruebaPoliticasES',
+    foreach ($pruebaProyecto2 in @('Pruebas.PruebaBaseProyecto2', 'Pruebas.PruebaModeloSieteEstados',
+            'Pruebas.PruebaDiscoPlanificacion', 'Pruebas.PruebaPoliticasES',
+            'Pruebas.PruebaDiscoReloj',
+            'Pruebas.PruebaMetricasDisco',
             'Pruebas.PruebaRelojPoliticas')) {
         & $java -cp target/pruebas-proyecto2 $pruebaProyecto2
         if ($LASTEXITCODE -ne 0) { throw "Fallo $pruebaProyecto2" }
