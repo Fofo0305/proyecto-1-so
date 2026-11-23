@@ -7,7 +7,7 @@ import Modelo.TipoEntrada;
 import Sistema.Disco;
 import Sistema.SistemaArchivos;
 
-/** Contrato del arbol de directorios, las rutas, la asignacion encadenada y el CRUD. @author Luciano */
+/** Contrato del arbol de directorios, las rutas, la asignacion encadenada el CRUD y el borrado recursivo. @author Luciano */
 public final class PruebaSistemaArchivos {
     private PruebaSistemaArchivos() { }
 
@@ -15,6 +15,7 @@ public final class PruebaSistemaArchivos {
         probarArbolYRutas();
         probarAsignacionEncadenada();
         probarCrud();
+        probarEliminacionRecursiva();
         System.out.println("PruebaSistemaArchivos: OK");
     }
 
@@ -115,18 +116,39 @@ public final class PruebaSistemaArchivos {
         sa.eliminar("/usuarios/apuntes.txt");
         verificar(!sa.existe("/usuarios/apuntes.txt") && disco.contarLibres(AreaDisco.DATOS) == libresAntes + 4,
                 "eliminar no libera los bloques del archivo");
-        try {
-            sa.eliminar("/usuarios");
-            throw new AssertionError("Elimina un directorio con contenido");
-        } catch (IllegalStateException esperado) {
-            verificar(sa.existe("/usuarios/foto.png"), "El intento fallido borro contenido");
-        }
         sa.eliminar("/usuarios/foto.png");
         sa.eliminar("/usuarios");
         verificar(sa.getTotalEntradas() == 1 && disco.contarLibres(AreaDisco.DATOS) == 80,
                 "Quedaron entradas o bloques despues de eliminar todo");
         esperarInvalida(() -> sa.eliminar("/"), "Elimina la raiz");
         esperarInvalida(() -> sa.eliminar("/usuarios"), "Elimina una ruta inexistente");
+    }
+
+    private static void probarEliminacionRecursiva() {
+        Disco disco = new Disco(100, 20, 0);
+        SistemaArchivos sa = new SistemaArchivos(disco);
+        sa.crearDirectorio("/home", "admin", PermisoArchivo.PUBLICO);
+        sa.crearDirectorio("/home/luciano", "luciano", PermisoArchivo.PRIVADO);
+        sa.crearDirectorio("/home/luciano/fotos", "luciano", PermisoArchivo.PRIVADO);
+        sa.crearDirectorio("/home/luciano/vacio", "luciano", PermisoArchivo.PRIVADO);
+        sa.crearArchivo("/home/luciano/tarea.pdf", "luciano", 3, PermisoArchivo.PRIVADO, 1);
+        sa.crearArchivo("/home/luciano/fotos/a.png", "luciano", 5, PermisoArchivo.PUBLICO, 2);
+        sa.crearArchivo("/home/luciano/fotos/b.png", "luciano", 2, PermisoArchivo.PUBLICO, 3);
+        sa.crearArchivo("/home/readme.txt", "admin", 4, PermisoArchivo.PUBLICO, 4);
+        verificar(disco.contarLibres(AreaDisco.DATOS) == 66, "Los archivos no ocuparon 14 bloques");
+
+        verificar(sa.eliminar("/home/luciano/fotos/b.png") == 2, "eliminar no informa los bloques del archivo");
+        verificar(sa.eliminar("/home/luciano/vacio") == 0, "Un directorio vacio libero bloques");
+        verificar(sa.eliminar("/home/luciano") == 8, "El borrado recursivo no libero 3 + 5 bloques");
+        verificar(!sa.existe("/home/luciano") && !sa.existe("/home/luciano/fotos/a.png"),
+                "Quedaron descendientes del directorio eliminado");
+        verificar(sa.existe("/home/readme.txt") && iguales(sa.leer("/home/readme.txt"), 10, 11, 12, 13),
+                "El borrado recursivo toco un archivo hermano");
+        verificar(sa.getTotalEntradas() == 3 && disco.contarLibres(AreaDisco.DATOS) == 76,
+                "El arbol o el disco no quedaron consistentes");
+        for (VistaBloqueDisco bloque : disco.consultarBloques())
+            verificar(bloque.libre() || bloque.numero() >= 10 && bloque.numero() <= 13,
+                    "Quedo ocupado el bloque " + bloque.numero());
     }
 
     private static boolean iguales(int[] obtenidos, int... esperados) {

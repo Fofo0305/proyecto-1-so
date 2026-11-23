@@ -85,18 +85,43 @@ public final class SistemaArchivos {
         } finally { mutex.release(); }
     }
 
-    /** Elimina un archivo, liberando sus bloques, o un directorio vacio. */
-    public void eliminar(String ruta) {
+    /**
+     * Elimina un archivo o un directorio con todo su contenido. Primero comprueba que
+     * todas las cadenas del subarbol estan sanas y solo entonces libera, para no dejar
+     * el arbol a medio borrar.
+     * @return bloques liberados en el disco
+     */
+    public int eliminar(String ruta) {
         mutex.acquireUninterruptibly();
         try {
             NodoArbol<EntradaArchivo> nodo = exigir(ruta);
             if (nodo.getPadre() == null) throw new IllegalArgumentException("La raiz no se elimina");
-            EntradaArchivo entrada = nodo.getDato();
-            if (entrada.esDirectorio() && nodo.getHijos().length > 0)
-                throw new IllegalStateException(ruta + " no esta vacio");
-            if (!entrada.esDirectorio()) disco.liberarEncadenado(entrada.getPrimerBloque());
+            int[] primeros = new int[contarArchivos(nodo)];
+            recolectarPrimerosBloques(nodo, primeros, 0);
+            for (int primero : primeros) disco.recorrerCadena(primero);
+            int liberados = 0;
+            for (int primero : primeros) liberados += disco.liberarEncadenado(primero);
             arbol.eliminarSubarbol(nodo);
+            return liberados;
         } finally { mutex.release(); }
+    }
+
+    private static int contarArchivos(NodoArbol<EntradaArchivo> nodo) {
+        if (!nodo.getDato().esDirectorio()) return 1;
+        int total = 0;
+        for (NodoArbol<EntradaArchivo> hijo : nodo.getHijos()) total += contarArchivos(hijo);
+        return total;
+    }
+
+    /** Recorre el subarbol en profundidad y guarda el primer bloque de cada archivo. */
+    private static int recolectarPrimerosBloques(NodoArbol<EntradaArchivo> nodo, int[] destino, int indice) {
+        if (!nodo.getDato().esDirectorio()) {
+            destino[indice] = nodo.getDato().getPrimerBloque();
+            return indice + 1;
+        }
+        for (NodoArbol<EntradaArchivo> hijo : nodo.getHijos())
+            indice = recolectarPrimerosBloques(hijo, destino, indice);
+        return indice;
     }
 
     public boolean existe(String ruta) {
