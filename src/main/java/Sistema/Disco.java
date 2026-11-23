@@ -243,6 +243,83 @@ public final class Disco implements ComponenteReloj {
         return vistas;
     }
 
+    /**
+     * Asigna por primer ajuste {@code cantidad} bloques libres del area de datos y los
+     * encadena: cada bloque guarda el numero del siguiente y el ultimo guarda -1.
+     * @return numero del primer bloque de la cadena
+     */
+    public int asignarEncadenado(String propietario, int cantidad) {
+        if (propietario == null || propietario.isBlank() || cantidad < 1)
+            throw new IllegalArgumentException("Asignacion invalida");
+        mutex.acquireUninterruptibly();
+        try {
+            if (libresEn(AreaDisco.DATOS) < cantidad)
+                throw new IllegalStateException("No hay " + cantidad + " bloques libres en el disco");
+            int[] elegidos = new int[cantidad];
+            int encontrados = 0;
+            for (int numero = 0; numero < bloques.length && encontrados < cantidad; numero++)
+                if (bloques[numero].getArea() == AreaDisco.DATOS && bloques[numero].estaLibre())
+                    elegidos[encontrados++] = numero;
+            for (int i = 0; i < cantidad; i++)
+                bloques[elegidos[i]].ocupar(propietario, i + 1 < cantidad ? elegidos[i + 1] : -1);
+            log.agregar(ultimoCiclo, 1, 0, "ASIGNA_BLOQUES",
+                    propietario + " " + cantidad + " bloques desde " + elegidos[0]);
+            return elegidos[0];
+        } finally { mutex.release(); }
+    }
+
+    /** Bloques de la cadena que empieza en {@code primerBloque}, en orden de enlace. */
+    public int[] recorrerCadena(int primerBloque) {
+        mutex.acquireUninterruptibly();
+        try { return cadena(primerBloque); }
+        finally { mutex.release(); }
+    }
+
+    /** Libera toda la cadena que empieza en {@code primerBloque}. @return bloques liberados */
+    public int liberarEncadenado(int primerBloque) {
+        mutex.acquireUninterruptibly();
+        try {
+            int[] recorrido = cadena(primerBloque);
+            String propietario = bloques[primerBloque].getPropietario();
+            for (int numero : recorrido) bloques[numero].liberar();
+            log.agregar(ultimoCiclo, 1, 0, "LIBERA_BLOQUES",
+                    propietario + " " + recorrido.length + " bloques desde " + primerBloque);
+            return recorrido.length;
+        } finally { mutex.release(); }
+    }
+
+    public int contarLibres(AreaDisco area) {
+        if (area == null) throw new IllegalArgumentException("El area es obligatoria");
+        mutex.acquireUninterruptibly();
+        try { return libresEn(area); }
+        finally { mutex.release(); }
+    }
+
+    private int libresEn(AreaDisco area) {
+        int libres = 0;
+        for (BloqueDisco bloque : bloques) if (bloque.getArea() == area && bloque.estaLibre()) libres++;
+        return libres;
+    }
+
+    private int[] cadena(int primerBloque) {
+        if (primerBloque < 0 || primerBloque >= bloques.length || bloques[primerBloque].estaLibre())
+            throw new IllegalArgumentException("El bloque " + primerBloque + " no inicia una cadena");
+        String propietario = bloques[primerBloque].getPropietario();
+        int largo = 0;
+        for (int actual = primerBloque; actual != -1; actual = bloques[actual].getSiguiente()) {
+            if (++largo > bloques.length || bloques[actual].estaLibre()
+                    || !bloques[actual].getPropietario().equals(propietario))
+                throw new IllegalStateException("La cadena del bloque " + primerBloque + " esta corrupta");
+        }
+        int[] recorrido = new int[largo];
+        int actual = primerBloque;
+        for (int i = 0; i < largo; i++) {
+            recorrido[i] = actual;
+            actual = bloques[actual].getSiguiente();
+        }
+        return recorrido;
+    }
+
     public VistaBloqueDisco[] consultarBloques() {
         mutex.acquireUninterruptibly();
         try {
