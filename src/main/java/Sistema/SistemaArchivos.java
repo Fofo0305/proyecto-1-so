@@ -6,7 +6,11 @@ import Modelo.PermisoArchivo;
 import Modelo.TipoEntrada;
 import java.util.concurrent.Semaphore;
 
-/** Arbol de directorios y archivos del sistema operativo, con rutas absolutas. @author Luciano */
+/**
+ * Arbol de directorios y archivos del sistema operativo, con rutas absolutas.
+ * Los archivos guardan solo su estructura: el contenido es la cadena de bloques en el Disco.
+ * @author Luciano
+ */
 public final class SistemaArchivos {
     public static final String SEPARADOR = "/";
     public static final String DUENO_SISTEMA = "admin";
@@ -14,11 +18,13 @@ public final class SistemaArchivos {
 
     private final Semaphore mutex = new Semaphore(1, true);
     private final ArbolJerarquico<EntradaArchivo> arbol;
+    private final Disco disco;
     private long siguienteId = 1;
 
-    public SistemaArchivos() {
-        arbol = new ArbolJerarquico<>(new EntradaArchivo(0, "", TipoEntrada.DIRECTORIO,
-                DUENO_SISTEMA, PermisoArchivo.PUBLICO));
+    public SistemaArchivos(Disco disco) {
+        if (disco == null) throw new IllegalArgumentException("El disco es obligatorio");
+        this.disco = disco;
+        arbol = new ArbolJerarquico<>(new EntradaArchivo(0, "", DUENO_SISTEMA, PermisoArchivo.PUBLICO));
     }
 
     /** Crea un directorio vacio; su padre ya debe existir. */
@@ -27,12 +33,69 @@ public final class SistemaArchivos {
         try {
             String[] partes = dividir(ruta);
             if (partes.length == 0) throw new IllegalArgumentException("La raiz ya existe");
-            NodoArbol<EntradaArchivo> padre = directorioPadre(partes);
-            String nombre = partes[partes.length - 1];
-            if (hijo(padre, nombre) != null)
-                throw new IllegalArgumentException("Ya existe " + ruta);
-            arbol.agregarHijo(padre, new EntradaArchivo(siguienteId++, nombre,
-                    TipoEntrada.DIRECTORIO, dueno, permiso));
+            NodoArbol<EntradaArchivo> padre = padreLibre(partes, ruta);
+            arbol.agregarHijo(padre, new EntradaArchivo(siguienteId++,
+                    partes[partes.length - 1], dueno, permiso));
+        } finally { mutex.release(); }
+    }
+
+    /**
+     * Crea un archivo y le asigna sus bloques encadenados en el disco.
+     * Si no hay espacio, el arbol queda igual.
+     * @return numero del primer bloque asignado
+     */
+    public int crearArchivo(String ruta, String dueno, int tamanoBloques,
+            PermisoArchivo permiso, long procesoCreador) {
+        mutex.acquireUninterruptibly();
+        try {
+            String[] partes = dividir(ruta);
+            if (partes.length == 0) throw new IllegalArgumentException("La raiz no es un archivo");
+            NodoArbol<EntradaArchivo> padre = padreLibre(partes, ruta);
+            if (tamanoBloques < 1) throw new IllegalArgumentException("El archivo necesita al menos un bloque");
+            long id = siguienteId;
+            int primero = disco.asignarEncadenado(EntradaArchivo.etiquetaDisco(id), tamanoBloques);
+            siguienteId++;
+            arbol.agregarHijo(padre, new EntradaArchivo(id, partes[partes.length - 1], dueno,
+                    permiso, tamanoBloques, primero, procesoCreador));
+            return primero;
+        } finally { mutex.release(); }
+    }
+
+    /** Lee un archivo: devuelve sus bloques en el orden en que el disco los encadena. */
+    public int[] leer(String ruta) {
+        mutex.acquireUninterruptibly();
+        try {
+            EntradaArchivo entrada = exigir(ruta).getDato();
+            if (entrada.esDirectorio()) throw new IllegalArgumentException(ruta + " es un directorio");
+            return disco.recorrerCadena(entrada.getPrimerBloque());
+        } finally { mutex.release(); }
+    }
+
+    /** Cambia el nombre de un archivo o directorio sin moverlo ni tocar sus bloques. */
+    public void renombrar(String ruta, String nuevoNombre) {
+        validarNombre(nuevoNombre);
+        mutex.acquireUninterruptibly();
+        try {
+            NodoArbol<EntradaArchivo> nodo = exigir(ruta);
+            if (nodo.getPadre() == null) throw new IllegalArgumentException("La raiz no se renombra");
+            NodoArbol<EntradaArchivo> existente = hijo(nodo.getPadre(), nuevoNombre);
+            if (existente != null && existente != nodo)
+                throw new IllegalArgumentException("Ya existe " + nuevoNombre + " en ese directorio");
+            nodo.getDato().renombrar(nuevoNombre);
+        } finally { mutex.release(); }
+    }
+
+    /** Elimina un archivo, liberando sus bloques, o un directorio vacio. */
+    public void eliminar(String ruta) {
+        mutex.acquireUninterruptibly();
+        try {
+            NodoArbol<EntradaArchivo> nodo = exigir(ruta);
+            if (nodo.getPadre() == null) throw new IllegalArgumentException("La raiz no se elimina");
+            EntradaArchivo entrada = nodo.getDato();
+            if (entrada.esDirectorio() && nodo.getHijos().length > 0)
+                throw new IllegalStateException(ruta + " no esta vacio");
+            if (!entrada.esDirectorio()) disco.liberarEncadenado(entrada.getPrimerBloque());
+            arbol.eliminarSubarbol(nodo);
         } finally { mutex.release(); }
     }
 
@@ -111,6 +174,13 @@ public final class SistemaArchivos {
                 throw new IllegalArgumentException("El directorio padre no existe");
         }
         return actual;
+    }
+
+    private NodoArbol<EntradaArchivo> padreLibre(String[] partes, String ruta) {
+        NodoArbol<EntradaArchivo> padre = directorioPadre(partes);
+        if (hijo(padre, partes[partes.length - 1]) != null)
+            throw new IllegalArgumentException("Ya existe " + ruta);
+        return padre;
     }
 
     private NodoArbol<EntradaArchivo> buscar(String[] partes) {

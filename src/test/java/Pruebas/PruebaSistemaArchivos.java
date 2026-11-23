@@ -7,18 +7,19 @@ import Modelo.TipoEntrada;
 import Sistema.Disco;
 import Sistema.SistemaArchivos;
 
-/** Contrato del arbol de directorios, las rutas y la asignacion encadenada. @author Luciano */
+/** Contrato del arbol de directorios, las rutas, la asignacion encadenada y el CRUD. @author Luciano */
 public final class PruebaSistemaArchivos {
     private PruebaSistemaArchivos() { }
 
     public static void main(String[] args) {
         probarArbolYRutas();
         probarAsignacionEncadenada();
+        probarCrud();
         System.out.println("PruebaSistemaArchivos: OK");
     }
 
     private static void probarArbolYRutas() {
-        SistemaArchivos sa = new SistemaArchivos();
+        SistemaArchivos sa = new SistemaArchivos(new Disco(100, 20, 0));
         verificar(sa.existe("/") && sa.tipoDe("/") == TipoEntrada.DIRECTORIO, "La raiz no existe");
         sa.crearDirectorio("/home", "admin", PermisoArchivo.PUBLICO);
         sa.crearDirectorio("/home/luciano", "luciano", PermisoArchivo.PRIVADO);
@@ -74,6 +75,58 @@ public final class PruebaSistemaArchivos {
         verificar(disco.contarLibres(AreaDisco.SWAP) == 20, "La asignacion de archivos invadio el swap");
         esperarInvalida(() -> disco.recorrerCadena(50), "Recorre una cadena desde un bloque libre");
         esperarInvalida(() -> disco.asignarEncadenado("F5", 0), "Acepta archivos de cero bloques");
+    }
+
+    private static void probarCrud() {
+        Disco disco = new Disco(100, 20, 0);
+        SistemaArchivos sa = new SistemaArchivos(disco);
+        sa.crearDirectorio("/home", "admin", PermisoArchivo.PUBLICO);
+        int primero = sa.crearArchivo("/home/notas.txt", "luciano", 4, PermisoArchivo.PRIVADO, 7);
+        sa.crearArchivo("/home/foto.png", "luciano", 2, PermisoArchivo.PUBLICO, 8);
+        verificar(primero == 0 && sa.tipoDe("/home/notas.txt") == TipoEntrada.ARCHIVO,
+                "crearArchivo no registra el archivo");
+        verificar(iguales(sa.leer("/home/notas.txt"), 0, 1, 2, 3), "leer no recorre la cadena del archivo");
+        verificar(disco.consultarBloques()[0].propietario().startsWith("F"),
+                "El disco no marca el bloque con el archivo");
+
+        sa.renombrar("/home/notas.txt", "apuntes.txt");
+        verificar(!sa.existe("/home/notas.txt") && sa.existe("/home/apuntes.txt"), "renombrar no cambia el nombre");
+        verificar(iguales(sa.leer("/home/apuntes.txt"), 0, 1, 2, 3), "renombrar movio los bloques");
+        sa.renombrar("/home", "usuarios");
+        verificar(sa.existe("/usuarios/foto.png"), "Renombrar un directorio pierde a sus hijos");
+        esperarInvalida(() -> sa.renombrar("/usuarios/foto.png", "apuntes.txt"), "Renombra sobre un nombre usado");
+        esperarInvalida(() -> sa.renombrar("/usuarios/foto.png", "a/b"), "Acepta nombres con separador");
+        esperarInvalida(() -> sa.renombrar("/", "raiz"), "Renombra la raiz");
+
+        int libresAntes = disco.contarLibres(AreaDisco.DATOS);
+        try {
+            sa.crearArchivo("/usuarios/enorme.bin", "luciano", libresAntes + 1, PermisoArchivo.PUBLICO, 9);
+            throw new AssertionError("Crea un archivo sin bloques suficientes");
+        } catch (IllegalStateException esperado) {
+            verificar(!sa.existe("/usuarios/enorme.bin") && disco.contarLibres(AreaDisco.DATOS) == libresAntes,
+                    "Un archivo sin espacio dejo rastros");
+        }
+        esperarInvalida(() -> sa.crearArchivo("/usuarios/foto.png", "luciano", 1, PermisoArchivo.PUBLICO, 9),
+                "Crea un archivo duplicado");
+        esperarInvalida(() -> sa.crearArchivo("/usuarios/foto.png/x", "luciano", 1, PermisoArchivo.PUBLICO, 9),
+                "Crea un archivo dentro de otro archivo");
+        esperarInvalida(() -> sa.leer("/usuarios"), "Lee un directorio como archivo");
+
+        sa.eliminar("/usuarios/apuntes.txt");
+        verificar(!sa.existe("/usuarios/apuntes.txt") && disco.contarLibres(AreaDisco.DATOS) == libresAntes + 4,
+                "eliminar no libera los bloques del archivo");
+        try {
+            sa.eliminar("/usuarios");
+            throw new AssertionError("Elimina un directorio con contenido");
+        } catch (IllegalStateException esperado) {
+            verificar(sa.existe("/usuarios/foto.png"), "El intento fallido borro contenido");
+        }
+        sa.eliminar("/usuarios/foto.png");
+        sa.eliminar("/usuarios");
+        verificar(sa.getTotalEntradas() == 1 && disco.contarLibres(AreaDisco.DATOS) == 80,
+                "Quedaron entradas o bloques despues de eliminar todo");
+        esperarInvalida(() -> sa.eliminar("/"), "Elimina la raiz");
+        esperarInvalida(() -> sa.eliminar("/usuarios"), "Elimina una ruta inexistente");
     }
 
     private static boolean iguales(int[] obtenidos, int... esperados) {
