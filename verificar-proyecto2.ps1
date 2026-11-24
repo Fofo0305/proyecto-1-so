@@ -13,7 +13,8 @@ try {
             'Pruebas.PruebaDiscoPlanificacion', 'Pruebas.PruebaPoliticasES',
             'Pruebas.PruebaDiscoReloj',
             'Pruebas.PruebaMetricasDisco',
-            'Pruebas.PruebaRelojPoliticas')) {
+            'Pruebas.PruebaRelojPoliticas',
+            'Pruebas.PruebaSistemaArchivos')) {
         & $java -cp target/pruebas-proyecto2 $pruebaProyecto2
         if ($LASTEXITCODE -ne 0) { throw "Fallo $pruebaProyecto2" }
     }

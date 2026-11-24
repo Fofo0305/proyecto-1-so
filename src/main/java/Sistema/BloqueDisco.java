@@ -29,6 +29,8 @@ final class BloqueDisco {
     }
 
     boolean estaLibre() { return propietario == null; }
+    String getPropietario() { return propietario; }
+    int getSiguiente() { return siguiente; }
     AreaDisco getArea() { return area; }
     VistaBloqueDisco consultar() { return new VistaBloqueDisco(numero, area, propietario, siguiente); }
 }
