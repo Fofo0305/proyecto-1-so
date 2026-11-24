@@ -5,6 +5,8 @@ import EDD.NodoArbol;
 import Modelo.ModoUsuario;
 import Modelo.PermisoArchivo;
 import Modelo.TipoEntrada;
+import Modelo.VistaAsignacionArchivo;
+import Modelo.VistaEntradaArchivo;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -222,6 +224,55 @@ public final class SistemaArchivos {
 
     /** Cantidad de entradas del arbol, incluida la raiz. */
     public int getTotalEntradas() { return arbol.getTamano(); }
+
+    /**
+     * Copia inmutable de todo el arbol para el JTree. Todos los modos ven la estructura
+     * completa; los permisos se aplican al leer.
+     */
+    public VistaEntradaArchivo consultarArbol() {
+        mutex.acquireUninterruptibly();
+        try { return vista(arbol.getRaiz(), SEPARADOR); }
+        finally { mutex.release(); }
+    }
+
+    private static VistaEntradaArchivo vista(NodoArbol<EntradaArchivo> nodo, String ruta) {
+        EntradaArchivo entrada = nodo.getDato();
+        NodoArbol<EntradaArchivo>[] hijos = nodo.getHijos();
+        VistaEntradaArchivo[] vistas = new VistaEntradaArchivo[hijos.length];
+        for (int i = 0; i < hijos.length; i++)
+            vistas[i] = vista(hijos[i], rutaHija(ruta, hijos[i].getDato().getNombre()));
+        return new VistaEntradaArchivo(ruta, entrada.getNombre(), entrada.getTipo(),
+                entrada.getTamanoBloques(), entrada.getDueno(), entrada.getPermiso(),
+                entrada.getPrimerBloque(), vistas);
+    }
+
+    /** Filas de la tabla de asignacion: un archivo por fila, en el orden del arbol. */
+    public VistaAsignacionArchivo[] consultarAsignacion() {
+        mutex.acquireUninterruptibly();
+        try {
+            VistaAsignacionArchivo[] filas = new VistaAsignacionArchivo[contarArchivos(arbol.getRaiz())];
+            recolectarFilas(arbol.getRaiz(), SEPARADOR, filas, 0);
+            return filas;
+        } finally { mutex.release(); }
+    }
+
+    private static int recolectarFilas(NodoArbol<EntradaArchivo> nodo, String ruta,
+            VistaAsignacionArchivo[] destino, int indice) {
+        EntradaArchivo entrada = nodo.getDato();
+        if (!entrada.esDirectorio()) {
+            destino[indice] = new VistaAsignacionArchivo(entrada.getNombre(), ruta, entrada.getTamanoBloques(),
+                    entrada.getPrimerBloque(), entrada.getDueno(), entrada.getProcesoCreador(),
+                    entrada.getEtiquetaDisco());
+            return indice + 1;
+        }
+        for (NodoArbol<EntradaArchivo> hijo : nodo.getHijos())
+            indice = recolectarFilas(hijo, rutaHija(ruta, hijo.getDato().getNombre()), destino, indice);
+        return indice;
+    }
+
+    private static String rutaHija(String ruta, String nombre) {
+        return ruta.equals(SEPARADOR) ? SEPARADOR + nombre : ruta + SEPARADOR + nombre;
+    }
 
     /** Normaliza una ruta absoluta: quita barras repetidas y la barra final. */
     public static String normalizar(String ruta) {
