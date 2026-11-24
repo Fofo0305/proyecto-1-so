@@ -28,10 +28,13 @@ COMPILADOR="$JDK/bin/javac"
 JAVA="$JDK/bin/java"
 cd "$(dirname "$0")"
 SALIDA=target/pruebas-proyecto2
+# Gson es la libreria JSON permitida; el pom usa la misma version.
+GSON=lib/gson-2.11.0.jar
+CLASSPATH_PRUEBAS="$SALIDA:$GSON"
 mkdir -p "$SALIDA"
 
 find src/main/java src/test/java -name '*.java' > "$SALIDA/fuentes.txt"
-"$COMPILADOR" -encoding UTF-8 --release 22 -d "$SALIDA" "@$SALIDA/fuentes.txt"
+"$COMPILADOR" -encoding UTF-8 --release 22 -cp "$GSON" -d "$SALIDA" "@$SALIDA/fuentes.txt"
 
 PRUEBAS="Pruebas.PruebaBaseProyecto2
 Pruebas.PruebaModeloSieteEstados
@@ -51,7 +54,7 @@ fi
 CANTIDAD=0
 for PRUEBA in $PRUEBAS; do
     printf '== %s\n' "$PRUEBA"
-    if ! "$JAVA" -cp "$SALIDA" "$PRUEBA"; then
+    if ! "$JAVA" -cp "$CLASSPATH_PRUEBAS" "$PRUEBA"; then
         echo "Fallo $PRUEBA" >&2
         exit 1
     fi
