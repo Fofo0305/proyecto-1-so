@@ -268,6 +268,39 @@ public final class Disco implements ComponenteReloj {
         } finally { mutex.release(); }
     }
 
+    /**
+     * Restaura una cadena guardada: empieza exactamente en {@code primerBloque} y sigue con
+     * los bloques libres del area de datos que vienen despues, en orden. Si no caben todos,
+     * no asigna nada.
+     * @return numero del primer bloque de la cadena
+     */
+    public int asignarDesde(String propietario, int primerBloque, int cantidad) {
+        if (propietario == null || propietario.isBlank() || cantidad < 1)
+            throw new IllegalArgumentException("Asignacion invalida");
+        mutex.acquireUninterruptibly();
+        try {
+            if (primerBloque < 0 || primerBloque >= bloques.length
+                    || bloques[primerBloque].getArea() != AreaDisco.DATOS)
+                throw new IllegalArgumentException("El bloque " + primerBloque + " no es del area de datos");
+            if (!bloques[primerBloque].estaLibre())
+                throw new IllegalStateException("El bloque " + primerBloque + " ya esta ocupado por "
+                        + bloques[primerBloque].getPropietario());
+            int[] elegidos = new int[cantidad];
+            int encontrados = 0;
+            for (int numero = primerBloque; numero < bloques.length && encontrados < cantidad; numero++)
+                if (bloques[numero].getArea() == AreaDisco.DATOS && bloques[numero].estaLibre())
+                    elegidos[encontrados++] = numero;
+            if (encontrados < cantidad)
+                throw new IllegalStateException("No hay " + cantidad + " bloques libres desde el bloque "
+                        + primerBloque);
+            for (int i = 0; i < cantidad; i++)
+                bloques[elegidos[i]].ocupar(propietario, i + 1 < cantidad ? elegidos[i + 1] : -1);
+            log.agregar(ultimoCiclo, 1, 0, "ASIGNA_BLOQUES",
+                    propietario + " " + cantidad + " bloques desde " + primerBloque);
+            return primerBloque;
+        } finally { mutex.release(); }
+    }
+
     /** Bloques de la cadena que empieza en {@code primerBloque}, en orden de enlace. */
     public int[] recorrerCadena(int primerBloque) {
         mutex.acquireUninterruptibly();

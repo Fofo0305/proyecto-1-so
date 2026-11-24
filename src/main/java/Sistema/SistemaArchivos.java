@@ -84,6 +84,23 @@ public final class SistemaArchivos {
      */
     public int crearArchivo(String ruta, String dueno, int tamanoBloques,
             PermisoArchivo permiso, long procesoCreador) {
+        return crearArchivo(ruta, dueno, tamanoBloques, permiso, procesoCreador, -1);
+    }
+
+    /**
+     * Restaura un archivo guardado cuya cadena empieza en {@code primerBloque}. Solo el
+     * administrador restaura, porque el archivo conserva el dueno que traia.
+     * @return numero del primer bloque asignado
+     */
+    public int restaurarArchivo(String ruta, String dueno, int tamanoBloques,
+            PermisoArchivo permiso, long procesoCreador, int primerBloque) {
+        if (primerBloque < 0) throw new IllegalArgumentException("El primer bloque es invalido");
+        return crearArchivo(ruta, dueno, tamanoBloques, permiso, procesoCreador, primerBloque);
+    }
+
+    /** Con {@code primerPedido} igual a -1 asigna por primer ajuste. */
+    private int crearArchivo(String ruta, String dueno, int tamanoBloques,
+            PermisoArchivo permiso, long procesoCreador, int primerPedido) {
         validarDueno(dueno);
         if (permiso == null) throw new IllegalArgumentException("El permiso es obligatorio");
         if (procesoCreador < 0) throw new IllegalArgumentException("El proceso creador es invalido");
@@ -99,8 +116,11 @@ public final class SistemaArchivos {
                 if (!padre.getDato().getDueno().equals(usuario))
                     throw new SecurityException(usuario + " solo puede crear archivos en sus propios directorios");
             }
+            if (primerPedido >= 0) exigirAdministrador("restaurar archivos guardados");
             long id = siguienteId;
-            int primero = disco.asignarEncadenado(EntradaArchivo.etiquetaDisco(id), tamanoBloques);
+            String etiqueta = EntradaArchivo.etiquetaDisco(id);
+            int primero = primerPedido < 0 ? disco.asignarEncadenado(etiqueta, tamanoBloques)
+                    : disco.asignarDesde(etiqueta, primerPedido, tamanoBloques);
             siguienteId++;
             arbol.agregarHijo(padre, new EntradaArchivo(id, partes[partes.length - 1], dueno,
                     permiso, tamanoBloques, primero, procesoCreador));
