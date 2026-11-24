@@ -2,6 +2,7 @@ package Sistema;
 
 import EDD.ArbolJerarquico;
 import EDD.NodoArbol;
+import Modelo.ModoUsuario;
 import Modelo.PermisoArchivo;
 import Modelo.TipoEntrada;
 import java.util.concurrent.Semaphore;
@@ -20,6 +21,8 @@ public final class SistemaArchivos {
     private final ArbolJerarquico<EntradaArchivo> arbol;
     private final Disco disco;
     private long siguienteId = 1;
+    private ModoUsuario modo = ModoUsuario.ADMINISTRADOR;
+    private String usuario = DUENO_SISTEMA;
 
     public SistemaArchivos(Disco disco) {
         if (disco == null) throw new IllegalArgumentException("El disco es obligatorio");
@@ -27,12 +30,44 @@ public final class SistemaArchivos {
         arbol = new ArbolJerarquico<>(new EntradaArchivo(0, "", DUENO_SISTEMA, PermisoArchivo.PUBLICO));
     }
 
-    /** Crea un directorio vacio; su padre ya debe existir. */
+    /**
+     * Cambia quien opera el sistema de archivos. El administrador siempre actua como
+     * {@value #DUENO_SISTEMA}; un usuario necesita un nombre propio.
+     */
+    public void cambiarSesion(ModoUsuario nuevoModo, String nuevoUsuario) {
+        if (nuevoModo == null) throw new IllegalArgumentException("El modo es obligatorio");
+        String nombre = nuevoModo == ModoUsuario.ADMINISTRADOR ? DUENO_SISTEMA : nuevoUsuario;
+        validarDueno(nombre);
+        if (nuevoModo == ModoUsuario.USUARIO && nombre.equals(DUENO_SISTEMA))
+            throw new IllegalArgumentException("El modo usuario no puede actuar como " + DUENO_SISTEMA);
+        mutex.acquireUninterruptibly();
+        try {
+            modo = nuevoModo;
+            usuario = nombre;
+        } finally { mutex.release(); }
+    }
+
+    public ModoUsuario getModo() {
+        mutex.acquireUninterruptibly();
+        try { return modo; }
+        finally { mutex.release(); }
+    }
+
+    public String getUsuario() {
+        mutex.acquireUninterruptibly();
+        try { return usuario; }
+        finally { mutex.release(); }
+    }
+
+    /** Crea un directorio vacio; su padre ya debe existir. Solo el administrador crea directorios. */
     public void crearDirectorio(String ruta, String dueno, PermisoArchivo permiso) {
+        validarDueno(dueno);
+        if (permiso == null) throw new IllegalArgumentException("El permiso es obligatorio");
         mutex.acquireUninterruptibly();
         try {
             String[] partes = dividir(ruta);
             if (partes.length == 0) throw new IllegalArgumentException("La raiz ya existe");
+            exigirAdministrador("crear directorios");
             NodoArbol<EntradaArchivo> padre = padreLibre(partes, ruta);
             arbol.agregarHijo(padre, new EntradaArchivo(siguienteId++,
                     partes[partes.length - 1], dueno, permiso));
@@ -41,17 +76,27 @@ public final class SistemaArchivos {
 
     /**
      * Crea un archivo y le asigna sus bloques encadenados en el disco.
-     * Si no hay espacio, el arbol queda igual.
+     * Si no hay espacio, el arbol queda igual. Un usuario solo crea archivos a su nombre
+     * y dentro de un directorio suyo.
      * @return numero del primer bloque asignado
      */
     public int crearArchivo(String ruta, String dueno, int tamanoBloques,
             PermisoArchivo permiso, long procesoCreador) {
+        validarDueno(dueno);
+        if (permiso == null) throw new IllegalArgumentException("El permiso es obligatorio");
+        if (procesoCreador < 0) throw new IllegalArgumentException("El proceso creador es invalido");
         mutex.acquireUninterruptibly();
         try {
             String[] partes = dividir(ruta);
             if (partes.length == 0) throw new IllegalArgumentException("La raiz no es un archivo");
             NodoArbol<EntradaArchivo> padre = padreLibre(partes, ruta);
             if (tamanoBloques < 1) throw new IllegalArgumentException("El archivo necesita al menos un bloque");
+            if (modo == ModoUsuario.USUARIO) {
+                if (!dueno.equals(usuario))
+                    throw new SecurityException(usuario + " no puede crear archivos a nombre de " + dueno);
+                if (!padre.getDato().getDueno().equals(usuario))
+                    throw new SecurityException(usuario + " solo puede crear archivos en sus propios directorios");
+            }
             long id = siguienteId;
             int primero = disco.asignarEncadenado(EntradaArchivo.etiquetaDisco(id), tamanoBloques);
             siguienteId++;
@@ -61,23 +106,41 @@ public final class SistemaArchivos {
         } finally { mutex.release(); }
     }
 
-    /** Lee un archivo: devuelve sus bloques en el orden en que el disco los encadena. */
+    /**
+     * Lee un archivo: devuelve sus bloques en el orden en que el disco los encadena.
+     * Un usuario solo lee sus archivos o los publicos.
+     */
     public int[] leer(String ruta) {
         mutex.acquireUninterruptibly();
         try {
             EntradaArchivo entrada = exigir(ruta).getDato();
             if (entrada.esDirectorio()) throw new IllegalArgumentException(ruta + " es un directorio");
+            if (!puedeLeer(entrada))
+                throw new SecurityException(ruta + " es privado de " + entrada.getDueno());
             return disco.recorrerCadena(entrada.getPrimerBloque());
         } finally { mutex.release(); }
     }
 
-    /** Cambia el nombre de un archivo o directorio sin moverlo ni tocar sus bloques. */
+    /** Indica si la sesion actual puede leer la ruta, sin lanzar excepciones de permiso. */
+    public boolean puedeLeer(String ruta) {
+        mutex.acquireUninterruptibly();
+        try { return puedeLeer(exigir(ruta).getDato()); }
+        finally { mutex.release(); }
+    }
+
+    private boolean puedeLeer(EntradaArchivo entrada) {
+        return modo == ModoUsuario.ADMINISTRADOR || entrada.getPermiso() == PermisoArchivo.PUBLICO
+                || entrada.getDueno().equals(usuario);
+    }
+
+    /** Cambia el nombre de un archivo o directorio sin moverlo ni tocar sus bloques. Solo administrador. */
     public void renombrar(String ruta, String nuevoNombre) {
         validarNombre(nuevoNombre);
         mutex.acquireUninterruptibly();
         try {
             NodoArbol<EntradaArchivo> nodo = exigir(ruta);
             if (nodo.getPadre() == null) throw new IllegalArgumentException("La raiz no se renombra");
+            exigirAdministrador("renombrar");
             NodoArbol<EntradaArchivo> existente = hijo(nodo.getPadre(), nuevoNombre);
             if (existente != null && existente != nodo)
                 throw new IllegalArgumentException("Ya existe " + nuevoNombre + " en ese directorio");
@@ -88,7 +151,7 @@ public final class SistemaArchivos {
     /**
      * Elimina un archivo o un directorio con todo su contenido. Primero comprueba que
      * todas las cadenas del subarbol estan sanas y solo entonces libera, para no dejar
-     * el arbol a medio borrar.
+     * el arbol a medio borrar. Un usuario solo elimina archivos propios, nunca directorios.
      * @return bloques liberados en el disco
      */
     public int eliminar(String ruta) {
@@ -96,6 +159,13 @@ public final class SistemaArchivos {
         try {
             NodoArbol<EntradaArchivo> nodo = exigir(ruta);
             if (nodo.getPadre() == null) throw new IllegalArgumentException("La raiz no se elimina");
+            EntradaArchivo entrada = nodo.getDato();
+            if (modo == ModoUsuario.USUARIO) {
+                if (entrada.esDirectorio())
+                    throw new SecurityException("Solo el administrador elimina directorios");
+                if (!entrada.getDueno().equals(usuario))
+                    throw new SecurityException(usuario + " no puede eliminar archivos de " + entrada.getDueno());
+            }
             int[] primeros = new int[contarArchivos(nodo)];
             recolectarPrimerosBloques(nodo, primeros, 0);
             for (int primero : primeros) disco.recorrerCadena(primero);
@@ -183,6 +253,18 @@ public final class SistemaArchivos {
                 || nombre.equals(".") || nombre.equals("..")
                 || nombre.length() > LARGO_MAXIMO_NOMBRE || !nombre.equals(nombre.strip()))
             throw new IllegalArgumentException("Nombre invalido: " + nombre);
+    }
+
+    static void validarDueno(String dueno) {
+        if (dueno == null || dueno.isBlank() || !dueno.equals(dueno.strip()) || dueno.contains(SEPARADOR))
+            throw new IllegalArgumentException("Dueno invalido: " + dueno);
+    }
+
+    /** Rechaza la operacion si la sesion no es de administrador, explicando el motivo. */
+    private void exigirAdministrador(String operacion) {
+        if (modo != ModoUsuario.ADMINISTRADOR)
+            throw new SecurityException("Solo el administrador puede " + operacion + "; " + usuario
+                    + " esta en modo usuario");
     }
 
     NodoArbol<EntradaArchivo> exigir(String ruta) {
