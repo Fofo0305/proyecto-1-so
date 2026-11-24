@@ -1,13 +1,20 @@
 package Pruebas;
 
 import Modelo.AreaDisco;
+import Modelo.ModoUsuario;
 import Modelo.PermisoArchivo;
+import Modelo.VistaAsignacionArchivo;
 import Modelo.VistaBloqueDisco;
+import Modelo.VistaEntradaArchivo;
 import Modelo.TipoEntrada;
 import Sistema.Disco;
 import Sistema.SistemaArchivos;
 
-/** Contrato del arbol de directorios, las rutas, la asignacion encadenada el CRUD y el borrado recursivo. @author Luciano */
+/**
+ * Contrato del arbol de directorios, las rutas, la asignacion encadenada, el CRUD, el borrado
+ * recursivo, los permisos por modo, la falta de espacio, la fragmentacion y las vistas.
+ * @author Luciano
+ */
 public final class PruebaSistemaArchivos {
     private PruebaSistemaArchivos() { }
 
@@ -16,6 +23,9 @@ public final class PruebaSistemaArchivos {
         probarAsignacionEncadenada();
         probarCrud();
         probarEliminacionRecursiva();
+        probarPermisos();
+        probarFaltaDeEspacioYFragmentacion();
+        probarVistas();
         System.out.println("PruebaSistemaArchivos: OK");
     }
 
@@ -149,6 +159,152 @@ public final class PruebaSistemaArchivos {
         for (VistaBloqueDisco bloque : disco.consultarBloques())
             verificar(bloque.libre() || bloque.numero() >= 10 && bloque.numero() <= 13,
                     "Quedo ocupado el bloque " + bloque.numero());
+    }
+
+    private static void probarPermisos() {
+        Disco disco = new Disco(100, 20, 0);
+        SistemaArchivos sa = new SistemaArchivos(disco);
+        verificar(sa.getModo() == ModoUsuario.ADMINISTRADOR && sa.getUsuario().equals("admin"),
+                "La sesion inicial no es de administrador");
+        sa.crearDirectorio("/sistema", "admin", PermisoArchivo.PUBLICO);
+        sa.crearArchivo("/sistema/boot.bin", "admin", 1, PermisoArchivo.PUBLICO, 0);
+        sa.crearArchivo("/sistema/clave.cfg", "admin", 1, PermisoArchivo.PRIVADO, 0);
+        sa.crearDirectorio("/home", "admin", PermisoArchivo.PUBLICO);
+        sa.crearDirectorio("/home/user1", "user1", PermisoArchivo.PRIVADO);
+        sa.crearDirectorio("/home/user2", "user2", PermisoArchivo.PUBLICO);
+        sa.crearArchivo("/home/user2/privado.txt", "user2", 2, PermisoArchivo.PRIVADO, 1);
+        sa.crearArchivo("/home/user2/publico.txt", "user2", 1, PermisoArchivo.PUBLICO, 1);
+
+        sa.cambiarSesion(ModoUsuario.USUARIO, "user1");
+        verificar(sa.getModo() == ModoUsuario.USUARIO && sa.getUsuario().equals("user1"), "No cambia la sesion");
+        sa.crearArchivo("/home/user1/notas.txt", "user1", 2, PermisoArchivo.PRIVADO, 5);
+        verificar(sa.existe("/home/user1/notas.txt"), "Un usuario no crea en su propio directorio");
+
+        int libres = disco.contarLibres(AreaDisco.DATOS);
+        int entradas = sa.getTotalEntradas();
+        esperarRechazo(() -> sa.crearArchivo("/home/user2/x.txt", "user1", 1, PermisoArchivo.PUBLICO, 5),
+                "Crea en el directorio de otro usuario");
+        esperarRechazo(() -> sa.crearArchivo("/sistema/x.txt", "user1", 1, PermisoArchivo.PUBLICO, 5),
+                "Crea en un directorio del sistema");
+        esperarRechazo(() -> sa.crearArchivo("/home/user1/y.txt", "user2", 1, PermisoArchivo.PUBLICO, 5),
+                "Crea a nombre de otro usuario");
+        esperarRechazo(() -> sa.crearDirectorio("/home/user1/fotos", "user1", PermisoArchivo.PRIVADO),
+                "Un usuario crea directorios");
+        esperarRechazo(() -> sa.renombrar("/home/user1/notas.txt", "otra.txt"), "Un usuario renombra");
+        esperarRechazo(() -> sa.eliminar("/home/user2/publico.txt"), "Elimina un archivo ajeno");
+        esperarRechazo(() -> sa.eliminar("/sistema/boot.bin"), "Elimina un archivo del sistema");
+        esperarRechazo(() -> sa.eliminar("/home/user1"), "Un usuario elimina un directorio");
+        verificar(disco.contarLibres(AreaDisco.DATOS) == libres && sa.getTotalEntradas() == entradas
+                && sa.existe("/home/user1/notas.txt"), "Una operacion rechazada cambio el sistema");
+
+        verificar(sa.leer("/home/user1/notas.txt").length == 2, "No lee su archivo privado");
+        verificar(sa.leer("/home/user2/publico.txt").length == 1 && sa.leer("/sistema/boot.bin").length == 1,
+                "No lee archivos publicos");
+        verificar(!sa.puedeLeer("/home/user2/privado.txt") && sa.puedeLeer("/home/user2/publico.txt"),
+                "puedeLeer no respeta el permiso");
+        esperarRechazo(() -> sa.leer("/home/user2/privado.txt"), "Lee un archivo privado ajeno");
+        esperarRechazo(() -> sa.leer("/sistema/clave.cfg"), "Lee un archivo privado del sistema");
+        verificar(sa.listar("/home/user2").length == 2, "Un usuario no ve la estructura completa");
+
+        verificar(sa.eliminar("/home/user1/notas.txt") == 2 && disco.contarLibres(AreaDisco.DATOS) == libres + 2,
+                "Un usuario no elimina su propio archivo");
+        esperarInvalida(() -> sa.cambiarSesion(ModoUsuario.USUARIO, "admin"), "Un usuario actua como admin");
+        esperarInvalida(() -> sa.cambiarSesion(ModoUsuario.USUARIO, " "), "Acepta un usuario vacio");
+        esperarInvalida(() -> sa.cambiarSesion(null, "user1"), "Acepta un modo nulo");
+        verificar(sa.getUsuario().equals("user1"), "Un cambio de sesion invalido cambio la sesion");
+
+        sa.cambiarSesion(ModoUsuario.ADMINISTRADOR, "cualquiera");
+        verificar(sa.getUsuario().equals("admin"), "El administrador no actua como admin");
+        verificar(sa.leer("/home/user2/privado.txt").length == 2, "El administrador no lee todo");
+        sa.renombrar("/home/user2/privado.txt", "secreto.txt");
+        verificar(sa.eliminar("/home/user2") == 3, "El administrador no elimina directorios ajenos");
+    }
+
+    private static void probarFaltaDeEspacioYFragmentacion() {
+        Disco disco = new Disco(100, 20, 0);
+        SistemaArchivos sa = new SistemaArchivos(disco);
+        verificar(sa.crearArchivo("/a.bin", "admin", 3, PermisoArchivo.PUBLICO, 1) == 0, "a.bin no empieza en 0");
+        verificar(sa.crearArchivo("/b.bin", "admin", 2, PermisoArchivo.PUBLICO, 1) == 3, "b.bin no empieza en 3");
+        verificar(sa.crearArchivo("/c.bin", "admin", 3, PermisoArchivo.PUBLICO, 1) == 5, "c.bin no empieza en 5");
+        sa.eliminar("/b.bin");
+
+        verificar(sa.crearArchivo("/d.bin", "admin", 4, PermisoArchivo.PUBLICO, 2) == 3,
+                "El primer ajuste no reutiliza el hueco");
+        verificar(iguales(sa.leer("/d.bin"), 3, 4, 8, 9), "d.bin no se encadena a traves del hueco");
+        VistaBloqueDisco[] bloques = disco.consultarBloques();
+        verificar(bloques[4].siguiente() == 8 && bloques[9].siguiente() == -1,
+                "Los enlaces del archivo fragmentado no saltan sobre c.bin");
+        verificar(iguales(sa.leer("/c.bin"), 5, 6, 7), "La fragmentacion toco a c.bin");
+
+        int libres = disco.contarLibres(AreaDisco.DATOS);
+        verificar(libres == 70, "No quedaron 70 bloques de datos libres");
+        sa.crearArchivo("/lleno.bin", "admin", libres, PermisoArchivo.PUBLICO, 3);
+        verificar(disco.contarLibres(AreaDisco.DATOS) == 0 && disco.contarLibres(AreaDisco.SWAP) == 20,
+                "Un archivo ocupo el area swap");
+        int entradas = sa.getTotalEntradas();
+        try {
+            sa.crearArchivo("/extra.bin", "admin", 1, PermisoArchivo.PUBLICO, 4);
+            throw new AssertionError("Crea un archivo con el disco lleno");
+        } catch (IllegalStateException esperado) {
+            verificar(!sa.existe("/extra.bin") && sa.getTotalEntradas() == entradas,
+                    "El disco lleno dejo una entrada");
+        }
+
+        sa.eliminar("/a.bin");
+        try {
+            sa.crearArchivo("/e.bin", "admin", 4, PermisoArchivo.PUBLICO, 5);
+            throw new AssertionError("Crea 4 bloques donde solo hay 3");
+        } catch (IllegalStateException esperado) {
+            verificar(disco.contarLibres(AreaDisco.DATOS) == 3, "Un intento sin espacio ocupo bloques");
+        }
+        verificar(sa.crearArchivo("/e.bin", "admin", 3, PermisoArchivo.PUBLICO, 5) == 0
+                && iguales(sa.leer("/e.bin"), 0, 1, 2), "No reutiliza los bloques que libero a.bin");
+    }
+
+    private static void probarVistas() {
+        Disco disco = new Disco(100, 20, 0);
+        SistemaArchivos sa = new SistemaArchivos(disco);
+        sa.crearDirectorio("/home", "admin", PermisoArchivo.PUBLICO);
+        sa.crearDirectorio("/home/user1", "user1", PermisoArchivo.PRIVADO);
+        sa.crearArchivo("/home/user1/tarea.pdf", "user1", 3, PermisoArchivo.PRIVADO, 7);
+        sa.crearArchivo("/leeme.txt", "admin", 1, PermisoArchivo.PUBLICO, 0);
+
+        VistaEntradaArchivo raiz = sa.consultarArbol();
+        verificar(raiz.ruta().equals("/") && raiz.toString().equals("/") && raiz.hijos().length == 2,
+                "La raiz de la vista no tiene sus dos hijos");
+        VistaEntradaArchivo tarea = raiz.hijos()[0].hijos()[0].hijos()[0];
+        verificar(tarea.ruta().equals("/home/user1/tarea.pdf") && tarea.tamanoBloques() == 3
+                && tarea.dueno().equals("user1") && tarea.permiso() == PermisoArchivo.PRIVADO
+                && tarea.primerBloque() == 0 && !tarea.esDirectorio(),
+                "El nodo del JTree no muestra nombre, tamano, dueno, permiso y primer bloque");
+        VistaEntradaArchivo[] hijos = raiz.hijos();
+        hijos[0] = null;
+        verificar(raiz.hijos()[0] != null, "Se puede modificar la vista desde afuera");
+
+        VistaAsignacionArchivo[] filas = sa.consultarAsignacion();
+        verificar(filas.length == 2 && filas[0].ruta().equals("/home/user1/tarea.pdf")
+                && filas[0].bloques() == 3 && filas[0].primerBloque() == 0 && filas[0].dueno().equals("user1")
+                && filas[0].procesoCreador() == 7 && filas[1].nombre().equals("leeme.txt"),
+                "La tabla de asignacion no coincide con los archivos");
+        String etiqueta = filas[0].etiquetaDisco();
+        verificar(disco.consultarBloques()[0].propietario().equals(etiqueta),
+                "La etiqueta de la tabla no coincide con la del disco");
+
+        sa.renombrar("/home/user1/tarea.pdf", "entrega.pdf");
+        VistaAsignacionArchivo renombrada = sa.consultarAsignacion()[0];
+        verificar(renombrada.nombre().equals("entrega.pdf") && renombrada.ruta().equals("/home/user1/entrega.pdf")
+                && renombrada.etiquetaDisco().equals(etiqueta), "Renombrar cambio la etiqueta del archivo");
+        verificar(tarea.nombre().equals("tarea.pdf"), "Una vista vieja cambio al renombrar");
+    }
+
+    static void esperarRechazo(Runnable accion, String mensaje) {
+        try {
+            accion.run();
+            throw new AssertionError(mensaje);
+        } catch (SecurityException esperado) {
+            verificar(esperado.getMessage() != null && !esperado.getMessage().isBlank(),
+                    "El rechazo no explica el motivo: " + mensaje);
+        }
     }
 
     private static boolean iguales(int[] obtenidos, int... esperados) {
