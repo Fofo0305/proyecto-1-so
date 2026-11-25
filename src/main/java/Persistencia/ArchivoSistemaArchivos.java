@@ -1,8 +1,11 @@
 package Persistencia;
 
 import Modelo.PermisoArchivo;
+import Modelo.VistaAsignacionArchivo;
+import Modelo.VistaEntradaArchivo;
 import Sistema.Disco;
 import Sistema.SistemaArchivos;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -11,8 +14,11 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonParseException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 
 /**
  * Carga el disco y el arbol de archivos desde el JSON del enunciado:
@@ -22,8 +28,10 @@ import java.nio.file.Path;
  *                 {"path": "/sistema/boot.bin", "type": "FILE", "startBlock": 11, "blocks": 1,
  *                  "owner": "admin", "permissions": "public"}]}
  * </pre>
- * {@code diskConfig.swapBlocks} y {@code process} (proceso creador de un archivo) son opcionales.
- * Cada archivo se restaura desde su {@code startBlock}, encadenado con los bloques libres siguientes.
+ * {@code diskConfig.swapBlocks}, {@code process} (proceso creador de un archivo) y {@code chain}
+ * (bloques exactos del archivo, en orden de enlace) son opcionales. Un archivo con {@code chain}
+ * vuelve a esos bloques; uno sin ella se restaura desde su {@code startBlock}, encadenado con los
+ * bloques libres siguientes. Al guardar se escriben los tres campos, para que el disco vuelva igual.
  * @author Luciano
  */
 public final class ArchivoSistemaArchivos {
@@ -61,9 +69,7 @@ public final class ArchivoSistemaArchivos {
                     sistema.crearDirectorio(ruta(entrada), texto(entrada, "owner"), permiso(entrada));
             for (JsonObject entrada : entradas)
                 if (!esDirectorio(entrada))
-                    sistema.restaurarArchivo(ruta(entrada), texto(entrada, "owner"), entero(entrada, "blocks"),
-                            permiso(entrada), entrada.has("process") ? entero(entrada, "process") : PROCESO_SISTEMA,
-                            entero(entrada, "startBlock"));
+                    restaurar(sistema, entrada);
             return new SistemaCargado(disco, sistema);
         } catch (JsonParseException | IllegalStateException | UnsupportedOperationException error) {
             throw new IllegalArgumentException("JSON de sistema de archivos invalido: " + error.getMessage(), error);
@@ -71,9 +77,120 @@ public final class ArchivoSistemaArchivos {
     }
 
     /**
+     * Escribe el JSON en {@code destino} sin dejarlo a medias: lo escribe completo en un
+     * temporal de la misma carpeta y luego lo renombra encima del destino. Si algo falla,
+     * el archivo anterior queda intacto.
+     */
+    public static void guardar(SistemaCargado cargado, Path destino) throws IOException {
+        if (destino == null) throw new IllegalArgumentException("El destino es obligatorio");
+        String json = escribir(cargado);
+        Path absoluto = destino.toAbsolutePath();
+        Path carpeta = absoluto.getParent();
+        if (carpeta == null) throw new IllegalArgumentException("El destino no tiene carpeta");
+        Path temporal = Files.createTempFile(carpeta, absoluto.getFileName().toString() + ".", ".tmp");
+        try {
+            Files.writeString(temporal, json, StandardCharsets.UTF_8, StandardOpenOption.WRITE,
+                    StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.SYNC);
+            try {
+                Files.move(temporal, absoluto, StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException sinRenombreAtomico) {
+                Files.move(temporal, absoluto, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(temporal);
+        }
+    }
+
+    /** JSON del disco y del arbol: directorios en orden del arbol y luego archivos con su cadena. */
+    public static String escribir(SistemaCargado cargado) {
+        if (cargado == null) throw new IllegalArgumentException("El sistema es obligatorio");
+        Disco disco = cargado.disco();
+        JsonObject configuracion = new JsonObject();
+        configuracion.addProperty("totalBlocks", disco.getTotalBloques());
+        configuracion.addProperty("initialHead", disco.getPosicionCabezal());
+        configuracion.addProperty("swapBlocks", disco.getTamanoSwap());
+        JsonArray lista = new JsonArray();
+        agregarDirectorios(cargado.sistema().consultarArbol(), lista);
+        VistaAsignacionArchivo[] filas = cargado.sistema().consultarAsignacion();
+        int archivos = agregarArchivos(cargado.sistema().consultarArbol(), filas, disco, lista, 0);
+        if (archivos != filas.length)
+            throw new IllegalStateException("El arbol cambio mientras se guardaba");
+        JsonObject raiz = new JsonObject();
+        raiz.add("diskConfig", configuracion);
+        raiz.add("fileSystem", lista);
+        return new GsonBuilder().setPrettyPrinting().create().toJson(raiz) + System.lineSeparator();
+    }
+
+    private static void agregarDirectorios(VistaEntradaArchivo nodo, JsonArray lista) {
+        if (!nodo.esDirectorio()) return;
+        if (!nodo.ruta().equals(SistemaArchivos.SEPARADOR)) lista.add(base(nodo, "DIRECTORY"));
+        for (VistaEntradaArchivo hijo : nodo.hijos()) agregarDirectorios(hijo, lista);
+    }
+
+    /** Recorre el arbol en el mismo orden que la tabla de asignacion. @return archivos agregados */
+    private static int agregarArchivos(VistaEntradaArchivo nodo, VistaAsignacionArchivo[] filas,
+            Disco disco, JsonArray lista, int indice) {
+        if (nodo.esDirectorio()) {
+            for (VistaEntradaArchivo hijo : nodo.hijos())
+                indice = agregarArchivos(hijo, filas, disco, lista, indice);
+            return indice;
+        }
+        if (indice >= filas.length || !filas[indice].ruta().equals(nodo.ruta()))
+            throw new IllegalStateException("El arbol cambio mientras se guardaba");
+        JsonObject archivo = base(nodo, "FILE");
+        archivo.addProperty("startBlock", nodo.primerBloque());
+        archivo.addProperty("blocks", nodo.tamanoBloques());
+        archivo.addProperty("process", filas[indice].procesoCreador());
+        JsonArray cadena = new JsonArray();
+        for (int bloque : disco.recorrerCadena(nodo.primerBloque())) cadena.add(bloque);
+        archivo.add("chain", cadena);
+        lista.add(archivo);
+        return indice + 1;
+    }
+
+    private static JsonObject base(VistaEntradaArchivo nodo, String tipo) {
+        JsonObject entrada = new JsonObject();
+        entrada.addProperty("path", nodo.ruta());
+        entrada.addProperty("type", tipo);
+        entrada.addProperty("owner", nodo.dueno());
+        entrada.addProperty("permissions", nodo.permiso() == PermisoArchivo.PUBLICO ? "public" : "private");
+        return entrada;
+    }
+
+    private static void restaurar(SistemaArchivos sistema, JsonObject entrada) {
+        long proceso = entrada.has("process") ? entero(entrada, "process") : PROCESO_SISTEMA;
+        int bloques = entero(entrada, "blocks");
+        int inicio = entero(entrada, "startBlock");
+        if (!entrada.has("chain")) {
+            sistema.restaurarArchivo(ruta(entrada), texto(entrada, "owner"), bloques, permiso(entrada),
+                    proceso, inicio);
+            return;
+        }
+        int[] cadena = cadena(entrada);
+        if (cadena.length != bloques || cadena[0] != inicio)
+            throw new IllegalArgumentException("La cadena de " + ruta(entrada)
+                    + " no coincide con startBlock y blocks");
+        sistema.restaurarArchivo(ruta(entrada), texto(entrada, "owner"), permiso(entrada), proceso, cadena);
+    }
+
+    private static int[] cadena(JsonObject entrada) {
+        JsonElement elemento = entrada.get("chain");
+        if (!elemento.isJsonArray() || elemento.getAsJsonArray().isEmpty())
+            throw new IllegalArgumentException("chain de " + ruta(entrada) + " debe ser una lista de bloques");
+        JsonArray lista = elemento.getAsJsonArray();
+        int[] cadena = new int[lista.size()];
+        for (int i = 0; i < cadena.length; i++) cadena[i] = entero(lista.get(i), "chain");
+        return cadena;
+    }
+
+    /**
      * Ordena las entradas para cargarlas: directorios de menor a mayor profundidad, para que
-     * cada padre exista antes que sus hijos, y archivos por primer bloque, para que un archivo
-     * que se monte sobre otro falle siempre igual.
+     * cada padre exista antes que sus hijos; luego los archivos con cadena, que ya saben sus
+     * bloques, en el orden del documento para que el arbol vuelva igual; y al final los que
+     * solo traen primer bloque, para que estos no tomen bloques de una cadena guardada. Estos
+     * ultimos van por primer bloque, para que un archivo que se monte sobre otro falle siempre
+     * igual. El ordenamiento es estable.
      */
     private static JsonObject[] entradas(JsonElement elemento) {
         if (elemento == null || !elemento.isJsonArray())
@@ -99,8 +216,9 @@ public final class ArchivoSistemaArchivos {
     }
 
     private static long orden(JsonObject entrada) {
-        return esDirectorio(entrada) ? SistemaArchivos.normalizar(ruta(entrada)).split("/").length
-                : Integer.MAX_VALUE + (long) entero(entrada, "startBlock");
+        if (esDirectorio(entrada)) return SistemaArchivos.normalizar(ruta(entrada)).split("/").length;
+        if (entrada.has("chain")) return Integer.MAX_VALUE;
+        return 2L * Integer.MAX_VALUE + entero(entrada, "startBlock");
     }
 
     private static boolean esDirectorio(JsonObject entrada) { return texto(entrada, "type").equals("DIRECTORY"); }
@@ -128,7 +246,10 @@ public final class ArchivoSistemaArchivos {
     }
 
     private static int entero(JsonObject objeto, String campo) {
-        JsonElement valor = objeto.get(campo);
+        return entero(objeto.get(campo), campo);
+    }
+
+    private static int entero(JsonElement valor, String campo) {
         if (valor == null || !valor.isJsonPrimitive() || !((JsonPrimitive) valor).isNumber())
             throw new IllegalArgumentException("Falta el numero " + campo);
         double numero = valor.getAsDouble();

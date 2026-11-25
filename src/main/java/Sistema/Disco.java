@@ -301,6 +301,36 @@ public final class Disco implements ComponenteReloj {
         } finally { mutex.release(); }
     }
 
+    /**
+     * Restaura una cadena guardada con sus bloques exactos, en orden de enlace. Todos deben
+     * ser del area de datos, estar libres y no repetirse; si alguno falla, no asigna nada.
+     * @return numero del primer bloque de la cadena
+     */
+    public int asignarCadena(String propietario, int[] cadena) {
+        if (propietario == null || propietario.isBlank() || cadena == null || cadena.length == 0)
+            throw new IllegalArgumentException("Asignacion invalida");
+        int[] elegidos = cadena.clone();
+        mutex.acquireUninterruptibly();
+        try {
+            for (int i = 0; i < elegidos.length; i++) {
+                int numero = elegidos[i];
+                if (numero < 0 || numero >= bloques.length || bloques[numero].getArea() != AreaDisco.DATOS)
+                    throw new IllegalArgumentException("El bloque " + numero + " no es del area de datos");
+                if (!bloques[numero].estaLibre())
+                    throw new IllegalStateException("El bloque " + numero + " ya esta ocupado por "
+                            + bloques[numero].getPropietario());
+                for (int j = 0; j < i; j++)
+                    if (elegidos[j] == numero)
+                        throw new IllegalArgumentException("El bloque " + numero + " se repite en la cadena");
+            }
+            for (int i = 0; i < elegidos.length; i++)
+                bloques[elegidos[i]].ocupar(propietario, i + 1 < elegidos.length ? elegidos[i + 1] : -1);
+            log.agregar(ultimoCiclo, 1, 0, "ASIGNA_BLOQUES",
+                    propietario + " " + elegidos.length + " bloques desde " + elegidos[0]);
+            return elegidos[0];
+        } finally { mutex.release(); }
+    }
+
     /** Bloques de la cadena que empieza en {@code primerBloque}, en orden de enlace. */
     public int[] recorrerCadena(int primerBloque) {
         mutex.acquireUninterruptibly();

@@ -84,7 +84,7 @@ public final class SistemaArchivos {
      */
     public int crearArchivo(String ruta, String dueno, int tamanoBloques,
             PermisoArchivo permiso, long procesoCreador) {
-        return crearArchivo(ruta, dueno, tamanoBloques, permiso, procesoCreador, -1);
+        return crearArchivo(ruta, dueno, tamanoBloques, permiso, procesoCreador, -1, null);
     }
 
     /**
@@ -95,12 +95,27 @@ public final class SistemaArchivos {
     public int restaurarArchivo(String ruta, String dueno, int tamanoBloques,
             PermisoArchivo permiso, long procesoCreador, int primerBloque) {
         if (primerBloque < 0) throw new IllegalArgumentException("El primer bloque es invalido");
-        return crearArchivo(ruta, dueno, tamanoBloques, permiso, procesoCreador, primerBloque);
+        return crearArchivo(ruta, dueno, tamanoBloques, permiso, procesoCreador, primerBloque, null);
     }
 
-    /** Con {@code primerPedido} igual a -1 asigna por primer ajuste. */
+    /**
+     * Restaura un archivo guardado con los bloques exactos de su cadena, en orden de enlace.
+     * Asi un archivo fragmentado vuelve a ocupar los mismos bloques que tenia.
+     * @return numero del primer bloque asignado
+     */
+    public int restaurarArchivo(String ruta, String dueno, PermisoArchivo permiso,
+            long procesoCreador, int[] cadena) {
+        if (cadena == null || cadena.length == 0) throw new IllegalArgumentException("La cadena es obligatoria");
+        int[] copia = cadena.clone();
+        return crearArchivo(ruta, dueno, copia.length, permiso, procesoCreador, copia[0], copia);
+    }
+
+    /**
+     * Con {@code primerPedido} igual a -1 asigna por primer ajuste; con {@code cadena} usa
+     * exactamente esos bloques.
+     */
     private int crearArchivo(String ruta, String dueno, int tamanoBloques,
-            PermisoArchivo permiso, long procesoCreador, int primerPedido) {
+            PermisoArchivo permiso, long procesoCreador, int primerPedido, int[] cadena) {
         validarDueno(dueno);
         if (permiso == null) throw new IllegalArgumentException("El permiso es obligatorio");
         if (procesoCreador < 0) throw new IllegalArgumentException("El proceso creador es invalido");
@@ -116,10 +131,11 @@ public final class SistemaArchivos {
                 if (!padre.getDato().getDueno().equals(usuario))
                     throw new SecurityException(usuario + " solo puede crear archivos en sus propios directorios");
             }
-            if (primerPedido >= 0) exigirAdministrador("restaurar archivos guardados");
+            if (primerPedido >= 0 || cadena != null) exigirAdministrador("restaurar archivos guardados");
             long id = siguienteId;
             String etiqueta = EntradaArchivo.etiquetaDisco(id);
-            int primero = primerPedido < 0 ? disco.asignarEncadenado(etiqueta, tamanoBloques)
+            int primero = cadena != null ? disco.asignarCadena(etiqueta, cadena)
+                    : primerPedido < 0 ? disco.asignarEncadenado(etiqueta, tamanoBloques)
                     : disco.asignarDesde(etiqueta, primerPedido, tamanoBloques);
             siguienteId++;
             arbol.agregarHijo(padre, new EntradaArchivo(id, partes[partes.length - 1], dueno,
