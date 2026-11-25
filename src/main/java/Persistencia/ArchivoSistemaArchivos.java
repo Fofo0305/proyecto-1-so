@@ -32,6 +32,8 @@ import java.nio.file.StandardOpenOption;
  * (bloques exactos del archivo, en orden de enlace) son opcionales. Un archivo con {@code chain}
  * vuelve a esos bloques; uno sin ella se restaura desde su {@code startBlock}, encadenado con los
  * bloques libres siguientes. Al guardar se escriben los tres campos, para que el disco vuelva igual.
+ * <p>El area swap ocupa los ultimos bloques del disco. Si el JSON no indica {@code swapBlocks},
+ * se usa el tamano pedido, recortado para que todos los archivos queden en el area de datos.</p>
  * @author Luciano
  */
 public final class ArchivoSistemaArchivos {
@@ -53,23 +55,34 @@ public final class ArchivoSistemaArchivos {
         return leer(Files.readString(origen, StandardCharsets.UTF_8), bloquesSwap);
     }
 
-    /** @param bloquesSwap tamano del area de intercambio si el JSON no lo indica */
+    /**
+     * @param bloquesSwap tamano del area de intercambio si el JSON no lo indica; se recorta si
+     *        los archivos llegan mas lejos
+     */
     public static SistemaCargado leer(String json, int bloquesSwap) {
         if (json == null) throw new IllegalArgumentException("El JSON es obligatorio");
         try {
             JsonObject raiz = objeto(JsonParser.parseString(json), "el documento");
             JsonObject configuracion = objeto(raiz.get("diskConfig"), "diskConfig");
-            int swap = configuracion.has("swapBlocks") ? entero(configuracion, "swapBlocks") : bloquesSwap;
-            Disco disco = new Disco(entero(configuracion, "totalBlocks"), swap,
-                    entero(configuracion, "initialHead"));
-            SistemaArchivos sistema = new SistemaArchivos(disco);
             JsonObject[] entradas = entradas(raiz.get("fileSystem"));
+            int total = entero(configuracion, "totalBlocks");
+            int swap = configuracion.has("swapBlocks") ? entero(configuracion, "swapBlocks")
+                    : swapQueCabe(entradas, total, bloquesSwap);
+            Disco disco = new Disco(total, swap, entero(configuracion, "initialHead"));
+            validarAreaDatos(entradas, total - swap);
+            SistemaArchivos sistema = new SistemaArchivos(disco);
             for (JsonObject entrada : entradas)
                 if (esDirectorio(entrada) && !ruta(entrada).equals(SistemaArchivos.SEPARADOR))
                     sistema.crearDirectorio(ruta(entrada), texto(entrada, "owner"), permiso(entrada));
-            for (JsonObject entrada : entradas)
-                if (!esDirectorio(entrada))
+            for (JsonObject entrada : entradas) {
+                if (esDirectorio(entrada)) continue;
+                try {
                     restaurar(sistema, entrada);
+                } catch (IllegalStateException | IllegalArgumentException error) {
+                    throw new IllegalArgumentException("No se pudo restaurar " + ruta(entrada) + ": "
+                            + error.getMessage(), error);
+                }
+            }
             return new SistemaCargado(disco, sistema);
         } catch (JsonParseException | IllegalStateException | UnsupportedOperationException error) {
             throw new IllegalArgumentException("JSON de sistema de archivos invalido: " + error.getMessage(), error);
@@ -156,6 +169,50 @@ public final class ArchivoSistemaArchivos {
         entrada.addProperty("owner", nodo.dueno());
         entrada.addProperty("permissions", nodo.permiso() == PermisoArchivo.PUBLICO ? "public" : "private");
         return entrada;
+    }
+
+    /**
+     * Swap pedido, recortado para que empiece despues del ultimo bloque que usan los archivos.
+     * Un archivo sin cadena necesita al menos sus {@code blocks} bloques desde {@code startBlock}.
+     */
+    private static int swapQueCabe(JsonObject[] entradas, int total, int bloquesSwap) {
+        long fin = 0;
+        for (JsonObject entrada : entradas)
+            if (!esDirectorio(entrada)) fin = Math.max(fin, finDeArchivo(entrada));
+        long swap = Math.min(bloquesSwap, total - fin);
+        if (swap < 1)
+            throw new IllegalArgumentException("Los archivos llegan al bloque " + (fin - 1)
+                    + " y no dejan espacio para el area swap");
+        return (int) swap;
+    }
+
+    /** Rechaza, con la ruta del archivo, todo bloque que caiga fuera del area de datos. */
+    private static void validarAreaDatos(JsonObject[] entradas, int inicioSwap) {
+        for (JsonObject entrada : entradas) {
+            if (esDirectorio(entrada)) continue;
+            int inicio = entero(entrada, "startBlock");
+            if (inicio < 0)
+                throw new IllegalArgumentException("startBlock de " + ruta(entrada) + " no puede ser negativo");
+            if (entero(entrada, "blocks") < 1)
+                throw new IllegalArgumentException(ruta(entrada) + " necesita al menos un bloque");
+            long fin = finDeArchivo(entrada);
+            if (fin > inicioSwap)
+                throw new IllegalArgumentException(ruta(entrada) + " usa el bloque " + (fin - 1)
+                        + ", pero el area de datos termina en el bloque " + (inicioSwap - 1));
+        }
+    }
+
+    /** Uno mas que el bloque mas alto que puede usar el archivo. */
+    private static long finDeArchivo(JsonObject entrada) {
+        if (!entrada.has("chain"))
+            return (long) entero(entrada, "startBlock") + Math.max(1, entero(entrada, "blocks"));
+        long fin = 0;
+        for (int bloque : cadena(entrada)) {
+            if (bloque < 0)
+                throw new IllegalArgumentException("chain de " + ruta(entrada) + " tiene un bloque negativo");
+            fin = Math.max(fin, bloque + 1);
+        }
+        return fin;
     }
 
     private static void restaurar(SistemaArchivos sistema, JsonObject entrada) {
