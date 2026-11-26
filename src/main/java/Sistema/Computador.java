@@ -1,11 +1,13 @@
 package Sistema;
 
 import EDD.Cola;
+import Modelo.AreaDisco;
 import Modelo.EstadoProceso;
 import Modelo.EventoSistema;
 import Modelo.Memoria;
 import Modelo.ModoCPU;
 import Modelo.MotivoBloqueo;
+import Modelo.OperacionES;
 import Modelo.ParametrosArchivo;
 import Modelo.ParametrosES;
 import Modelo.PlanOperacionArchivo;
@@ -27,6 +29,8 @@ public class Computador implements ComponenteReloj {
     private final Cola<Proceso> nuevos = new Cola<>();
     private final Cola<Proceso> listos = new Cola<>();
     private final Cola<Proceso> bloqueados = new Cola<>();
+    private final Cola<Proceso> listosSuspendidos = new Cola<>();
+    private final Cola<Proceso> bloqueadosSuspendidos = new Cola<>();
     private final Cola<Proceso> terminados = new Cola<>();
     private final Cola<Proceso> todos = new Cola<>();
     private final CPU cpu = new CPU();
@@ -72,9 +76,7 @@ public class Computador implements ComponenteReloj {
             throw new IllegalArgumentException("El proceso debe estar configurado, ser nuevo y pertenecer al computador");
         mutex.acquireUninterruptibly();
         try {
-            if (contiene(nuevos, proceso.getId()) || contiene(listos, proceso.getId())
-                    || contiene(bloqueados, proceso.getId()) || contiene(terminados, proceso.getId())
-                    || cpu.getActual() == proceso)
+            if (registrado(proceso) || contiene(terminados, proceso.getId()))
                 throw new IllegalArgumentException("El proceso ya pertenece al computador");
             proceso.registrarLlegada(ultimoCiclo);
             todos.agregar(proceso);
@@ -88,12 +90,22 @@ public class Computador implements ComponenteReloj {
         try { return admitirPendientes(); } finally { mutex.release(); }
     }
 
+    /**
+     * Planificador a largo y a mediano plazo. Dentro de un ciclo, y con disco conectado,
+     * primero devuelve a la RAM a los listos/suspendidos que caben y despues admite nuevos;
+     * si un nuevo no cabe, suspende procesos bloqueados para hacerle espacio.
+     */
     private int admitirPendientes() {
+        boolean medianoPlazo = cicloEnCurso >= 0 && disco != null;
+        if (medianoPlazo) reactivarSuspendidos(cicloEnCurso);
         int admitidos = 0;
         int pendientes = nuevos.getTamano();
         for (int i = 0; i < pendientes; i++) {
             Proceso proceso = nuevos.primero();
-            if (memoria.reservar("proceso:" + proceso.getId(), proceso.getMemoria())) {
+            boolean cabe = memoria.reservar("proceso:" + proceso.getId(), proceso.getMemoria());
+            if (!cabe && medianoPlazo && suspenderPara(proceso))
+                cabe = memoria.reservar("proceso:" + proceso.getId(), proceso.getMemoria());
+            if (cabe) {
                 nuevos.quitar();
                 proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
                 listos.agregar(proceso);
@@ -103,6 +115,119 @@ public class Computador implements ComponenteReloj {
             } else nuevos.agregar(nuevos.quitar());
         }
         return admitidos;
+    }
+
+    /**
+     * Elige a quien suspender para que entre {@code nuevo}. Criterio: el que lleva mas tiempo
+     * bloqueado (frente de la cola de bloqueados), porque es el que menos ha avanzado desde que
+     * dejo la CPU y su espera no depende de estar en RAM. Se salta a quien no cabe en el swap
+     * y solo se suspende si con los elegidos el nuevo cabe; si no, nadie sale de la RAM.
+     * @return true si suspendio a alguien
+     */
+    private boolean suspenderPara(Proceso nuevo) {
+        if (nuevo.getMemoria() > memoria.getCapacidad()) return false;
+        int faltan = nuevo.getMemoria() - memoria.getLibre();
+        int swapLibre = disco.contarLibres(AreaDisco.SWAP);
+        Object[] candidatos = bloqueados.instantanea();
+        boolean[] elegidos = new boolean[candidatos.length];
+        int liberables = 0;
+        for (int i = 0; i < candidatos.length && liberables < faltan; i++) {
+            int ram = ((Proceso) candidatos[i]).getMemoria();
+            if (ram > swapLibre) continue;
+            elegidos[i] = true;
+            liberables += ram;
+            swapLibre -= ram;
+        }
+        if (liberables < faltan) return false;
+        for (int i = 0; i < candidatos.length; i++)
+            if (elegidos[i]) suspender((Proceso) candidatos[i], nuevo);
+        return true;
+    }
+
+    /** Bloqueado → Bloqueado/Suspendido: copia su RAM al swap con una solicitud SUSPENDER. */
+    private void suspender(Proceso proceso, Proceso nuevo) {
+        retirar(bloqueados, proceso.getId());
+        proceso.cambiarEstado(EstadoProceso.BLOQUEADO_SUSPENDIDO, proceso.getMotivoBloqueo());
+        memoria.liberar("proceso:" + proceso.getId());
+        int primero = disco.asignarSwap("P" + proceso.getId(), proceso.getMemoria());
+        long solicitud = disco.encolarSolicitud(proceso.getId(), OperacionES.SUSPENDER, primero,
+                proceso.getMemoria(), cicloEnCurso);
+        proceso.registrarSwap(primero, solicitud);
+        bloqueadosSuspendidos.agregar(proceso);
+        log.agregar(cicloEnCurso, id, proceso.getId(), "SUSPENSION", "Se suspende al proceso P" + proceso.getId()
+                + " para admitir a P" + nuevo.getId() + ": S" + solicitud + " escribe " + proceso.getMemoria()
+                + " bloques de swap desde " + primero);
+    }
+
+    /**
+     * Listo/Suspendido → Listo: reserva su RAM y pide al disco leer su imagen (REACTIVAR).
+     * Solo se reactiva a quien ya termino de escribirse en swap y cabe en la RAM libre.
+     */
+    private void reactivarSuspendidos(long ciclo) {
+        for (Object elemento : listosSuspendidos.instantanea()) {
+            Proceso proceso = (Proceso) elemento;
+            if (proceso.getSolicitudSwap() != 0
+                    || !memoria.reservar("proceso:" + proceso.getId(), proceso.getMemoria())) continue;
+            long solicitud = disco.encolarSolicitud(proceso.getId(), OperacionES.REACTIVAR,
+                    proceso.getBloqueSwap(), proceso.getMemoria(), ciclo);
+            proceso.registrarReactivacion(solicitud);
+            log.agregar(ciclo, id, proceso.getId(), "REACTIVACION", "Hay RAM para P" + proceso.getId()
+                    + ": S" + solicitud + " lee " + proceso.getMemoria() + " bloques de swap desde "
+                    + proceso.getBloqueSwap());
+        }
+    }
+
+    /** Resultado en el disco de una solicitud SUSPENDER o REACTIVAR. */
+    private void atenderSwap(VistaSolicitudDisco completada, long ciclo) {
+        Proceso proceso = null;
+        for (Cola<Proceso> cola : colasSuspendidas())
+            for (Object elemento : cola.instantanea())
+                if (((Proceso) elemento).getId() == completada.procesoId()
+                        && ((Proceso) elemento).getSolicitudSwap() == completada.id())
+                    proceso = (Proceso) elemento;
+        if (proceso == null) return;
+        if (completada.operacion() == OperacionES.SUSPENDER) {
+            proceso.terminarSolicitudSwap();
+            log.agregar(ciclo, id, proceso.getId(), "FIN_SUSPENSION", "S" + completada.id()
+                    + " imagen escrita en swap");
+            return;
+        }
+        liberarSwap(proceso);
+        retirar(listosSuspendidos, proceso.getId());
+        proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+        listos.agregar(proceso);
+        log.agregar(ciclo, id, proceso.getId(), "FIN_REACTIVACION", "S" + completada.id()
+                + " vuelve a la RAM y a listos");
+    }
+
+    @SuppressWarnings("unchecked")
+    private Cola<Proceso>[] colasSuspendidas() { return new Cola[] {listosSuspendidos, bloqueadosSuspendidos}; }
+
+    private void liberarSwap(Proceso proceso) {
+        if (proceso.getBloqueSwap() < 0) return;
+        disco.liberarEncadenado(proceso.getBloqueSwap());
+        proceso.olvidarSwap();
+    }
+
+    /** Su evento ocurrio: Bloqueado → Listo, o Bloqueado/Suspendido → Listo/Suspendido. */
+    private void despertar(Proceso proceso, long ciclo, String tipo, String detalle) {
+        if (proceso.getEstado() == EstadoProceso.BLOQUEADO_SUSPENDIDO) {
+            retirar(bloqueadosSuspendidos, proceso.getId());
+            proceso.cambiarEstado(EstadoProceso.LISTO_SUSPENDIDO, MotivoBloqueo.NINGUNO);
+            listosSuspendidos.agregar(proceso);
+            if (tipo != null) log.agregar(ciclo, id, proceso.getId(), tipo, detalle + ": pasa a listo/suspendido");
+            return;
+        }
+        retirar(bloqueados, proceso.getId());
+        proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+        listos.agregar(proceso);
+        if (tipo != null) log.agregar(ciclo, id, proceso.getId(), tipo, detalle + ": vuelve a listos");
+    }
+
+    private boolean registrado(Proceso proceso) {
+        return contiene(nuevos, proceso.getId()) || contiene(listos, proceso.getId())
+                || contiene(bloqueados, proceso.getId()) || contiene(listosSuspendidos, proceso.getId())
+                || contiene(bloqueadosSuspendidos, proceso.getId()) || cpu.getActual() == proceso;
     }
 
     public boolean terminarProceso(Proceso proceso) {
@@ -118,8 +243,7 @@ public class Computador implements ComponenteReloj {
 
     private boolean terminarRegistrado(Proceso proceso) {
         if (contiene(terminados, proceso.getId())) return false;
-        if (!contiene(nuevos, proceso.getId()) && !contiene(listos, proceso.getId())
-                && !contiene(bloqueados, proceso.getId()) && cpu.getActual() != proceso)
+        if (!registrado(proceso))
             throw new IllegalArgumentException("El proceso no esta registrado en el computador");
         proceso.cerrarResultado();
         log.agregar(cicloEnCurso >= 0 ? cicloEnCurso : ultimoCiclo, id, proceso.getId(), "TERMINACION", proceso.getResultado());
@@ -127,8 +251,11 @@ public class Computador implements ComponenteReloj {
         retirar(nuevos, proceso.getId());
         retirar(listos, proceso.getId());
         retirar(bloqueados, proceso.getId());
+        retirar(listosSuspendidos, proceso.getId());
+        retirar(bloqueadosSuspendidos, proceso.getId());
         if (cpu.getActual() == proceso) { cpu.retirar(); usadosQuantum = 0; }
         memoria.liberar("proceso:" + proceso.getId());
+        if (disco != null) liberarSwap(proceso);
         terminados.agregar(proceso);
         return true;
     }
@@ -141,7 +268,8 @@ public class Computador implements ComponenteReloj {
             cicloEnCurso = ciclo;
             atenderCompletadas(ciclo);
             admitirPendientes();
-            Object[][] colasCiclo = {nuevos.instantanea(), listos.instantanea(), bloqueados.instantanea()};
+            Object[][] colasCiclo = {nuevos.instantanea(), listos.instantanea(), bloqueados.instantanea(),
+                    listosSuspendidos.instantanea(), bloqueadosSuspendidos.instantanea()};
             Proceso anterior = cpu.getActual();
             politica.ordenar(listos);
             if (anterior != null && politica.debeApropiar(anterior, listos, usadosQuantum, quantum)) {
@@ -237,6 +365,10 @@ public class Computador implements ComponenteReloj {
     private void atenderCompletadas(long ciclo) {
         if (disco == null) return;
         for (VistaSolicitudDisco completada : disco.tomarCompletadas(ciclo)) {
+            if (completada.operacion() == OperacionES.SUSPENDER || completada.operacion() == OperacionES.REACTIVAR) {
+                atenderSwap(completada, ciclo);
+                continue;
+            }
             Proceso proceso = buscarBloqueadoPorDisco(completada.procesoId(), completada.id());
             if (proceso == null) continue;
             ParametrosArchivo datos = datosArchivo(proceso);
@@ -253,14 +385,13 @@ public class Computador implements ComponenteReloj {
                 terminarRegistrado(proceso);
                 continue;
             }
-            retirar(bloqueados, proceso.getId());
-            proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
-            listos.agregar(proceso);
+            despertar(proceso, ciclo, proceso.getEstado() == EstadoProceso.BLOQUEADO ? null : "FIN_DISCO",
+                    "S" + completada.id() + " termino mientras estaba en swap");
         }
     }
 
     private Proceso buscarBloqueadoPorDisco(long procesoId, long solicitud) {
-        for (Object elemento : bloqueados.instantanea()) {
+        for (Object elemento : concatenar(bloqueados.instantanea(), bloqueadosSuspendidos.instantanea())) {
             Proceso proceso = (Proceso) elemento;
             if (proceso.getId() == procesoId && proceso.getSolicitudDisco() == solicitud
                     && proceso.getMotivoBloqueo() == MotivoBloqueo.DISCO)
@@ -275,15 +406,18 @@ public class Computador implements ComponenteReloj {
     }
 
     private void finalizarES(long ciclo) {
-        for (Object elemento : bloqueados.instantanea()) {
+        for (Object elemento : concatenar(bloqueados.instantanea(), bloqueadosSuspendidos.instantanea())) {
             Proceso proceso = (Proceso) elemento;
-            if (proceso.getMotivoBloqueo() == MotivoBloqueo.ENTRADA_SALIDA && proceso.getEsHasta() <= ciclo) {
-                retirar(bloqueados, proceso.getId());
-                proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
-                listos.agregar(proceso);
-                log.agregar(ciclo, id, proceso.getId(), "FIN_ES", "Vuelve a listos");
-            }
+            if (proceso.getMotivoBloqueo() == MotivoBloqueo.ENTRADA_SALIDA && proceso.getEsHasta() <= ciclo)
+                despertar(proceso, ciclo, "FIN_ES", "Termino su E/S");
         }
+    }
+
+    private static Object[] concatenar(Object[] primero, Object[] segundo) {
+        Object[] todo = new Object[primero.length + segundo.length];
+        System.arraycopy(primero, 0, todo, 0, primero.length);
+        System.arraycopy(segundo, 0, todo, primero.length, segundo.length);
+        return todo;
     }
 
     private void registrarUso(long ciclo) {
@@ -335,8 +469,10 @@ public class Computador implements ComponenteReloj {
             return new VistaComputador(id, ultimoCiclo, cpu.getModo(), ram[0], ram[1],
                     actual == null ? "Sin proceso" : describirProceso(actual),
                     describirCola(nuevos), describirCola(listos), describirCola(bloqueados), describirCola(terminados),
+                    describirCola(listosSuspendidos), describirCola(bloqueadosSuspendidos),
                     actual == null ? null : vistaProceso(actual), vistasCola(nuevos), vistasCola(listos),
-                    vistasCola(bloqueados), vistasCola(terminados), tipoPolitica, quantum);
+                    vistasCola(bloqueados), vistasCola(terminados), vistasCola(listosSuspendidos),
+                    vistasCola(bloqueadosSuspendidos), tipoPolitica, quantum);
         } finally { mutex.release(); }
     }
 
@@ -354,11 +490,19 @@ public class Computador implements ComponenteReloj {
             if (proceso.getSolicitudDisco() > 0 && !proceso.isOperacionAtendida())
                 texto += " (esperando S" + proceso.getSolicitudDisco() + ")";
             else if (proceso.isOperacionAtendida()) texto += " (atendida)";
-            return texto;
+            return texto + describirSwap(proceso);
         }
         ParametrosES es = proceso.getParametrosES();
         if (es == null) return "E/S sin configurar";
-        return "E/S rafaga=" + es.rafaga() + " duracion=" + es.duracion() + " hasta=" + proceso.getEsHasta();
+        return "E/S rafaga=" + es.rafaga() + " duracion=" + es.duracion() + " hasta=" + proceso.getEsHasta()
+                + describirSwap(proceso);
+    }
+
+    private static String describirSwap(Proceso proceso) {
+        if (proceso.getBloqueSwap() < 0) return "";
+        String texto = " | swap desde bloque " + proceso.getBloqueSwap();
+        if (proceso.getSolicitudSwap() == 0) return texto;
+        return texto + (proceso.isReactivando() ? " (leyendo S" : " (escribiendo S") + proceso.getSolicitudSwap() + ")";
     }
 
     private Modelo.VistaProceso[] vistasCola(Cola<Proceso> cola) {
@@ -452,4 +596,6 @@ public class Computador implements ComponenteReloj {
     public Proceso[] getListos() { return copiarProcesos(listos); }
     public Proceso[] getBloqueados() { return copiarProcesos(bloqueados); }
     public Proceso[] getTerminados() { return copiarProcesos(terminados); }
+    public Proceso[] getListosSuspendidos() { return copiarProcesos(listosSuspendidos); }
+    public Proceso[] getBloqueadosSuspendidos() { return copiarProcesos(bloqueadosSuspendidos); }
 }
