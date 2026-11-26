@@ -15,6 +15,7 @@ final class SolicitudDisco {
     private int bloquesRestantes;
     private PoliticaDisco politicaSeleccion;
     private long tiempoEspera = -1;
+    private long cicloFin = -1;
 
     SolicitudDisco(long id, long procesoId, OperacionES operacion,
             int bloqueObjetivo, int bloquesTrabajo, long cicloLlegada) {
@@ -39,6 +40,16 @@ final class SolicitudDisco {
     OperacionES getOperacion() { return operacion; }
     PoliticaDisco getPoliticaSeleccion() { return politicaSeleccion; }
     long getTiempoEspera() { return tiempoEspera; }
+    long getCicloLlegada() { return cicloLlegada; }
+    long getCicloFin() { return cicloFin; }
+
+    /** Una solicitud solo puede empezar en un ciclo posterior al de su llegada. */
+    boolean disponibleEn(long ciclo) { return ciclo > cicloLlegada; }
+
+    void finalizar(long ciclo) {
+        if (!termino() || cicloFin != -1) throw new IllegalStateException("La solicitud no puede finalizar");
+        cicloFin = ciclo;
+    }
 
     void iniciar(PoliticaDisco politica, long ciclo) {
         if (politica == null || politicaSeleccion != null || ciclo <= cicloLlegada)
