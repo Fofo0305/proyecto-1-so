@@ -26,6 +26,9 @@ public class Proceso {
     private ParametrosArchivo parametrosArchivo;
     private long solicitudDisco;
     private boolean operacionAtendida;
+    private int bloqueSwap = -1;
+    private long solicitudSwap;
+    private boolean reactivando;
     private int ejecutadasRafaga;
     private long esHasta;
     private long llegada;
@@ -157,6 +160,36 @@ public class Proceso {
     public int getDeadlineInicial() { return deadlineInicial; }
     public EstadoProceso getEstado() { return estado; }
     public MotivoBloqueo getMotivoBloqueo() { return motivoBloqueo; }
+    /**
+     * Imagen del proceso en el area de intercambio: primer bloque de su cadena de swap y la
+     * solicitud de disco que la esta escribiendo.
+     */
+    public void registrarSwap(int primerBloque, long solicitud) {
+        if (primerBloque < 0 || solicitud < 1 || bloqueSwap >= 0)
+            throw new IllegalStateException("El proceso ya tiene una imagen en swap");
+        bloqueSwap = primerBloque;
+        solicitudSwap = solicitud;
+    }
+
+    /** Solicitud de disco que lee la imagen de swap para devolver el proceso a la RAM. */
+    public void registrarReactivacion(long solicitud) {
+        if (solicitud < 1 || bloqueSwap < 0 || solicitudSwap != 0)
+            throw new IllegalStateException("El proceso no puede reactivarse todavia");
+        solicitudSwap = solicitud;
+        reactivando = true;
+    }
+
+    /** El disco termino de escribir o leer la imagen de swap. */
+    public void terminarSolicitudSwap() { solicitudSwap = 0; }
+
+    /** La imagen de swap ya no existe: el proceso volvio a la RAM o termino. */
+    public void olvidarSwap() { bloqueSwap = -1; solicitudSwap = 0; reactivando = false; }
+
+    /** true mientras el disco lee su imagen de swap para devolverlo a la RAM. */
+    public boolean isReactivando() { return reactivando; }
+
+    public int getBloqueSwap() { return bloqueSwap; }
+    public long getSolicitudSwap() { return solicitudSwap; }
     public int getPc() { return pc; }
     public int getMar() { return mar; }
     public int getRestante() { return restante; }

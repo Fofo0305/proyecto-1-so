@@ -4,7 +4,7 @@
 #
 #   ./verificar-proyecto2.sh [--jdk RUTA] [--interfaz]
 #
-# Sin --interfaz corre las 10 comprobaciones que no necesitan pantalla.
+# Sin --interfaz corre las 11 comprobaciones que no necesitan pantalla.
 # Con --interfaz agrega las 2 que crean componentes Swing; en un servidor sin
 # escritorio hay que envolverlas, por ejemplo con `xvfb-run -a`.
 set -eu
@@ -45,7 +45,8 @@ Pruebas.PruebaPoliticasES
 Pruebas.PruebaRelojPoliticas
 Pruebas.PruebaSistemaArchivos
 Pruebas.PruebaPersistenciaSistemaArchivos
-Pruebas.PruebaProcesosES"
+Pruebas.PruebaProcesosES
+Pruebas.PruebaSwap"
 
 if [ "$INTERFAZ" -eq 1 ]; then
     PRUEBAS="$PRUEBAS

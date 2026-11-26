@@ -324,21 +324,36 @@ public final class Disco implements ComponenteReloj {
      * @return numero del primer bloque de la cadena
      */
     public int asignarEncadenado(String propietario, int cantidad) {
+        return asignarPrimerAjuste(AreaDisco.DATOS, propietario, cantidad);
+    }
+
+    /**
+     * Reserva en el area de intercambio la imagen de un proceso suspendido: un bloque por
+     * unidad de RAM, encadenados igual que un archivo.
+     * @return numero del primer bloque de la cadena
+     */
+    public int asignarSwap(String propietario, int cantidad) {
+        return asignarPrimerAjuste(AreaDisco.SWAP, propietario, cantidad);
+    }
+
+    private int asignarPrimerAjuste(AreaDisco area, String propietario, int cantidad) {
         if (propietario == null || propietario.isBlank() || cantidad < 1)
             throw new IllegalArgumentException("Asignacion invalida");
         mutex.acquireUninterruptibly();
         try {
-            if (libresEn(AreaDisco.DATOS) < cantidad)
-                throw new IllegalStateException("No hay " + cantidad + " bloques libres en el disco");
+            if (libresEn(area) < cantidad)
+                throw new IllegalStateException("No hay " + cantidad + " bloques libres en "
+                        + (area == AreaDisco.DATOS ? "el disco" : "el area de intercambio"));
             int[] elegidos = new int[cantidad];
             int encontrados = 0;
             for (int numero = 0; numero < bloques.length && encontrados < cantidad; numero++)
-                if (bloques[numero].getArea() == AreaDisco.DATOS && bloques[numero].estaLibre())
+                if (bloques[numero].getArea() == area && bloques[numero].estaLibre())
                     elegidos[encontrados++] = numero;
             for (int i = 0; i < cantidad; i++)
                 bloques[elegidos[i]].ocupar(propietario, i + 1 < cantidad ? elegidos[i + 1] : -1);
             registrarExterno(cicloBloques(), 0, "ASIGNA_BLOQUES",
-                    propietario + " " + cantidad + " bloques desde " + elegidos[0]);
+                    propietario + " " + cantidad + " bloques desde " + elegidos[0]
+                    + (area == AreaDisco.SWAP ? " (swap)" : ""));
             return elegidos[0];
         } finally { mutex.release(); }
     }
