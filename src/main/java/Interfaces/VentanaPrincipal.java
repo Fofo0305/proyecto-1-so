@@ -38,6 +38,7 @@ public class VentanaPrincipal extends JFrame {
         pestanas.addTab("Procesos", procesos);
         pestanas.addTab("Simulacion en vivo", panelComputadores);
         pestanas.addTab("Planificacion E/S y metricas", new PanelPlanificacion(controlador));
+        pestanas.addTab("Disco y archivos", new PanelDisco(controlador));
         contenido.add(pestanas, BorderLayout.CENTER);
         getContentPane().add(titulo, BorderLayout.NORTH);
         getContentPane().add(contenido, BorderLayout.CENTER);
