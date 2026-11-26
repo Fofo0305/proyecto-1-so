@@ -122,6 +122,8 @@ public class PanelComputadores extends JPanel {
             contenido.append("RAM usada/libre: ").append(vista.usada()).append('/').append(vista.libre()).append('\n');
             contenido.append("CPU: ").append(vista.cpu()).append("\n\nNUEVOS\n").append(vista.nuevos())
                     .append("\n\nLISTOS\n").append(vista.listos()).append("\n\nBLOQUEADOS\n").append(vista.bloqueados())
+                    .append("\n\nLISTOS/SUSPENDIDOS\n").append(vista.listosSuspendidos())
+                    .append("\n\nBLOQUEADOS/SUSPENDIDOS\n").append(vista.bloqueadosSuspendidos())
                     .append("\n\nTERMINADOS\n").append(vista.terminados()).append("\n\n----------------------------------------\n\n");
         }
         return contenido.toString();

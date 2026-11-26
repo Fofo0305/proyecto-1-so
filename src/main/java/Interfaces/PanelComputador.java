@@ -13,14 +13,15 @@ public class PanelComputador extends JPanel {
     private final JLabel nombre = new JLabel();
     private final JProgressBar ram = new JProgressBar();
     private final JPanel cpu = new JPanel(new BorderLayout(10, 0));
-    private final JLabel[] titulos = new JLabel[4];
-    private final JPanel[] tarjetasCola = new JPanel[4];
-    private final VistaProceso[][] procesosAnteriores = new VistaProceso[4][];
-    private final boolean[] detallesAnteriores = new boolean[4];
-    private final String[] nombresCola = {"NUEVOS", "LISTOS", "BLOQUEADOS", "TERMINADOS"};
-    private final JPanel colas = new JPanel(new GridLayout(1, 4, 12, 12));
+    private final JLabel[] titulos = new JLabel[6];
+    private final JPanel[] tarjetasCola = new JPanel[6];
+    private final VistaProceso[][] procesosAnteriores = new VistaProceso[6][];
+    private final boolean[] detallesAnteriores = new boolean[6];
+    private final String[] nombresCola = {"NUEVOS", "LISTOS", "BLOQUEADOS", "LISTOS/SUSP.", "BLOQ./SUSP.", "TERMINADOS"};
+    private final JPanel colas = new JPanel(new GridLayout(2, 3, 12, 12));
     private boolean compacto;
-    private final Color[] colores = {new Color(174, 112, 24), AZUL, new Color(135, 80, 171), new Color(29, 126, 101)};
+    private final Color[] colores = {new Color(174, 112, 24), AZUL, new Color(135, 80, 171),
+            new Color(70, 130, 160), new Color(160, 80, 110), new Color(29, 126, 101)};
 
     public void mostrarDetalles(boolean valor) { mostrarPCB = valor; }
 
@@ -39,8 +40,9 @@ public class PanelComputador extends JPanel {
         cpu.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
         cuerpo.add(cpu, BorderLayout.NORTH);
         colas.setOpaque(false);
-        String[] ayudas = {"Esperan RAM", "Orden de la politica activa", "Esperan un recurso", "Salieron de ejecucion"};
-        for (int i = 0; i < 4; i++) colas.add(crearCola(i, ayudas[i]));
+        String[] ayudas = {"Esperan RAM", "Orden de la politica activa", "Esperan un recurso",
+                "En swap, listos para volver a la RAM", "En swap, esperando su evento", "Salieron de ejecucion"};
+        for (int i = 0; i < 6; i++) colas.add(crearCola(i, ayudas[i]));
         cuerpo.add(colas, BorderLayout.CENTER);
         add(resumen, BorderLayout.NORTH); add(cuerpo, BorderLayout.CENTER);
     }
@@ -50,8 +52,8 @@ public class PanelComputador extends JPanel {
         if (ajustar != compacto) {
             compacto = ajustar;
             GridLayout rejilla = (GridLayout) colas.getLayout();
-            rejilla.setRows(compacto ? 2 : 1); rejilla.setColumns(compacto ? 2 : 4);
-            int altura = compacto ? 680 : 420;
+            rejilla.setRows(compacto ? 3 : 2); rejilla.setColumns(compacto ? 2 : 3);
+            int altura = compacto ? 1020 : 760;
             setPreferredSize(new Dimension(1080, altura)); setMinimumSize(new Dimension(0, altura));
             revalidate();
         }
@@ -72,7 +74,8 @@ public class PanelComputador extends JPanel {
         if (vista.procesoCPU() == null) cpu.add(new JLabel("Libre · esperando un proceso listo"), BorderLayout.CENTER);
         else cpu.add(tarjeta(vista.procesoCPU(), AZUL), BorderLayout.CENTER);
         actualizarCola(0, vista.colaNuevos()); actualizarCola(1, vista.colaListos());
-        actualizarCola(2, vista.colaBloqueados()); actualizarCola(3, vista.colaTerminados());
+        actualizarCola(2, vista.colaBloqueados()); actualizarCola(3, vista.colaListosSuspendidos());
+        actualizarCola(4, vista.colaBloqueadosSuspendidos()); actualizarCola(5, vista.colaTerminados());
         revalidate(); repaint();
     }
 
@@ -144,7 +147,7 @@ public class PanelComputador extends JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
         setLayout(new BorderLayout(12, 12));
-        setPreferredSize(new Dimension(1080, 420));
-        setMinimumSize(new Dimension(0, 420));
+        setPreferredSize(new Dimension(1080, 760));
+        setMinimumSize(new Dimension(0, 760));
     }// </editor-fold>//GEN-END:initComponents
 }
