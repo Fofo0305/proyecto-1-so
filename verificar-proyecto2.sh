@@ -4,7 +4,7 @@
 #
 #   ./verificar-proyecto2.sh [--jdk RUTA] [--interfaz]
 #
-# Sin --interfaz corre las 8 comprobaciones que no necesitan pantalla.
+# Sin --interfaz corre las 9 comprobaciones que no necesitan pantalla.
 # Con --interfaz agrega las 2 que crean componentes Swing; en un servidor sin
 # escritorio hay que envolverlas, por ejemplo con `xvfb-run -a`.
 set -eu
@@ -28,10 +28,13 @@ COMPILADOR="$JDK/bin/javac"
 JAVA="$JDK/bin/java"
 cd "$(dirname "$0")"
 SALIDA=target/pruebas-proyecto2
+# Gson es la libreria JSON permitida; el pom usa la misma version.
+GSON=lib/gson-2.11.0.jar
+CLASSPATH_PRUEBAS="$SALIDA:$GSON"
 mkdir -p "$SALIDA"
 
 find src/main/java src/test/java -name '*.java' > "$SALIDA/fuentes.txt"
-"$COMPILADOR" -encoding UTF-8 --release 22 -d "$SALIDA" "@$SALIDA/fuentes.txt"
+"$COMPILADOR" -encoding UTF-8 --release 22 -cp "$GSON" -d "$SALIDA" "@$SALIDA/fuentes.txt"
 
 PRUEBAS="Pruebas.PruebaBaseProyecto2
 Pruebas.PruebaModeloSieteEstados
@@ -40,7 +43,8 @@ Pruebas.PruebaDiscoReloj
 Pruebas.PruebaMetricasDisco
 Pruebas.PruebaPoliticasES
 Pruebas.PruebaRelojPoliticas
-Pruebas.PruebaSistemaArchivos"
+Pruebas.PruebaSistemaArchivos
+Pruebas.PruebaPersistenciaSistemaArchivos"
 
 if [ "$INTERFAZ" -eq 1 ]; then
     PRUEBAS="$PRUEBAS
@@ -51,7 +55,7 @@ fi
 CANTIDAD=0
 for PRUEBA in $PRUEBAS; do
     printf '== %s\n' "$PRUEBA"
-    if ! "$JAVA" -cp "$SALIDA" "$PRUEBA"; then
+    if ! "$JAVA" -cp "$CLASSPATH_PRUEBAS" "$PRUEBA"; then
         echo "Fallo $PRUEBA" >&2
         exit 1
     fi
