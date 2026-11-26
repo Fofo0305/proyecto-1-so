@@ -17,14 +17,15 @@ import Modelo.TipoProceso;
 import Modelo.VistaAlmacenamiento;
 import Modelo.VistaComputador;
 import Modelo.VistaMetricas;
+import Persistencia.ArchivoProcesos;
 import Persistencia.ArchivoSistemaArchivos;
 import java.util.concurrent.Semaphore;
 
 /** Controla la única instancia del computador sin depender de Swing. @author Adolfo */
 public class ControladorSimulacion implements AutoCloseable {
     /** Disco por defecto cuando no se carga el JSON del sistema de archivos. */
-    public static final int BLOQUES_POR_DEFECTO = 200;
-    public static final int SWAP_POR_DEFECTO = 40;
+    public static final int BLOQUES_POR_DEFECTO = Configuracion.BLOQUES_DISCO_POR_DEFECTO;
+    public static final int SWAP_POR_DEFECTO = Configuracion.SWAP_POR_DEFECTO;
     private final Semaphore mutex = new Semaphore(1, true);
     private String jsonSistemaArchivos;
     private Disco disco;
@@ -36,6 +37,8 @@ public class ControladorSimulacion implements AutoCloseable {
     private boolean pausado;
     private boolean detenido;
     private Cola<DefinicionProceso> cargaProcesos = new Cola<>();
+    /** Si los procesos actuales vienen del JSON de procesos (y no del formulario o un CSV). */
+    private boolean procesosJson;
 
     public void configurar(Configuracion nueva) {
         cargarCarga(new CargaInicial(nueva, new DefinicionProceso[0]));
@@ -45,53 +48,154 @@ public class ControladorSimulacion implements AutoCloseable {
         if (carga == null) throw new IllegalArgumentException("La carga es obligatoria");
         mutex.acquireUninterruptibly();
         try {
-            if (cerrado) throw new IllegalStateException("El controlador esta cerrado");
-            if (reloj != null && reloj.estaActivo())
-                throw new IllegalStateException("Detenga la simulacion antes de cambiar la configuracion");
-            Configuracion nueva = carga.getConfiguracion();
-            Computador nuevo = new Computador(1, nueva.getRam()[0]);
-            nuevo.cambiarPolitica(nueva.getPoliticas()[0], nueva.getQuantums()[0]);
-            Cola<DefinicionProceso> definiciones = new Cola<>();
-            for (DefinicionProceso definicion : carga.getProcesos()) {
-                nuevo.recibirProceso(definicion.crearProceso());
-                definiciones.agregar(definicion);
-            }
-            nuevo.admitirProcesos();
-            ArchivoSistemaArchivos.SistemaCargado almacenamiento = crearAlmacenamiento(jsonSistemaArchivos);
-            nuevo.conectarAlmacenamiento(almacenamiento.disco(), almacenamiento.sistema());
-            RelojGlobal nuevoReloj = new RelojGlobal(new ComponenteReloj[] {nuevo, almacenamiento.disco()});
-            nuevoReloj.setDuracionMs(nueva.getDuracionMs());
-            if (reloj != null) reloj.close();
-            configuracion = nueva;
-            computador = nuevo;
-            disco = almacenamiento.disco();
-            sistemaArchivos = almacenamiento.sistema();
-            reloj = nuevoReloj;
-            pausado = false;
-            detenido = false;
-            cargaProcesos = definiciones;
+            comprobarModificable("cambiar la configuracion");
+            reconstruir(carga);
+            procesosJson = false;
         } finally { mutex.release(); }
-    }
-
-    private static ArchivoSistemaArchivos.SistemaCargado crearAlmacenamiento(String json) {
-        if (json != null) return ArchivoSistemaArchivos.leer(json, SWAP_POR_DEFECTO);
-        Disco vacio = new Disco(BLOQUES_POR_DEFECTO, SWAP_POR_DEFECTO, 0);
-        return new ArchivoSistemaArchivos.SistemaCargado(vacio, new SistemaArchivos(vacio));
     }
 
     /**
-     * Guarda el JSON del sistema de archivos para la proxima carga. Se valida al momento: si
-     * esta mal formado no reemplaza al anterior. {@code null} vuelve al disco vacio.
+     * Carga el JSON de procesos: configuracion del computador, swap y politica de disco inicial,
+     * y los procesos. El disco que ya estaba cargado se conserva (con lo que hayan cambiado los
+     * procesos anteriores); solo el swap pasa a ser el del JSON, recortado si no cabe.
      */
-    public void cargarSistemaArchivos(String json) {
-        if (json != null) crearAlmacenamiento(json);
+    public void cargarProcesos(String json) {
+        CargaInicial leida = ArchivoProcesos.leer(json);
         mutex.acquireUninterruptibly();
         try {
-            if (cerrado) throw new IllegalStateException("El controlador esta cerrado");
-            if (reloj != null && reloj.estaActivo())
-                throw new IllegalStateException("Detenga la simulacion antes de cambiar el sistema de archivos");
-            jsonSistemaArchivos = json;
+            comprobarModificable("cargar otros procesos");
+            Configuracion nueva = leida.getConfiguracion();
+            if (configuracion != null) {
+                // El disco ya cargado manda en bloques y cabezal; el swap pedido se acota a lo que cabe.
+                int limite = (disco != null ? disco.getTotalBloques() : configuracion.getBloquesDisco()) - 1;
+                nueva = nueva.conDisco(configuracion.getBloquesDisco(), Math.min(nueva.getBloquesSwap(),
+                        Math.min(limite, configuracion.getBloquesDisco() - 1)), nueva.getPoliticaDisco(),
+                        configuracion.getCabezalInicial());
+            }
+            String anterior = jsonSistemaArchivos;
+            if (jsonSistemaArchivos != null && disco != null)
+                jsonSistemaArchivos = ArchivoSistemaArchivos.escribir(
+                        new ArchivoSistemaArchivos.SistemaCargado(disco, sistemaArchivos), false);
+            try {
+                reconstruir(new CargaInicial(nueva, leida.getProcesos()));
+            } catch (RuntimeException error) {
+                jsonSistemaArchivos = anterior;
+                throw error;
+            }
+            procesosJson = true;
         } finally { mutex.release(); }
+    }
+
+    /**
+     * Que falta para iniciar como pide el enunciado (los dos JSON cargados); null si no falta nada.
+     * {@link #iniciar()} no lo exige, para poder probar el simulador con procesos del formulario.
+     */
+    public String faltaParaIniciar() {
+        mutex.acquireUninterruptibly();
+        try {
+            if (cerrado || reloj == null) return "Configure primero la simulacion";
+            boolean sinDisco = jsonSistemaArchivos == null;
+            if (sinDisco && !procesosJson) return "Faltan el JSON del disco y el JSON de procesos";
+            if (sinDisco) return "Falta cargar el JSON del disco";
+            if (!procesosJson) return "Falta cargar el JSON de procesos";
+            return null;
+        } finally { mutex.release(); }
+    }
+
+    /** JSON del disco y el arbol tal como estan ahora; null si no hay simulacion. */
+    public String exportarSistemaArchivos() {
+        mutex.acquireUninterruptibly();
+        try {
+            if (disco == null) return null;
+            return ArchivoSistemaArchivos.escribir(new ArchivoSistemaArchivos.SistemaCargado(disco, sistemaArchivos));
+        } finally { mutex.release(); }
+    }
+
+    private void comprobarModificable(String accion) {
+        if (cerrado) throw new IllegalStateException("El controlador esta cerrado");
+        if (reloj != null && reloj.estaActivo())
+            throw new IllegalStateException("Detenga la simulacion antes de " + accion);
+    }
+
+    /** Arma de nuevo computador, disco y reloj con la carga; se llama con el mutex tomado. */
+    private void reconstruir(CargaInicial carga) {
+        Configuracion nueva = carga.getConfiguracion();
+        Computador nuevo = new Computador(1, nueva.getRam()[0]);
+        nuevo.cambiarPolitica(nueva.getPoliticas()[0], nueva.getQuantums()[0]);
+        Cola<DefinicionProceso> definiciones = new Cola<>();
+        for (DefinicionProceso definicion : carga.getProcesos()) {
+            nuevo.recibirProceso(definicion.crearProceso());
+            definiciones.agregar(definicion);
+        }
+        nuevo.admitirProcesos();
+        ArchivoSistemaArchivos.SistemaCargado almacenamiento = crearAlmacenamiento(jsonSistemaArchivos, nueva);
+        nuevo.conectarAlmacenamiento(almacenamiento.disco(), almacenamiento.sistema());
+        RelojGlobal nuevoReloj = new RelojGlobal(new ComponenteReloj[] {nuevo, almacenamiento.disco()});
+        nuevoReloj.setDuracionMs(nueva.getDuracionMs());
+        if (reloj != null) reloj.close();
+        configuracion = nueva;
+        computador = nuevo;
+        disco = almacenamiento.disco();
+        sistemaArchivos = almacenamiento.sistema();
+        reloj = nuevoReloj;
+        pausado = false;
+        detenido = false;
+        cargaProcesos = definiciones;
+    }
+
+    /**
+     * Disco del JSON (sus bloques y cabezal mandan) o uno vacio con los datos de la configuracion.
+     * El swap y la politica inicial salen siempre de la configuracion.
+     */
+    private static ArchivoSistemaArchivos.SistemaCargado crearAlmacenamiento(String json, Configuracion conf) {
+        ArchivoSistemaArchivos.SistemaCargado cargado;
+        if (json != null) {
+            cargado = ArchivoSistemaArchivos.leer(json, conf.getBloquesSwap());
+        } else {
+            Disco vacio = new Disco(conf.getBloquesDisco(), conf.getBloquesSwap(), conf.getCabezalInicial());
+            cargado = new ArchivoSistemaArchivos.SistemaCargado(vacio, new SistemaArchivos(vacio));
+        }
+        if (cargado.disco().getPolitica() != conf.getPoliticaDisco())
+            cargado.disco().cambiarPolitica(planificador(conf.getPoliticaDisco()));
+        return cargado;
+    }
+
+    private static PlanificacionDisco.PoliticaPlanificacionDisco planificador(PoliticaDisco tipo) {
+        return switch (tipo) {
+            case FIFO -> new PlanificacionDisco.FIFO();
+            case SSTF -> new PlanificacionDisco.SSTF();
+            case SCAN -> new PlanificacionDisco.SCAN();
+            case C_SCAN -> new PlanificacionDisco.CSCAN();
+        };
+    }
+
+    /**
+     * Carga el JSON del sistema de archivos. Se valida al momento: si esta mal formado no
+     * reemplaza al anterior. Si ya hay una simulacion, se arma de nuevo con este disco y los
+     * mismos procesos. {@code null} vuelve al disco vacio.
+     */
+    public void cargarSistemaArchivos(String json) {
+        if (json != null) ArchivoSistemaArchivos.leer(json, SWAP_POR_DEFECTO);
+        mutex.acquireUninterruptibly();
+        try {
+            comprobarModificable("cambiar el sistema de archivos");
+            String anterior = jsonSistemaArchivos;
+            jsonSistemaArchivos = json;
+            if (reloj == null) return;
+            try {
+                reconstruir(new CargaInicial(configuracion, definicionesActuales()));
+            } catch (RuntimeException error) {
+                jsonSistemaArchivos = anterior;
+                throw error;
+            }
+        } finally { mutex.release(); }
+    }
+
+    private DefinicionProceso[] definicionesActuales() {
+        Object[] elementos = cargaProcesos.instantanea();
+        DefinicionProceso[] definiciones = new DefinicionProceso[elementos.length];
+        for (int i = 0; i < elementos.length; i++) definiciones[i] = (DefinicionProceso) elementos[i];
+        return definiciones;
     }
 
     /**
@@ -158,7 +262,7 @@ public class ControladorSimulacion implements AutoCloseable {
             comprobarDisponible();
             computador.cambiarPolitica(tipo, quantum);
             configuracion = new Configuracion(configuracion.getRam(), configuracion.getDuracionMs(),
-                    quantum, new PoliticaPlanificacion[] {tipo}, new int[] {quantum});
+                    quantum, new PoliticaPlanificacion[] {tipo}, new int[] {quantum}).conDiscoDe(configuracion);
         } finally { mutex.release(); }
     }
 
@@ -174,12 +278,7 @@ public class ControladorSimulacion implements AutoCloseable {
         mutex.acquireUninterruptibly();
         try {
             comprobarDisponible();
-            disco.cambiarPolitica(switch (tipo) {
-                case FIFO -> new PlanificacionDisco.FIFO();
-                case SSTF -> new PlanificacionDisco.SSTF();
-                case SCAN -> new PlanificacionDisco.SCAN();
-                case C_SCAN -> new PlanificacionDisco.CSCAN();
-            });
+            disco.cambiarPolitica(planificador(tipo));
         } finally { mutex.release(); }
     }
 
@@ -212,10 +311,7 @@ public class ControladorSimulacion implements AutoCloseable {
         mutex.acquireUninterruptibly();
         try {
             if (configuracion == null) throw new IllegalStateException("Configure primero la simulacion");
-            Object[] elementos = cargaProcesos.instantanea();
-            DefinicionProceso[] definiciones = new DefinicionProceso[elementos.length];
-            for (int i = 0; i < elementos.length; i++) definiciones[i] = (DefinicionProceso) elementos[i];
-            return new CargaInicial(configuracion, definiciones);
+            return new CargaInicial(configuracion, definicionesActuales());
         } finally { mutex.release(); }
     }
 
@@ -251,7 +347,7 @@ public class ControladorSimulacion implements AutoCloseable {
         try {
             comprobarDisponible();
             configuracion = new Configuracion(configuracion.getRam(), duracionMs, configuracion.getQuantum(),
-                    configuracion.getPoliticas(), configuracion.getQuantums());
+                    configuracion.getPoliticas(), configuracion.getQuantums()).conDiscoDe(configuracion);
             reloj.setDuracionMs(duracionMs);
         } finally { mutex.release(); }
     }

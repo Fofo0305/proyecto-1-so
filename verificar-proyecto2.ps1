@@ -19,6 +19,7 @@ try {
             'Pruebas.PruebaRelojPoliticas',
             'Pruebas.PruebaSistemaArchivos',
             'Pruebas.PruebaPersistenciaSistemaArchivos',
+            'Pruebas.PruebaArchivoProcesos',
             'Pruebas.PruebaProcesosES',
             'Pruebas.PruebaSwap')) {
         & $java -cp $classpath $pruebaProyecto2
@@ -31,5 +32,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la estabilidad del scroll de colas.' }
         & $java -cp $classpath Pruebas.PruebaPanelDisco
         if ($LASTEXITCODE -ne 0) { throw 'Fallo el panel de disco y archivos.' }
+        & $java -cp $classpath Pruebas.PruebaPanelArchivos
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo la carga de los JSON desde la interfaz.' }
     }
 } finally { Pop-Location }

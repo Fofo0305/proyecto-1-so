@@ -130,6 +130,7 @@ public class VentanaPrincipal extends JFrame {
                     pestanas.setSelectedComponent(panelComputadores);
                     panelComputadores.actualizar();
                 }
+                panelArchivos.actualizarFaltante();
                 botonConfigurar.setEnabled(true);
             });
         }, "Configurar-computador");
@@ -149,7 +150,9 @@ public class VentanaPrincipal extends JFrame {
     private void mostrarCarga(Modelo.CargaInicial carga) {
         panelConfiguracion.mostrarConfiguracion(carga.getConfiguracion());
         panelControles.prepararSesion(carga.getConfiguracion().getDuracionMs());
-        estado.setText("Carga inicial lista. Pulse Iniciar.");
+        String falta = controlador.faltaParaIniciar();
+        estado.setText(falta == null ? "Carga inicial lista. Pulse Iniciar." : "Carga lista. " + falta + ".");
+        panelArchivos.actualizarFaltante();
         panelComputadores.actualizar();
         mostrarSimulacion();
     }

@@ -1,21 +1,60 @@
 package Interfaces;
 
 import Modelo.Configuracion;
+import Modelo.PoliticaDisco;
 
 /**
- * Entrada de parámetros iniciales de la simulación.
+ * Entrada de parámetros iniciales de la simulación. Abajo van los datos del disco, que
+ * se usan cuando no se ha cargado el JSON del disco.
  * @author Adolfo
  */
 public class PanelConfiguracion extends javax.swing.JPanel {
-    public PanelConfiguracion() { initComponents(); avanzados.setVisible(false); opciones.addActionListener(evento -> { avanzados.setVisible(opciones.isSelected()); revalidate(); }); }
+    private final javax.swing.JTextField campoBloques = new javax.swing.JTextField(Integer.toString(Configuracion.BLOQUES_DISCO_POR_DEFECTO), 6);
+    private final javax.swing.JTextField campoSwap = new javax.swing.JTextField(Integer.toString(Configuracion.SWAP_POR_DEFECTO), 6);
+    private final javax.swing.JTextField campoCabezal = new javax.swing.JTextField("0", 6);
+    private final javax.swing.JComboBox<PoliticaDisco> politicaDisco = new javax.swing.JComboBox<>(PoliticaDisco.values());
+
+    public PanelConfiguracion() {
+        initComponents();
+        avanzados.setVisible(false);
+        opciones.addActionListener(evento -> { avanzados.setVisible(opciones.isSelected()); revalidate(); });
+        add(crearPanelDisco(), java.awt.BorderLayout.SOUTH);
+    }
+
+    private javax.swing.JPanel crearPanelDisco() {
+        javax.swing.JPanel disco = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 4));
+        disco.setOpaque(false);
+        disco.setBorder(javax.swing.BorderFactory.createTitledBorder("Disco"));
+        campoBloques.setName("bloques");
+        campoSwap.setName("swap");
+        campoCabezal.setName("cabezal");
+        politicaDisco.setName("politicaDisco");
+        politicaDisco.setSelectedItem(PoliticaDisco.FIFO);
+        disco.add(new javax.swing.JLabel("Bloques"));
+        disco.add(campoBloques);
+        disco.add(new javax.swing.JLabel("Swap"));
+        disco.add(campoSwap);
+        disco.add(new javax.swing.JLabel("Politica"));
+        disco.add(politicaDisco);
+        disco.add(new javax.swing.JLabel("Cabezal"));
+        disco.add(campoCabezal);
+        javax.swing.JLabel pista = new javax.swing.JLabel("<html><span style='color:#637089'>El JSON del disco fija los bloques y el cabezal;"
+                + " el JSON de procesos fija el swap y la politica inicial.</span></html>");
+        disco.add(pista);
+        return disco;
+    }
 
     /** Lee los campos y valida su formato antes de construir la configuración. */
     public Configuracion leerConfiguracion() {
-        for (javax.swing.JTextField campo : new javax.swing.JTextField[] {campoRam, campoCiclo, campoQuantum})
+        for (javax.swing.JTextField campo : new javax.swing.JTextField[] {campoRam, campoCiclo, campoQuantum, campoBloques, campoSwap, campoCabezal})
             campo.setBorder(javax.swing.UIManager.getBorder("TextField.border"));
         int ram = leerEntero(campoRam, "RAM", 1, Integer.MAX_VALUE);
-        return new Configuracion(new int[] {ram}, leerEntero(campoCiclo, "Duracion del ciclo en ms", 1, 60000),
+        Configuracion base = new Configuracion(new int[] {ram}, leerEntero(campoCiclo, "Duracion del ciclo en ms", 1, 60000),
                 leerEntero(campoQuantum, "Quantum", 1, Integer.MAX_VALUE));
+        int bloques = leerEntero(campoBloques, "Bloques del disco", 100, 500);
+        int swap = leerEntero(campoSwap, "Swap", 1, bloques - 1);
+        int cabezal = leerEntero(campoCabezal, "Cabezal", 0, bloques - 1);
+        return base.conDisco(bloques, swap, (PoliticaDisco) politicaDisco.getSelectedItem(), cabezal);
     }
 
     private int leerEntero(javax.swing.JTextField campo, String nombre, int minimo, int maximo) {
@@ -39,6 +78,10 @@ public class PanelConfiguracion extends javax.swing.JPanel {
         campoRam.setText(Integer.toString(configuracion.getRam()[0]));
         campoCiclo.setText(Integer.toString(configuracion.getDuracionMs()));
         campoQuantum.setText(Integer.toString(configuracion.getQuantum()));
+        campoBloques.setText(Integer.toString(configuracion.getBloquesDisco()));
+        campoSwap.setText(Integer.toString(configuracion.getBloquesSwap()));
+        campoCabezal.setText(Integer.toString(configuracion.getCabezalInicial()));
+        politicaDisco.setSelectedItem(configuracion.getPoliticaDisco());
     }
 
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
