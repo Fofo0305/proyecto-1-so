@@ -25,6 +25,15 @@ public final class Disco implements ComponenteReloj {
     private final int posicionesPorCiclo;
     private final Cola<SolicitudDisco> pendientes = new Cola<>();
     private final Cola<SolicitudDisco> completadas = new Cola<>();
+    /** Completadas que el computador todavia no ha recogido para desbloquear a su proceso. */
+    private final Cola<SolicitudDisco> porNotificar = new Cola<>();
+    /**
+     * Eventos que pide el hilo del computador para un ciclo que el disco todavia no cerro. Se
+     * escriben al final de ese ciclo del disco, asi el log no depende de que hilo corrio primero.
+     */
+    private final Cola<Modelo.EventoSistema> porRegistrar = new Cola<>();
+    /** Ciclo que corre el computador, segun sus ultimas llamadas; fecha los cambios de bloques. */
+    private long cicloCliente;
     private final RegistroSistema log = new RegistroSistema();
     private final long[] atendidasPorPolitica = new long[PoliticaDisco.values().length];
     private final long[] historiaCiclos = new long[600];
@@ -71,21 +80,60 @@ public final class Disco implements ComponenteReloj {
     public long encolarSolicitud(long procesoId, OperacionES operacion,
             int bloqueObjetivo, int bloquesTrabajo) {
         mutex.acquireUninterruptibly();
+        try { return encolar(procesoId, operacion, bloqueObjetivo, bloquesTrabajo, ultimoCiclo); }
+        finally { mutex.release(); }
+    }
+
+    /**
+     * Encola una solicitud que llega en {@code cicloLlegada}. El disco la puede empezar a
+     * atender desde el ciclo siguiente, aunque el computador y el disco corran el mismo ciclo
+     * en paralelo: asi el resultado no depende de que hilo llego primero.
+     */
+    public long encolarSolicitud(long procesoId, OperacionES operacion,
+            int bloqueObjetivo, int bloquesTrabajo, long cicloLlegada) {
+        mutex.acquireUninterruptibly();
         try {
-            if (procesoId < 1 || operacion == null || bloqueObjetivo < 0
-                    || bloqueObjetivo >= bloques.length || bloquesTrabajo < 1)
-                throw new IllegalArgumentException("Solicitud de disco invalida");
-            AreaDisco areaEsperada = operacion.requiereRuta() ? AreaDisco.DATOS : AreaDisco.SWAP;
-            if (bloques[bloqueObjetivo].getArea() != areaEsperada)
-                throw new IllegalArgumentException("La operacion no corresponde al area del bloque");
-            if (siguienteSolicitud == Long.MAX_VALUE)
-                throw new IllegalStateException("Se agotaron los identificadores de solicitudes");
-            SolicitudDisco solicitud = new SolicitudDisco(siguienteSolicitud++, procesoId,
-                    operacion, bloqueObjetivo, bloquesTrabajo, ultimoCiclo);
-            pendientes.agregar(solicitud);
-            log.agregar(ultimoCiclo, 1, procesoId, "SOLICITUD_DISCO",
-                    "S" + solicitud.getId() + " " + operacion + " bloque=" + bloqueObjetivo);
-            return solicitud.consultar().id();
+            if (cicloLlegada < ultimoCiclo)
+                throw new IllegalArgumentException("La solicitud no puede llegar en un ciclo pasado");
+            return encolar(procesoId, operacion, bloqueObjetivo, bloquesTrabajo, cicloLlegada);
+        } finally { mutex.release(); }
+    }
+
+    private long encolar(long procesoId, OperacionES operacion, int bloqueObjetivo,
+            int bloquesTrabajo, long cicloLlegada) {
+        if (procesoId < 1 || operacion == null || bloqueObjetivo < 0
+                || bloqueObjetivo >= bloques.length || bloquesTrabajo < 1)
+            throw new IllegalArgumentException("Solicitud de disco invalida");
+        AreaDisco areaEsperada = operacion.requiereRuta() ? AreaDisco.DATOS : AreaDisco.SWAP;
+        if (bloques[bloqueObjetivo].getArea() != areaEsperada)
+            throw new IllegalArgumentException("La operacion no corresponde al area del bloque");
+        if (siguienteSolicitud == Long.MAX_VALUE)
+            throw new IllegalStateException("Se agotaron los identificadores de solicitudes");
+        SolicitudDisco solicitud = new SolicitudDisco(siguienteSolicitud++, procesoId,
+                operacion, bloqueObjetivo, bloquesTrabajo, cicloLlegada);
+        pendientes.agregar(solicitud);
+        cicloCliente = Math.max(cicloCliente, cicloLlegada);
+        registrarExterno(cicloLlegada, procesoId, "SOLICITUD_DISCO",
+                "S" + solicitud.getId() + " " + operacion + " bloque=" + bloqueObjetivo);
+        return solicitud.getId();
+    }
+
+    /**
+     * Entrega y olvida las solicitudes que terminaron antes de {@code antesDe}. El computador
+     * la llama en el ciclo c para desbloquear a los procesos cuyo disco termino hasta c-1.
+     */
+    public VistaSolicitudDisco[] tomarCompletadas(long antesDe) {
+        mutex.acquireUninterruptibly();
+        try {
+            cicloCliente = Math.max(cicloCliente, antesDe);
+            int cantidad = porNotificar.getTamano();
+            Cola<SolicitudDisco> listas = new Cola<>();
+            for (int i = 0; i < cantidad; i++) {
+                SolicitudDisco solicitud = porNotificar.quitar();
+                if (solicitud.getCicloFin() < antesDe) listas.agregar(solicitud);
+                else porNotificar.agregar(solicitud);
+            }
+            return vistas(listas);
         } finally { mutex.release(); }
     }
 
@@ -107,24 +155,50 @@ public final class Disco implements ComponenteReloj {
             if (activa != null && !avanzarCabezal()) {
                 activa.trabajarBloque();
                 if (activa.termino()) {
+                    activa.finalizar(ciclo);
                     registrarFinalizacion(activa, ciclo);
                     completadas.agregar(activa);
+                    porNotificar.agregar(activa);
                     activa = null;
                     rutaActiva = new MovimientoCabezalDisco[0];
                     indiceRuta = 0;
                 }
             }
             registrarHistoria(ciclo);
+            registrarPendientes(ciclo);
             ultimoCiclo = ciclo;
         } finally { mutex.release(); }
     }
 
+    /** Anota un evento del computador ahora o, si su ciclo sigue abierto en el disco, al cerrarlo. */
+    private void registrarExterno(long ciclo, long proceso, String tipo, String detalle) {
+        if (ciclo <= ultimoCiclo) log.agregar(ciclo, 1, proceso, tipo, detalle);
+        else porRegistrar.agregar(new Modelo.EventoSistema(0, ciclo, 1, proceso, tipo, detalle));
+    }
+
+    private void registrarPendientes(long ciclo) {
+        int cantidad = porRegistrar.getTamano();
+        for (int i = 0; i < cantidad; i++) {
+            Modelo.EventoSistema evento = porRegistrar.quitar();
+            if (evento.ciclo() <= ciclo)
+                log.agregar(evento.ciclo(), 1, evento.proceso(), evento.tipo(), evento.detalle());
+            else porRegistrar.agregar(evento);
+        }
+    }
+
+    private long cicloBloques() { return Math.max(ultimoCiclo, cicloCliente); }
+
     private void prepararSiguiente(long ciclo) {
-        Object[] espera = pendientes.instantanea();
-        if (espera.length == 0) return;
-        int[] objetivos = new int[espera.length];
-        for (int i = 0; i < espera.length; i++)
-            objetivos[i] = ((SolicitudDisco) espera[i]).getBloqueObjetivo();
+        Object[] cola = pendientes.instantanea();
+        int disponibles = 0;
+        for (Object elemento : cola) if (((SolicitudDisco) elemento).disponibleEn(ciclo)) disponibles++;
+        if (disponibles == 0) return;
+        int[] objetivos = new int[disponibles];
+        int indice = 0;
+        for (Object elemento : cola) {
+            SolicitudDisco solicitud = (SolicitudDisco) elemento;
+            if (solicitud.disponibleEn(ciclo)) objetivos[indice++] = solicitud.getBloqueObjetivo();
+        }
         ResultadoPlanificacionDisco plan = politica.planificar(
                 posicionCabezal, bloques.length, direccion, objetivos);
         MovimientoCabezalDisco[] recorrido = plan.movimientos();
@@ -134,7 +208,7 @@ public final class Disco implements ComponenteReloj {
         rutaActiva = new MovimientoCabezalDisco[fin + 1];
         System.arraycopy(recorrido, 0, rutaActiva, 0, rutaActiva.length);
         indiceRuta = 0;
-        activa = retirarPrimeraEnBloque(recorrido[fin].destino());
+        activa = retirarPrimeraEnBloque(recorrido[fin].destino(), ciclo);
         activa.iniciar(politica.getTipo(), ciclo);
         solicitudesIniciadas++;
         esperaAcumulada += activa.getTiempoEspera();
@@ -143,12 +217,13 @@ public final class Disco implements ComponenteReloj {
                 + " (" + activa.getPoliticaSeleccion() + ")");
     }
 
-    private SolicitudDisco retirarPrimeraEnBloque(int bloque) {
+    private SolicitudDisco retirarPrimeraEnBloque(int bloque, long ciclo) {
         SolicitudDisco elegida = null;
         int cantidad = pendientes.getTamano();
         for (int i = 0; i < cantidad; i++) {
             SolicitudDisco solicitud = pendientes.quitar();
-            if (elegida == null && solicitud.getBloqueObjetivo() == bloque) elegida = solicitud;
+            if (elegida == null && solicitud.disponibleEn(ciclo)
+                    && solicitud.getBloqueObjetivo() == bloque) elegida = solicitud;
             else pendientes.agregar(solicitud);
         }
         if (elegida == null) throw new IllegalStateException("La politica eligio una solicitud inexistente");
@@ -262,7 +337,7 @@ public final class Disco implements ComponenteReloj {
                     elegidos[encontrados++] = numero;
             for (int i = 0; i < cantidad; i++)
                 bloques[elegidos[i]].ocupar(propietario, i + 1 < cantidad ? elegidos[i + 1] : -1);
-            log.agregar(ultimoCiclo, 1, 0, "ASIGNA_BLOQUES",
+            registrarExterno(cicloBloques(), 0, "ASIGNA_BLOQUES",
                     propietario + " " + cantidad + " bloques desde " + elegidos[0]);
             return elegidos[0];
         } finally { mutex.release(); }
@@ -295,7 +370,7 @@ public final class Disco implements ComponenteReloj {
                         + primerBloque);
             for (int i = 0; i < cantidad; i++)
                 bloques[elegidos[i]].ocupar(propietario, i + 1 < cantidad ? elegidos[i + 1] : -1);
-            log.agregar(ultimoCiclo, 1, 0, "ASIGNA_BLOQUES",
+            registrarExterno(cicloBloques(), 0, "ASIGNA_BLOQUES",
                     propietario + " " + cantidad + " bloques desde " + primerBloque);
             return primerBloque;
         } finally { mutex.release(); }
@@ -325,7 +400,7 @@ public final class Disco implements ComponenteReloj {
             }
             for (int i = 0; i < elegidos.length; i++)
                 bloques[elegidos[i]].ocupar(propietario, i + 1 < elegidos.length ? elegidos[i + 1] : -1);
-            log.agregar(ultimoCiclo, 1, 0, "ASIGNA_BLOQUES",
+            registrarExterno(cicloBloques(), 0, "ASIGNA_BLOQUES",
                     propietario + " " + elegidos.length + " bloques desde " + elegidos[0]);
             return elegidos[0];
         } finally { mutex.release(); }
@@ -345,7 +420,7 @@ public final class Disco implements ComponenteReloj {
             int[] recorrido = cadena(primerBloque);
             String propietario = bloques[primerBloque].getPropietario();
             for (int numero : recorrido) bloques[numero].liberar();
-            log.agregar(ultimoCiclo, 1, 0, "LIBERA_BLOQUES",
+            registrarExterno(cicloBloques(), 0, "LIBERA_BLOQUES",
                     propietario + " " + recorrido.length + " bloques desde " + primerBloque);
             return recorrido.length;
         } finally { mutex.release(); }
@@ -356,6 +431,17 @@ public final class Disco implements ComponenteReloj {
         mutex.acquireUninterruptibly();
         try { return libresEn(area); }
         finally { mutex.release(); }
+    }
+
+    /** Primer bloque libre del area, en orden de numero; -1 si el area esta llena. */
+    public int primerLibre(AreaDisco area) {
+        if (area == null) throw new IllegalArgumentException("El area es obligatoria");
+        mutex.acquireUninterruptibly();
+        try {
+            for (int numero = 0; numero < bloques.length; numero++)
+                if (bloques[numero].getArea() == area && bloques[numero].estaLibre()) return numero;
+            return -1;
+        } finally { mutex.release(); }
     }
 
     private int libresEn(AreaDisco area) {

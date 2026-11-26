@@ -3,7 +3,13 @@ package Modelo;
 /** Atributos iniciales de un proceso, sin estado de ejecución. @author Adolfo */
 public record DefinicionProceso(String nombre, int computador, int prioridad,
         int memoria, int instrucciones, int deadline, TipoProceso tipo, ParametrosES parametrosES,
-        OperacionES operacionES, String rutaObjetivo) {
+        OperacionES operacionES, String rutaObjetivo, ParametrosArchivo parametrosArchivo) {
+    public DefinicionProceso(String nombre, int computador, int prioridad, int memoria, int instrucciones,
+            int deadline, TipoProceso tipo, ParametrosES parametrosES, OperacionES operacionES, String rutaObjetivo) {
+        this(nombre, computador, prioridad, memoria, instrucciones, deadline,
+                tipo, parametrosES, operacionES, rutaObjetivo, null);
+    }
+
     public DefinicionProceso(String nombre, int computador, int prioridad,
             int memoria, int instrucciones, int deadline) {
         this(nombre, computador, prioridad, memoria, instrucciones, deadline,
@@ -22,6 +28,13 @@ public record DefinicionProceso(String nombre, int computador, int prioridad,
                 TipoProceso.IO_BOUND, null, operacionES, rutaObjetivo);
     }
 
+    /** Proceso CRUD con los datos del archivo y la identidad de la sesion que lo creo. */
+    public DefinicionProceso(String nombre, int computador, int prioridad, int memoria, int instrucciones,
+            int deadline, OperacionES operacionES, String rutaObjetivo, ParametrosArchivo parametrosArchivo) {
+        this(nombre, computador, prioridad, memoria, instrucciones, deadline,
+                TipoProceso.IO_BOUND, null, operacionES, rutaObjetivo, parametrosArchivo);
+    }
+
     public DefinicionProceso {
         if (nombre == null || nombre.isBlank()) throw new IllegalArgumentException("El nombre es obligatorio");
         if (computador != 1 || prioridad < 0 || memoria < 1 || instrucciones < 1 || deadline < 1)
@@ -36,12 +49,15 @@ public record DefinicionProceso(String nombre, int computador, int prioridad,
         if (esDisco) Proceso.validarDestino(operacionES, rutaObjetivo);
         if (!esDisco && rutaObjetivo != null)
             throw new IllegalArgumentException("Una ruta requiere una operacion de disco");
+        if (parametrosArchivo != null && !esDisco)
+            throw new IllegalArgumentException("Los datos de archivo requieren una operacion de disco");
     }
 
     public Proceso crearProceso() {
         Proceso proceso = new Proceso(nombre, computador, tipo, prioridad, memoria, instrucciones, deadline);
         if (parametrosES != null) proceso.configurarES(parametrosES);
-        if (operacionES != null) proceso.configurarOperacionDisco(operacionES, rutaObjetivo);
+        if (operacionES != null) proceso.configurarOperacionArchivo(operacionES, rutaObjetivo,
+                parametrosArchivo != null ? parametrosArchivo : ParametrosArchivo.ADMINISTRADOR);
         return proceso;
     }
 }

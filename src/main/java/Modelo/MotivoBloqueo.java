@@ -6,5 +6,8 @@ package Modelo;
  */
 public enum MotivoBloqueo {
     NINGUNO,
-    ENTRADA_SALIDA
+    /** Espera temporal configurada con rafaga y duracion. */
+    ENTRADA_SALIDA,
+    /** Espera a que el disco termine la solicitud CRUD del proceso. */
+    DISCO
 }

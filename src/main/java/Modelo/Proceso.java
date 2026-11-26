@@ -23,6 +23,9 @@ public class Proceso {
     private ParametrosES parametrosES;
     private OperacionES operacionES;
     private String rutaObjetivo;
+    private ParametrosArchivo parametrosArchivo;
+    private long solicitudDisco;
+    private boolean operacionAtendida;
     private int ejecutadasRafaga;
     private long esHasta;
     private long llegada;
@@ -60,12 +63,39 @@ public class Proceso {
 
     /** Asocia una solicitud de disco al PCB antes de admitir el proceso. */
     public void configurarOperacionDisco(OperacionES operacion, String ruta) {
+        configurarOperacionArchivo(operacion, ruta, ParametrosArchivo.ADMINISTRADOR);
+    }
+
+    /**
+     * Asocia una operacion de disco con los datos y la identidad de quien creo el proceso,
+     * para que el sistema de archivos aplique sus permisos cuando la atienda.
+     */
+    public void configurarOperacionArchivo(OperacionES operacion, String ruta, ParametrosArchivo datos) {
         if (estado != EstadoProceso.NUEVO || tipo != TipoProceso.IO_BOUND || operacion == null
-                || parametrosES != null || operacionES != null)
+                || datos == null || parametrosES != null || operacionES != null)
             throw new IllegalStateException("La operacion de disco solo se configura una vez en un IO_BOUND nuevo");
         validarDestino(operacion, ruta);
         operacionES = operacion;
         rutaObjetivo = ruta;
+        parametrosArchivo = datos;
+    }
+
+    /** Un proceso CRUD pide su operacion una sola vez, en su primera instruccion. */
+    public boolean necesitaSolicitarArchivo() {
+        return operacionES != null && operacionES.requiereRuta() && solicitudDisco == 0 && !operacionAtendida;
+    }
+
+    public void registrarSolicitudDisco(long idSolicitud) {
+        if (idSolicitud < 1 || !necesitaSolicitarArchivo())
+            throw new IllegalStateException("El proceso no tiene una solicitud de archivo pendiente");
+        solicitudDisco = idSolicitud;
+    }
+
+    /** Marca la operacion como resuelta: atendida por el disco o rechazada por permisos. */
+    public void cerrarOperacionArchivo() {
+        if (operacionES == null || !operacionES.requiereRuta() || operacionAtendida)
+            throw new IllegalStateException("El proceso no tiene una operacion de archivo abierta");
+        operacionAtendida = true;
     }
 
     /** Indica si el PCB ya puede entrar a las colas del computador. */
@@ -134,6 +164,9 @@ public class Proceso {
     public ParametrosES getParametrosES() { return parametrosES; }
     public OperacionES getOperacionES() { return operacionES; }
     public String getRutaObjetivo() { return rutaObjetivo; }
+    public ParametrosArchivo getParametrosArchivo() { return parametrosArchivo; }
+    public long getSolicitudDisco() { return solicitudDisco; }
+    public boolean isOperacionAtendida() { return operacionAtendida; }
     public long getEsHasta() { return esHasta; }
     public long getRespuesta() { return primeraRespuesta; }
     public String getResultado() { return resultado; }
