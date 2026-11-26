@@ -63,7 +63,10 @@ public final class PruebaProcesosES {
         crearEsperaYCompleta();
         rechazoNoDetiene();
         actualizarYEliminar();
-        verificar(huella().equals(huella()), "Dos corridas iguales no producen el mismo log");
+        // Computador y disco corren en hilos distintos: se repite para que una carrera se note.
+        String primera = huella();
+        for (int corrida = 0; corrida < 20; corrida++)
+            verificar(primera.equals(huella()), "Dos corridas iguales no producen el mismo log");
         System.out.println("PruebaProcesosES OK");
     }
 

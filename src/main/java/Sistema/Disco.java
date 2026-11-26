@@ -27,6 +27,13 @@ public final class Disco implements ComponenteReloj {
     private final Cola<SolicitudDisco> completadas = new Cola<>();
     /** Completadas que el computador todavia no ha recogido para desbloquear a su proceso. */
     private final Cola<SolicitudDisco> porNotificar = new Cola<>();
+    /**
+     * Eventos que pide el hilo del computador para un ciclo que el disco todavia no cerro. Se
+     * escriben al final de ese ciclo del disco, asi el log no depende de que hilo corrio primero.
+     */
+    private final Cola<Modelo.EventoSistema> porRegistrar = new Cola<>();
+    /** Ciclo que corre el computador, segun sus ultimas llamadas; fecha los cambios de bloques. */
+    private long cicloCliente;
     private final RegistroSistema log = new RegistroSistema();
     private final long[] atendidasPorPolitica = new long[PoliticaDisco.values().length];
     private final long[] historiaCiclos = new long[600];
@@ -105,7 +112,8 @@ public final class Disco implements ComponenteReloj {
         SolicitudDisco solicitud = new SolicitudDisco(siguienteSolicitud++, procesoId,
                 operacion, bloqueObjetivo, bloquesTrabajo, cicloLlegada);
         pendientes.agregar(solicitud);
-        log.agregar(cicloLlegada, 1, procesoId, "SOLICITUD_DISCO",
+        cicloCliente = Math.max(cicloCliente, cicloLlegada);
+        registrarExterno(cicloLlegada, procesoId, "SOLICITUD_DISCO",
                 "S" + solicitud.getId() + " " + operacion + " bloque=" + bloqueObjetivo);
         return solicitud.getId();
     }
@@ -117,6 +125,7 @@ public final class Disco implements ComponenteReloj {
     public VistaSolicitudDisco[] tomarCompletadas(long antesDe) {
         mutex.acquireUninterruptibly();
         try {
+            cicloCliente = Math.max(cicloCliente, antesDe);
             int cantidad = porNotificar.getTamano();
             Cola<SolicitudDisco> listas = new Cola<>();
             for (int i = 0; i < cantidad; i++) {
@@ -156,9 +165,28 @@ public final class Disco implements ComponenteReloj {
                 }
             }
             registrarHistoria(ciclo);
+            registrarPendientes(ciclo);
             ultimoCiclo = ciclo;
         } finally { mutex.release(); }
     }
+
+    /** Anota un evento del computador ahora o, si su ciclo sigue abierto en el disco, al cerrarlo. */
+    private void registrarExterno(long ciclo, long proceso, String tipo, String detalle) {
+        if (ciclo <= ultimoCiclo) log.agregar(ciclo, 1, proceso, tipo, detalle);
+        else porRegistrar.agregar(new Modelo.EventoSistema(0, ciclo, 1, proceso, tipo, detalle));
+    }
+
+    private void registrarPendientes(long ciclo) {
+        int cantidad = porRegistrar.getTamano();
+        for (int i = 0; i < cantidad; i++) {
+            Modelo.EventoSistema evento = porRegistrar.quitar();
+            if (evento.ciclo() <= ciclo)
+                log.agregar(evento.ciclo(), 1, evento.proceso(), evento.tipo(), evento.detalle());
+            else porRegistrar.agregar(evento);
+        }
+    }
+
+    private long cicloBloques() { return Math.max(ultimoCiclo, cicloCliente); }
 
     private void prepararSiguiente(long ciclo) {
         Object[] cola = pendientes.instantanea();
@@ -309,7 +337,7 @@ public final class Disco implements ComponenteReloj {
                     elegidos[encontrados++] = numero;
             for (int i = 0; i < cantidad; i++)
                 bloques[elegidos[i]].ocupar(propietario, i + 1 < cantidad ? elegidos[i + 1] : -1);
-            log.agregar(ultimoCiclo, 1, 0, "ASIGNA_BLOQUES",
+            registrarExterno(cicloBloques(), 0, "ASIGNA_BLOQUES",
                     propietario + " " + cantidad + " bloques desde " + elegidos[0]);
             return elegidos[0];
         } finally { mutex.release(); }
@@ -342,7 +370,7 @@ public final class Disco implements ComponenteReloj {
                         + primerBloque);
             for (int i = 0; i < cantidad; i++)
                 bloques[elegidos[i]].ocupar(propietario, i + 1 < cantidad ? elegidos[i + 1] : -1);
-            log.agregar(ultimoCiclo, 1, 0, "ASIGNA_BLOQUES",
+            registrarExterno(cicloBloques(), 0, "ASIGNA_BLOQUES",
                     propietario + " " + cantidad + " bloques desde " + primerBloque);
             return primerBloque;
         } finally { mutex.release(); }
@@ -372,7 +400,7 @@ public final class Disco implements ComponenteReloj {
             }
             for (int i = 0; i < elegidos.length; i++)
                 bloques[elegidos[i]].ocupar(propietario, i + 1 < elegidos.length ? elegidos[i + 1] : -1);
-            log.agregar(ultimoCiclo, 1, 0, "ASIGNA_BLOQUES",
+            registrarExterno(cicloBloques(), 0, "ASIGNA_BLOQUES",
                     propietario + " " + elegidos.length + " bloques desde " + elegidos[0]);
             return elegidos[0];
         } finally { mutex.release(); }
@@ -392,7 +420,7 @@ public final class Disco implements ComponenteReloj {
             int[] recorrido = cadena(primerBloque);
             String propietario = bloques[primerBloque].getPropietario();
             for (int numero : recorrido) bloques[numero].liberar();
-            log.agregar(ultimoCiclo, 1, 0, "LIBERA_BLOQUES",
+            registrarExterno(cicloBloques(), 0, "LIBERA_BLOQUES",
                     propietario + " " + recorrido.length + " bloques desde " + primerBloque);
             return recorrido.length;
         } finally { mutex.release(); }
