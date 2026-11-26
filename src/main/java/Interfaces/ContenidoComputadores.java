@@ -1,6 +1,6 @@
 package Interfaces;
 
-/** Ajusta las tarjetas al ancho del viewport y permite recorrer el cluster verticalmente. @author Adolfo */
+/** Ajusta las tarjetas al ancho del viewport y permite recorrer el computador verticalmente. @author Adolfo */
 public class ContenidoComputadores extends javax.swing.JPanel implements javax.swing.Scrollable {
     public ContenidoComputadores() { initComponents(); }
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents

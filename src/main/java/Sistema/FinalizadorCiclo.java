@@ -1,6 +1,6 @@
 package Sistema;
 
-/** Trabajo coordinado despues de que todos los computadores confirman el ciclo. @author Luciano Rojas */
+/** Trabajo coordinado después de que todos los componentes confirman el ciclo. @author Adolfo */
 public interface FinalizadorCiclo {
     void finalizarCiclo(long ciclo);
 }

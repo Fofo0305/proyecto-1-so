@@ -28,7 +28,7 @@
       <SubComponents>
         <Component class="javax.swing.JLabel" name="etiquetaCantidad">
           <Properties>
-            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Computadores&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;Al menos dos equipos independientes&lt;/span&gt;&lt;/html&gt;" />
+            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Computadores&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;Proyecto 2 comienza con un unico equipo&lt;/span&gt;&lt;/html&gt;" />
           </Properties>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
@@ -38,8 +38,9 @@
         </Component>
         <Component class="javax.swing.JTextField" name="campoCantidad">
           <Properties>
-            <Property name="text" type="java.lang.String" value="2" />
+            <Property name="text" type="java.lang.String" value="1" />
             <Property name="columns" type="int" value="12" />
+            <Property name="editable" type="boolean" value="false" />
           </Properties>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
@@ -49,7 +50,7 @@
         </Component>
         <Component class="javax.swing.JLabel" name="etiquetaRam">
           <Properties>
-            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Memoria por computador&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;Ejemplo para dos equipos: 64,96&lt;/span&gt;&lt;/html&gt;" />
+            <Property name="text" type="java.lang.String" value="&lt;html&gt;&lt;b&gt;Memoria del computador&lt;/b&gt;&lt;br&gt;&lt;span style='color:#637089'&gt;Unidades de RAM disponibles&lt;/span&gt;&lt;/html&gt;" />
           </Properties>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
@@ -59,7 +60,7 @@
         </Component>
         <Component class="javax.swing.JTextField" name="campoRam">
           <Properties>
-            <Property name="text" type="java.lang.String" value="128,128" />
+            <Property name="text" type="java.lang.String" value="128" />
             <Property name="columns" type="int" value="12" />
           </Properties>
           <Constraints>
@@ -148,32 +149,11 @@
                 </Constraint>
               </Constraints>
             </Component>
-            <Component class="javax.swing.JLabel" name="etiquetaLatencia">
-              <Properties>
-                <Property name="text" type="java.lang.String" value="Latencia de red (ciclos)" />
-              </Properties>
-              <Constraints>
-                <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
-                  <GridBagConstraints gridX="0" gridY="1" gridWidth="1" gridHeight="1" fill="0" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="20" insetsRight="24" anchor="17" weightX="0.0" weightY="0.0" />
-                </Constraint>
-              </Constraints>
-            </Component>
-            <Component class="javax.swing.JTextField" name="campoLatencia">
-              <Properties>
-                <Property name="text" type="java.lang.String" value="0" />
-                <Property name="columns" type="int" value="12" />
-              </Properties>
-              <Constraints>
-                <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">
-                  <GridBagConstraints gridX="1" gridY="1" gridWidth="1" gridHeight="1" fill="2" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="20" insetsRight="24" anchor="17" weightX="1.0" weightY="0.0" />
-                </Constraint>
-              </Constraints>
-            </Component>
           </SubComponents>
         </Container>
         <Component class="javax.swing.JLabel" name="aviso">
           <Properties>
-            <Property name="text" type="java.lang.String" value="&lt;html&gt;La latencia se aplica a accesos remotos; quantum queda para Round Robin.&lt;br&gt;Aplicar crea una sesion nueva.&lt;br&gt;Deten el reloj antes de cambiar la configuracion.&lt;/html&gt;" />
+            <Property name="text" type="java.lang.String" value="&lt;html&gt;El quantum se usa con Round Robin.&lt;br&gt;Aplicar crea una sesion nueva.&lt;br&gt;Deten el reloj antes de cambiar la configuracion.&lt;/html&gt;" />
           </Properties>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout">

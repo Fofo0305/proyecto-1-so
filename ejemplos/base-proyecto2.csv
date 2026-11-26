@@ -1,0 +1,6 @@
+"AVILAOS","3"
+"CONFIG","700","4","0"
+"COMPUTADOR","1","96","FCFS","4"
+"PROCESO","Compilar","1","1","32","8","80","CPU_BOUND"
+"PROCESO","Exportar","1","2","24","5","80","CPU_BOUND"
+"PROCESO","Informe","1","0","64","4","80","CPU_BOUND"

@@ -68,8 +68,8 @@ public class PanelComputadores extends JPanel {
             activos += vista.procesoCPU() == null ? 0 : 1; terminados += vista.colaTerminados().length;
             ramUsada += vista.usada(); ramTotal += (long) vista.usada() + vista.libre();
         }
-        resumen.setText(vistas.length == 0 ? "Comienza en Configuracion: carga el ejemplo o prepara tu cluster."
-                : "Cluster · " + vistas.length + " equipos    |    CPU activas " + activos
+        resumen.setText(vistas.length == 0 ? "Comienza en Configuracion: carga el ejemplo o prepara el computador."
+                : "Computador    |    CPU activa " + activos
                 + "    |    Esperan RAM " + nuevos + "    |    Listos " + listos
                 + "    |    Terminados " + terminados + "    |    RAM " + ramUsada + "/" + ramTotal);
         if (paneles.length != vistas.length) {
@@ -85,7 +85,7 @@ public class PanelComputadores extends JPanel {
         }
         if (selector.getItemCount() != vistas.length + 1) {
             ajustandoSelector = true;
-            selector.removeAllItems(); selector.addItem("Todos los computadores");
+            selector.removeAllItems(); selector.addItem("Vista general");
             for (VistaComputador vista : vistas) selector.addItem("Computador " + vista.id());
             ajustandoSelector = false;
         }
@@ -122,6 +122,8 @@ public class PanelComputadores extends JPanel {
             contenido.append("RAM usada/libre: ").append(vista.usada()).append('/').append(vista.libre()).append('\n');
             contenido.append("CPU: ").append(vista.cpu()).append("\n\nNUEVOS\n").append(vista.nuevos())
                     .append("\n\nLISTOS\n").append(vista.listos()).append("\n\nBLOQUEADOS\n").append(vista.bloqueados())
+                    .append("\n\nLISTOS/SUSPENDIDOS\n").append(vista.listosSuspendidos())
+                    .append("\n\nBLOQUEADOS/SUSPENDIDOS\n").append(vista.bloqueadosSuspendidos())
                     .append("\n\nTERMINADOS\n").append(vista.terminados()).append("\n\n----------------------------------------\n\n");
         }
         return contenido.toString();
@@ -130,11 +132,11 @@ public class PanelComputadores extends JPanel {
     public String getResumen() { return resumen.getText(); }
 
     private JLabel crearBienvenida() {
-        JLabel mensaje = new JLabel("<html><h1>Tu cluster, de un vistazo</h1>"
+        JLabel mensaje = new JLabel("<html><h1>Tu computador, de un vistazo</h1>"
                 + "1. Abre Configuracion y pulsa Cargar ejemplo.<br><br>"
                 + "2. Pulsa Iniciar para ver avanzar los procesos.<br><br>"
                 + "3. Usa Pausar para explorar las colas y los detalles.<br><br>"
-                + "Cada computador mostrara su CPU, memoria y procesos en tiempo real.</html>");
+                + "La CPU, memoria y procesos se actualizan en tiempo real.</html>");
         mensaje.setForeground(new Color(64, 83, 111));
         mensaje.setBorder(BorderFactory.createEmptyBorder(48, 32, 48, 32));
         return mensaje;
@@ -149,11 +151,11 @@ public class PanelComputadores extends JPanel {
         opciones = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
         selector = new javax.swing.JComboBox<>();
         detalles = new javax.swing.JCheckBox("Detalles PCB");
-        resumen = new javax.swing.JLabel("Comienza en Configuracion: carga el ejemplo o prepara tu cluster.");
+        resumen = new javax.swing.JLabel("Comienza en Configuracion: carga el ejemplo o prepara el computador.");
         resumen.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 0, 8, 0));
         resumen.setForeground(new java.awt.Color(82, 101, 127));
-        selector.addItem("Todos los computadores");
-        selector.setToolTipText("Enfocar un computador o ver el cluster completo");
+        selector.addItem("Vista general");
+        selector.setToolTipText("Mostrar el estado del computador");
         opciones.add(selector); opciones.add(detalles);
         herramientas.add(cabecera, java.awt.BorderLayout.CENTER);
         herramientas.add(opciones, java.awt.BorderLayout.EAST);

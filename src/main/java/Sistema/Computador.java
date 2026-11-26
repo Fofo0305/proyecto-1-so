@@ -1,25 +1,27 @@
 package Sistema;
 
-import Modelo.Memoria;
-import Modelo.Proceso;
 import EDD.Cola;
+import Modelo.AreaDisco;
 import Modelo.EstadoProceso;
-import Modelo.MotivoBloqueo;
+import Modelo.EventoSistema;
+import Modelo.Memoria;
 import Modelo.ModoCPU;
+import Modelo.MotivoBloqueo;
+import Modelo.OperacionES;
+import Modelo.ParametrosArchivo;
+import Modelo.ParametrosES;
+import Modelo.PlanOperacionArchivo;
+import Modelo.PoliticaPlanificacion;
+import Modelo.Proceso;
 import Modelo.TipoProceso;
 import Modelo.VistaComputador;
-import Modelo.SemaforoSimulado;
-import Modelo.ContextoBuffer;
-import Modelo.EtapaBuffer;
-import Modelo.TipoEventoBuffer;
-import Planificacion.Politica;
+import Modelo.VistaMetricas;
+import Modelo.VistaSolicitudDisco;
 import Planificacion.FCFS;
+import Planificacion.Politica;
 import java.util.concurrent.Semaphore;
 
-/**
- * Computador reutilizable con identificación y RAM propias.
- * @author Adolfo
- */
+/** Núcleo del único computador de ÁvilaOS. @author Adolfo */
 public class Computador implements ComponenteReloj {
     private final Semaphore mutex = new Semaphore(1, true);
     private final int id;
@@ -27,273 +29,279 @@ public class Computador implements ComponenteReloj {
     private final Cola<Proceso> nuevos = new Cola<>();
     private final Cola<Proceso> listos = new Cola<>();
     private final Cola<Proceso> bloqueados = new Cola<>();
+    private final Cola<Proceso> listosSuspendidos = new Cola<>();
+    private final Cola<Proceso> bloqueadosSuspendidos = new Cola<>();
     private final Cola<Proceso> terminados = new Cola<>();
-    private record EsperaSemaforo(Proceso proceso, SemaforoSimulado semaforo) { }
-    private final Cola<EsperaSemaforo> esperasSemaforos = new Cola<>();
-    private final CPU cpu = new CPU();
-    private Politica politica = new FCFS();
-    private Modelo.PoliticaPlanificacion tipoPolitica=Modelo.PoliticaPlanificacion.FCFS;
-    private int quantum=4, usadosQuantum;
-    private long ocupados;
     private final Cola<Proceso> todos = new Cola<>();
+    private final CPU cpu = new CPU();
     private final RegistroSistema log = new RegistroSistema();
-    private final long[] historiaCiclos=new long[600];
-    private final double[] historiaUso=new double[600];
-    private int historiaInicio,historiaTamano;
-    private final InterconexionBuffers interconexion;
-    private int latenciaRed;
+    private Politica politica = new FCFS();
+    private PoliticaPlanificacion tipoPolitica = PoliticaPlanificacion.FCFS;
+    private int quantum = 4;
+    private int usadosQuantum;
+    private long ocupados;
+    private final long[] historiaCiclos = new long[600];
+    private final double[] historiaUso = new double[600];
+    private int historiaInicio;
+    private int historiaTamano;
     private long ultimoCiclo;
     private long cicloEnCurso = -1;
+    private Disco disco;
+    private SistemaArchivos sistemaArchivos;
 
     public Computador(int id, int capacidadRam) {
-        this(id, capacidadRam, null);
-    }
-
-    public Computador(int id, int capacidadRam, InterconexionBuffers interconexion) {
-        if (id < 1) {
-            throw new IllegalArgumentException("El identificador del computador debe ser positivo");
-        }
+        if (id != 1) throw new IllegalArgumentException("AvilaOS utiliza un unico computador con ID 1");
         this.id = id;
-        this.memoria = new Memoria(capacidadRam);
-        this.interconexion = interconexion;
-    }
-
-    public void setLatenciaRed(int latencia) {
-        if (latencia < 0) throw new IllegalArgumentException("La latencia no puede ser negativa");
-        mutex.acquireUninterruptibly();
-        try { latenciaRed = latencia; } finally { mutex.release(); }
+        memoria = new Memoria(capacidadRam);
     }
 
     /**
-     * Recibe un proceso asignado a este computador y lo deja en nuevos sin reservar RAM.
-     * @param proceso proceso en estado NUEVO que se incorpora
+     * Conecta el disco y el sistema de archivos. Sin ellos el computador solo simula CPU y
+     * E/S generica, como en el Proyecto 1.
      */
-    public void recibirProceso(Proceso proceso) {
-        if (proceso == null) {
-            throw new IllegalArgumentException("El proceso es obligatorio");
-        }
+    public void conectarAlmacenamiento(Disco nuevoDisco, SistemaArchivos nuevoSistema) {
+        if (nuevoDisco == null || nuevoSistema == null)
+            throw new IllegalArgumentException("El disco y el sistema de archivos son obligatorios");
         mutex.acquireUninterruptibly();
         try {
-            if (proceso.getComputador() != id || proceso.getEstado() != EstadoProceso.NUEVO) {
-                throw new IllegalArgumentException("El proceso debe ser nuevo y pertenecer a este computador");
-            }
-            if (contiene(nuevos, proceso.getId()) || contiene(listos, proceso.getId())
-                    || contiene(bloqueados, proceso.getId()) || contiene(terminados, proceso.getId())
-                    || cpu.getActual() == proceso) {
+            if (ultimoCiclo > 0) throw new IllegalStateException("El almacenamiento se conecta antes de iniciar");
+            disco = nuevoDisco;
+            sistemaArchivos = nuevoSistema;
+        } finally { mutex.release(); }
+    }
+
+    public void recibirProceso(Proceso proceso) {
+        if (proceso == null || proceso.getComputador() != id || proceso.getEstado() != EstadoProceso.NUEVO
+                || !proceso.tieneConfiguracionValida())
+            throw new IllegalArgumentException("El proceso debe estar configurado, ser nuevo y pertenecer al computador");
+        mutex.acquireUninterruptibly();
+        try {
+            if (registrado(proceso) || contiene(terminados, proceso.getId()))
                 throw new IllegalArgumentException("El proceso ya pertenece al computador");
-            }
             proceso.registrarLlegada(ultimoCiclo);
             todos.agregar(proceso);
-            log.agregar(ultimoCiclo,id,proceso.getId(),"CREACION",proceso.getNombre());
             nuevos.agregar(proceso);
-        } finally {
-            mutex.release();
-        }
+            log.agregar(ultimoCiclo, id, proceso.getId(), "CREACION", proceso.getNombre());
+        } finally { mutex.release(); }
+    }
+
+    public int admitirProcesos() {
+        mutex.acquireUninterruptibly();
+        try { return admitirPendientes(); } finally { mutex.release(); }
     }
 
     /**
-     * Revisa una vez los nuevos y admite los que caben en RAM, en orden de llegada.
-     * Los que no caben permanecen en nuevos conservando su orden relativo.
-     * @return cantidad de procesos que pasaron a listos
+     * Planificador a largo y a mediano plazo. Dentro de un ciclo, y con disco conectado,
+     * primero devuelve a la RAM a los listos/suspendidos que caben y despues admite nuevos;
+     * si un nuevo no cabe, suspende procesos bloqueados para hacerle espacio.
      */
-    public int admitirProcesos() {
-        mutex.acquireUninterruptibly();
-        try {
-            return admitirPendientes();
-        } finally {
-            mutex.release();
-        }
-    }
-
     private int admitirPendientes() {
+        boolean medianoPlazo = cicloEnCurso >= 0 && disco != null;
+        if (medianoPlazo) reactivarSuspendidos(cicloEnCurso);
         int admitidos = 0;
         int pendientes = nuevos.getTamano();
         for (int i = 0; i < pendientes; i++) {
             Proceso proceso = nuevos.primero();
-            if (memoria.reservar("proceso:" + proceso.getId(), proceso.getMemoria())) {
-                proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+            boolean cabe = memoria.reservar("proceso:" + proceso.getId(), proceso.getMemoria());
+            if (!cabe && medianoPlazo && suspenderPara(proceso))
+                cabe = memoria.reservar("proceso:" + proceso.getId(), proceso.getMemoria());
+            if (cabe) {
                 nuevos.quitar();
+                proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
                 listos.agregar(proceso);
                 politica.ordenar(listos);
-                log.agregar(cicloEnCurso>=0?cicloEnCurso:ultimoCiclo,id,proceso.getId(),"ADMISION","RAM reservada");
+                log.agregar(cicloEnCurso >= 0 ? cicloEnCurso : ultimoCiclo, id, proceso.getId(), "ADMISION", "RAM reservada");
                 admitidos++;
-            } else {
-                nuevos.agregar(nuevos.quitar());
-            }
+            } else nuevos.agregar(nuevos.quitar());
         }
         return admitidos;
     }
 
     /**
-     * Termina un proceso registrado, libera su reserva y vuelve a revisar los nuevos.
-     * El núcleo solicita esta operación al finalizar, vencer o cancelar un proceso.
-     * @param proceso proceso que se retira de las colas activas
-     * @return false si ya estaba en terminados; true si se terminó ahora
+     * Elige a quien suspender para que entre {@code nuevo}. Criterio: el que lleva mas tiempo
+     * bloqueado (frente de la cola de bloqueados), porque es el que menos ha avanzado desde que
+     * dejo la CPU y su espera no depende de estar en RAM. Se salta a quien no cabe en el swap
+     * y solo se suspende si con los elegidos el nuevo cabe; si no, nadie sale de la RAM.
+     * @return true si suspendio a alguien
      */
-    public boolean terminarProceso(Proceso proceso) {
-        if (proceso == null || proceso.getComputador() != id) {
-            throw new IllegalArgumentException("El proceso debe pertenecer a este computador");
+    private boolean suspenderPara(Proceso nuevo) {
+        if (nuevo.getMemoria() > memoria.getCapacidad()) return false;
+        int faltan = nuevo.getMemoria() - memoria.getLibre();
+        int swapLibre = disco.contarLibres(AreaDisco.SWAP);
+        Object[] candidatos = bloqueados.instantanea();
+        boolean[] elegidos = new boolean[candidatos.length];
+        int liberables = 0;
+        for (int i = 0; i < candidatos.length && liberables < faltan; i++) {
+            int ram = ((Proceso) candidatos[i]).getMemoria();
+            if (ram > swapLibre) continue;
+            elegidos[i] = true;
+            liberables += ram;
+            swapLibre -= ram;
         }
+        if (liberables < faltan) return false;
+        for (int i = 0; i < candidatos.length; i++)
+            if (elegidos[i]) suspender((Proceso) candidatos[i], nuevo);
+        return true;
+    }
+
+    /** Bloqueado → Bloqueado/Suspendido: copia su RAM al swap con una solicitud SUSPENDER. */
+    private void suspender(Proceso proceso, Proceso nuevo) {
+        retirar(bloqueados, proceso.getId());
+        proceso.cambiarEstado(EstadoProceso.BLOQUEADO_SUSPENDIDO, proceso.getMotivoBloqueo());
+        memoria.liberar("proceso:" + proceso.getId());
+        int primero = disco.asignarSwap("P" + proceso.getId(), proceso.getMemoria());
+        long solicitud = disco.encolarSolicitud(proceso.getId(), OperacionES.SUSPENDER, primero,
+                proceso.getMemoria(), cicloEnCurso);
+        proceso.registrarSwap(primero, solicitud);
+        bloqueadosSuspendidos.agregar(proceso);
+        log.agregar(cicloEnCurso, id, proceso.getId(), "SUSPENSION", "Se suspende al proceso P" + proceso.getId()
+                + " para admitir a P" + nuevo.getId() + ": S" + solicitud + " escribe " + proceso.getMemoria()
+                + " bloques de swap desde " + primero);
+    }
+
+    /**
+     * Listo/Suspendido → Listo: reserva su RAM y pide al disco leer su imagen (REACTIVAR).
+     * Solo se reactiva a quien ya termino de escribirse en swap y cabe en la RAM libre.
+     */
+    private void reactivarSuspendidos(long ciclo) {
+        for (Object elemento : listosSuspendidos.instantanea()) {
+            Proceso proceso = (Proceso) elemento;
+            if (proceso.getSolicitudSwap() != 0
+                    || !memoria.reservar("proceso:" + proceso.getId(), proceso.getMemoria())) continue;
+            long solicitud = disco.encolarSolicitud(proceso.getId(), OperacionES.REACTIVAR,
+                    proceso.getBloqueSwap(), proceso.getMemoria(), ciclo);
+            proceso.registrarReactivacion(solicitud);
+            log.agregar(ciclo, id, proceso.getId(), "REACTIVACION", "Hay RAM para P" + proceso.getId()
+                    + ": S" + solicitud + " lee " + proceso.getMemoria() + " bloques de swap desde "
+                    + proceso.getBloqueSwap());
+        }
+    }
+
+    /** Resultado en el disco de una solicitud SUSPENDER o REACTIVAR. */
+    private void atenderSwap(VistaSolicitudDisco completada, long ciclo) {
+        Proceso proceso = null;
+        for (Cola<Proceso> cola : colasSuspendidas())
+            for (Object elemento : cola.instantanea())
+                if (((Proceso) elemento).getId() == completada.procesoId()
+                        && ((Proceso) elemento).getSolicitudSwap() == completada.id())
+                    proceso = (Proceso) elemento;
+        if (proceso == null) return;
+        if (completada.operacion() == OperacionES.SUSPENDER) {
+            proceso.terminarSolicitudSwap();
+            log.agregar(ciclo, id, proceso.getId(), "FIN_SUSPENSION", "S" + completada.id()
+                    + " imagen escrita en swap");
+            return;
+        }
+        liberarSwap(proceso);
+        retirar(listosSuspendidos, proceso.getId());
+        proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+        listos.agregar(proceso);
+        log.agregar(ciclo, id, proceso.getId(), "FIN_REACTIVACION", "S" + completada.id()
+                + " vuelve a la RAM y a listos");
+    }
+
+    @SuppressWarnings("unchecked")
+    private Cola<Proceso>[] colasSuspendidas() { return new Cola[] {listosSuspendidos, bloqueadosSuspendidos}; }
+
+    private void liberarSwap(Proceso proceso) {
+        if (proceso.getBloqueSwap() < 0) return;
+        disco.liberarEncadenado(proceso.getBloqueSwap());
+        proceso.olvidarSwap();
+    }
+
+    /** Su evento ocurrio: Bloqueado → Listo, o Bloqueado/Suspendido → Listo/Suspendido. */
+    private void despertar(Proceso proceso, long ciclo, String tipo, String detalle) {
+        if (proceso.getEstado() == EstadoProceso.BLOQUEADO_SUSPENDIDO) {
+            retirar(bloqueadosSuspendidos, proceso.getId());
+            proceso.cambiarEstado(EstadoProceso.LISTO_SUSPENDIDO, MotivoBloqueo.NINGUNO);
+            listosSuspendidos.agregar(proceso);
+            if (tipo != null) log.agregar(ciclo, id, proceso.getId(), tipo, detalle + ": pasa a listo/suspendido");
+            return;
+        }
+        retirar(bloqueados, proceso.getId());
+        proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+        listos.agregar(proceso);
+        if (tipo != null) log.agregar(ciclo, id, proceso.getId(), tipo, detalle + ": vuelve a listos");
+    }
+
+    private boolean registrado(Proceso proceso) {
+        return contiene(nuevos, proceso.getId()) || contiene(listos, proceso.getId())
+                || contiene(bloqueados, proceso.getId()) || contiene(listosSuspendidos, proceso.getId())
+                || contiene(bloqueadosSuspendidos, proceso.getId()) || cpu.getActual() == proceso;
+    }
+
+    public boolean terminarProceso(Proceso proceso) {
+        if (proceso == null || proceso.getComputador() != id)
+            throw new IllegalArgumentException("El proceso debe pertenecer al computador");
         mutex.acquireUninterruptibly();
         try {
-            boolean resultado = terminarRegistrado(proceso);
+            boolean terminado = terminarRegistrado(proceso);
             admitirPendientes();
-            return resultado;
-        } finally {
-            mutex.release();
-        }
+            return terminado;
+        } finally { mutex.release(); }
     }
 
     private boolean terminarRegistrado(Proceso proceso) {
         if (contiene(terminados, proceso.getId())) return false;
-        if (!contiene(nuevos, proceso.getId()) && !contiene(listos, proceso.getId())
-                && !contiene(bloqueados, proceso.getId()) && cpu.getActual() != proceso)
+        if (!registrado(proceso))
             throw new IllegalArgumentException("El proceso no esta registrado en el computador");
-        EsperaSemaforo espera = retirarEsperaSemaforo(proceso);
-        if (espera != null) espera.semaforo().cancelarEspera(proceso);
-        SemaforoSimulado[] transferencias = interconexion == null ? new SemaforoSimulado[0]
-                : interconexion.cancelarPendientes(proceso);
         proceso.cerrarResultado();
-        log.agregar(cicloEnCurso>=0?cicloEnCurso:ultimoCiclo,id,proceso.getId(),"TERMINACION",proceso.getResultado());
+        log.agregar(cicloEnCurso >= 0 ? cicloEnCurso : ultimoCiclo, id, proceso.getId(), "TERMINACION", proceso.getResultado());
         proceso.cambiarEstado(EstadoProceso.TERMINADO, MotivoBloqueo.NINGUNO);
         retirar(nuevos, proceso.getId());
         retirar(listos, proceso.getId());
         retirar(bloqueados, proceso.getId());
-        if (cpu.getActual() == proceso) { cpu.retirar(); usadosQuantum=0; }
-        if (proceso.getContextoBuffer() != null)
-            for (SemaforoSimulado semaforo : proceso.getContextoBuffer().abandonar()) {
-                senalizarBuffer(semaforo);
-                registrarEvento(proceso, TipoEventoBuffer.DEVOLUCION_PERMISO, semaforo.getNombre());
-            }
-        for (SemaforoSimulado semaforo : transferencias) {
-            senalizarBuffer(semaforo);
-            registrarEvento(proceso, TipoEventoBuffer.DEVOLUCION_PERMISO, semaforo.getNombre() + " en transito");
-        }
+        retirar(listosSuspendidos, proceso.getId());
+        retirar(bloqueadosSuspendidos, proceso.getId());
+        if (cpu.getActual() == proceso) { cpu.retirar(); usadosQuantum = 0; }
         memoria.liberar("proceso:" + proceso.getId());
+        if (disco != null) liberarSwap(proceso);
         terminados.agregar(proceso);
-        registrarEvento(proceso, TipoEventoBuffer.TERMINACION,
-                proceso.getRestante() == 0 ? "completado" : proceso.getDeadline() == 0 ? "vencido" : "cancelado");
         return true;
     }
 
-    /**
-     * Consume un permiso o bloquea al proceso actual y libera la CPU.
-     * El semaforo nunca llama al nucleo mientras conserva su mutex: las senales
-     * entregan primero el receptor y despues solicitan el despertar.
-     * Esta transicion no ejecuta una instruccion; el motor contabiliza su ciclo.
-     */
-    public boolean esperarSemaforo(Proceso proceso, SemaforoSimulado semaforo) {
-        if (proceso == null || semaforo == null)
-            throw new IllegalArgumentException("Proceso y semaforo obligatorios");
-        mutex.acquireUninterruptibly();
-        try {
-            if (cpu.getActual() != proceso || proceso.getEstado() != EstadoProceso.EJECUCION
-                    || proceso.getDeadline() == 0 || proceso.getRestante() == 0)
-                throw new IllegalStateException("Solo puede esperar el proceso vigente en CPU");
-            return esperarRegistrado(proceso, semaforo);
-        } finally { mutex.release(); }
-    }
-
-    private boolean esperarRegistrado(Proceso proceso, SemaforoSimulado semaforo) {
-        if (semaforo.esperar(proceso)) return true;
-        esperasSemaforos.agregar(new EsperaSemaforo(proceso, semaforo));
-        proceso.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.SEMAFORO);
-        cpu.retirar();
-        bloqueados.agregar(proceso);
-        if (proceso.getContextoBuffer() != null) proceso.getContextoBuffer().iniciarBloqueo(MotivoBloqueo.SEMAFORO);
-        registrarEvento(proceso, TipoEventoBuffer.BLOQUEO_SEMAFORO, semaforo.getNombre());
-        return false;
-    }
-
-    /**
-     * Acepta un permiso transferido solo para la espera registrada en ese semaforo.
-     * Si el proceso termino mientras llegaba la senal, devuelve false: quien senala
-     * debe transferir de nuevo el permiso, sin perderlo.
-     */
-    public boolean despertarPorSemaforo(Proceso proceso, SemaforoSimulado semaforo) {
-        if (proceso == null || semaforo == null)
-            throw new IllegalArgumentException("Proceso y semaforo obligatorios");
-        mutex.acquireUninterruptibly();
-        try {
-            return despertarRegistrado(proceso, semaforo);
-        } finally { mutex.release(); }
-    }
-
-    private boolean despertarRegistrado(Proceso proceso, SemaforoSimulado semaforo) {
-            if (proceso.getEstado() != EstadoProceso.BLOQUEADO
-                    || proceso.getDeadline() == 0
-                    || proceso.getMotivoBloqueo() != MotivoBloqueo.SEMAFORO
-                    || !contiene(bloqueados, proceso.getId())) return false;
-            boolean coincide = false;
-            for (Object elemento : esperasSemaforos.instantanea()) {
-                EsperaSemaforo espera = (EsperaSemaforo) elemento;
-                if (espera.proceso() == proceso && espera.semaforo() == semaforo) coincide = true;
-            }
-            if (!coincide) return false;
-            if (proceso.getContextoBuffer() != null) {
-                proceso.getContextoBuffer().conceder(semaforo);
-                proceso.getContextoBuffer().cerrarBloqueo();
-            }
-            retirarEsperaSemaforo(proceso);
-            retirar(bloqueados, proceso.getId());
-            proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
-            listos.agregar(proceso);
-            politica.ordenar(listos);
-            registrarEvento(proceso, TipoEventoBuffer.DESPERTAR_SEMAFORO, semaforo.getNombre());
-            return true;
-    }
-
-    private EsperaSemaforo retirarEsperaSemaforo(Proceso proceso) {
-        EsperaSemaforo retirada = null;
-        int cantidad = esperasSemaforos.getTamano();
-        for (int i = 0; i < cantidad; i++) {
-            EsperaSemaforo espera = esperasSemaforos.quitar();
-            if (espera.proceso() == proceso) retirada = espera;
-            else esperasSemaforos.agregar(espera);
-        }
-        return retirada;
-    }
-
-    /** Ejecuta una instrucción FCFS y descuenta una vez todos los plazos del ciclo. */
+    @Override
     public void avanzarCiclo(long ciclo) {
         mutex.acquireUninterruptibly();
         try {
             if (ciclo != ultimoCiclo + 1) throw new IllegalArgumentException("El ciclo debe ser consecutivo");
             cicloEnCurso = ciclo;
-            for (Object elemento : bloqueados.instantanea()) {
-                Proceso proceso = (Proceso) elemento;
-                if (proceso.getContextoBuffer() != null)
-                    proceso.getContextoBuffer().contarCicloBloqueado(proceso.getMotivoBloqueo());
-            }
-            for (Object elemento : nuevos.instantanea()) validarTipoEjecucion((Proceso) elemento);
-            for (Object elemento : listos.instantanea()) validarTipoEjecucion((Proceso) elemento);
+            atenderCompletadas(ciclo);
             admitirPendientes();
-            Object[][] colasCiclo = {nuevos.instantanea(), listos.instantanea(), bloqueados.instantanea()};
+            Object[][] colasCiclo = {nuevos.instantanea(), listos.instantanea(), bloqueados.instantanea(),
+                    listosSuspendidos.instantanea(), bloqueadosSuspendidos.instantanea()};
             Proceso anterior = cpu.getActual();
             politica.ordenar(listos);
-            if(anterior!=null && politica.debeApropiar(anterior,listos,usadosQuantum,quantum)) {
-                anterior.cambiarEstado(EstadoProceso.LISTO,MotivoBloqueo.NINGUNO);
-                cpu.retirar(); listos.agregar(anterior); politica.ordenar(listos); usadosQuantum=0;
-                log.agregar(ciclo,id,anterior.getId(),"APROPIACION",tipoPolitica.name());
+            if (anterior != null && politica.debeApropiar(anterior, listos, usadosQuantum, quantum)) {
+                anterior.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+                cpu.retirar();
+                listos.agregar(anterior);
+                politica.ordenar(listos);
+                usadosQuantum = 0;
+                log.agregar(ciclo, id, anterior.getId(), "APROPIACION", tipoPolitica.name());
             }
-            if (anterior != null) prepararAccesoRemoto(anterior, ciclo);
-            while (cpu.getActual() == null) {
+            if (cpu.getActual() == null) {
                 Proceso seleccionado = politica.seleccionar(listos);
-                if (seleccionado == null) break;
-                cpu.asignar(seleccionado);
-                usadosQuantum=0;
-                log.agregar(ciclo,id,seleccionado.getId(),"DESPACHO",tipoPolitica.name());
-                if (!prepararAccesoRemoto(seleccionado, ciclo)) break;
+                if (seleccionado != null) {
+                    cpu.asignar(seleccionado);
+                    usadosQuantum = 0;
+                    log.agregar(ciclo, id, seleccionado.getId(), "DESPACHO", tipoPolitica.name());
+                }
             }
             Proceso actual = cpu.getActual();
-            if(actual!=null) { actual.registrarRespuesta(ciclo); ocupados++; usadosQuantum++; }
-            if (actual != null && actual.getContextoBuffer() != null) {
-                ContextoBuffer contexto = actual.getContextoBuffer();
-                if (contexto.getEtapa() == EtapaBuffer.INTERVALO) {
-                    cpu.avanzarCiclo(ciclo);
-                    contexto.avanzarIntervalo();
-                } else {
-                    cpu.avanzarCicloSistema(ciclo, () -> ejecutarOperacionBuffer(actual));
+            if (actual != null) {
+                actual.registrarRespuesta(ciclo);
+                ocupados++;
+                usadosQuantum++;
+            }
+            if (disco != null && actual != null && actual.necesitaSolicitarArchivo()) {
+                boolean[] encolada = new boolean[1];
+                cpu.avanzarCicloSistema(ciclo, () -> encolada[0] = solicitarArchivo(actual, ciclo));
+                if (encolada[0]) {
+                    actual.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.DISCO);
+                    cpu.retirar();
+                    usadosQuantum = 0;
+                    bloqueados.agregar(actual);
                 }
             } else cpu.avanzarCiclo(ciclo);
             for (Object[] cola : colasCiclo)
@@ -301,145 +309,127 @@ public class Computador implements ComponenteReloj {
             if (anterior != null) anterior.descontarDeadline();
             Proceso ejecutado = cpu.getActual();
             if (ejecutado != null && ejecutado.getRestante() == 0) terminarRegistrado(ejecutado);
-            for (Object[] cola : colasCiclo) {
+            for (Object[] cola : colasCiclo)
                 for (Object elemento : cola) {
                     Proceso proceso = (Proceso) elemento;
                     if (proceso.getEstado() != EstadoProceso.TERMINADO && proceso.getDeadline() == 0)
                         terminarRegistrado(proceso);
                 }
-            }
             if (anterior != null && anterior.getEstado() != EstadoProceso.TERMINADO && anterior.getDeadline() == 0)
                 terminarRegistrado(anterior);
-            finalizarEsperasRed(ciclo);
             finalizarES(ciclo);
-            Proceso io=cpu.getActual();
-            if(io!=null && io.agotarRafaga(ciclo)) {
-                io.cambiarEstado(EstadoProceso.BLOQUEADO,MotivoBloqueo.ENTRADA_SALIDA);
-                cpu.retirar(); usadosQuantum=0; bloqueados.agregar(io);
-                log.agregar(ciclo,id,io.getId(),"BLOQUEO_ES","Hasta ciclo "+io.getEsHasta());
+            Proceso io = cpu.getActual();
+            if (io != null && io.agotarRafaga(ciclo)) {
+                io.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.ENTRADA_SALIDA);
+                cpu.retirar();
+                usadosQuantum = 0;
+                bloqueados.agregar(io);
+                log.agregar(ciclo, id, io.getId(), "BLOQUEO_ES", "Hasta ciclo " + io.getEsHasta());
             }
-            if(cpu.getActual()==null) usadosQuantum=0;
+            if (cpu.getActual() == null) usadosQuantum = 0;
             politica.ordenar(listos);
-            int indice=(historiaInicio+historiaTamano)%historiaCiclos.length;
-            if(historiaTamano==historiaCiclos.length) { indice=historiaInicio; historiaInicio=(historiaInicio+1)%historiaCiclos.length; } else historiaTamano++;
-            historiaCiclos[indice]=ciclo; historiaUso[indice]=100.0*ocupados/ciclo;
+            registrarUso(ciclo);
             admitirPendientes();
             ultimoCiclo = ciclo;
         } finally { cicloEnCurso = -1; mutex.release(); }
     }
 
-    private void validarTipoEjecucion(Proceso proceso) {
-        // Todos los tipos declarados son ejecutables.
-    }
-
-    private void ejecutarOperacionBuffer(Proceso proceso) {
-        ContextoBuffer contexto = proceso.getContextoBuffer();
-        // Incluso un wait que bloquea consume su instruccion exactamente una vez.
+    /**
+     * Instruccion en modo sistema: el proceso pide su operacion CRUD. Si la identidad del
+     * proceso no tiene permiso, o la operacion no es posible, se rechaza con una explicacion
+     * en el log y la simulacion sigue.
+     * @return true si la solicitud quedo en la cola del disco
+     */
+    private boolean solicitarArchivo(Proceso proceso, long ciclo) {
         proceso.ejecutarInstruccion();
-        switch (contexto.getEtapa()) {
-            case ESPERAR_RECURSO, ESPERAR_MUTEX -> {
-                SemaforoSimulado semaforo = contexto.getEtapa() == EtapaBuffer.ESPERAR_RECURSO
-                        ? contexto.getRecurso() : contexto.getBuffer().getMutexSimulado();
-                contexto.iniciarEspera();
-                if (esperarRegistrado(proceso, semaforo)) contexto.conceder(semaforo);
-            }
-            case MODIFICAR -> {
-                contexto.modificar(proceso.getId());
-                registrarEvento(proceso, proceso.getTipo() == TipoProceso.PRODUCTOR
-                        ? TipoEventoBuffer.PRODUCCION : TipoEventoBuffer.CONSUMO,
-                        "elemento " + (contexto.getCompletados() + 1));
-            }
-            case SENALAR_MUTEX -> {
-                contexto.liberarMutex();
-                senalizarBuffer(contexto.getBuffer().getMutexSimulado());
-            }
-            case SENALAR_RECURSO -> {
-                SemaforoSimulado liberado = contexto.getRecursoLiberado();
-                contexto.completar();
-                senalizarBuffer(liberado);
-            }
-            default -> throw new IllegalStateException("Etapa no ejecutable en modo sistema");
-        }
-    }
-
-    /** Envia despertares remotos a la barrera; no adquiere mutex de otros computadores. */
-    private void senalizarBuffer(SemaforoSimulado semaforo) {
-        Proceso receptor;
-        while ((receptor = semaforo.senalizar()) != null) {
-            if (receptor.getComputador() != id) {
-                if (interconexion == null) throw new IllegalStateException("Falta interconexion del cluster");
-                interconexion.enviar(receptor, semaforo);
-                return;
-            }
-            if (despertarRegistrado(receptor, semaforo)) return;
-        }
-    }
-
-    private boolean prepararAccesoRemoto(Proceso proceso, long ciclo) {
-        ContextoBuffer contexto = proceso.getContextoBuffer();
-        if (contexto == null || proceso.getBuffer().getAnfitrion() == id
-                || contexto.getEtapa() != EtapaBuffer.ESPERAR_RECURSO || contexto.isRedPreparada()) return false;
-        contexto.prepararRed(ciclo, latenciaRed);
-        registrarEvento(proceso, TipoEventoBuffer.ACCESO_REMOTO,
-                "anfitrion C" + proceso.getBuffer().getAnfitrion() + ", latencia " + latenciaRed);
-        if (latenciaRed == 0) return false;
-        proceso.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.RED);
-        contexto.iniciarBloqueo(MotivoBloqueo.RED);
-        contexto.contarCicloBloqueado(MotivoBloqueo.RED);
-        cpu.retirar();
-        bloqueados.agregar(proceso);
-        registrarEvento(proceso, TipoEventoBuffer.BLOQUEO_RED, "latencia " + latenciaRed);
-        return true;
-    }
-
-    /** La espera incluye el ciclo de inicio y permite ejecutar desde el siguiente al vencimiento. */
-    private void finalizarEsperasRed(long ciclo) {
-        for (Object elemento : bloqueados.instantanea()) {
-            Proceso proceso = (Proceso) elemento;
-            if (proceso.getMotivoBloqueo() == MotivoBloqueo.RED
-                    && proceso.getContextoBuffer().getRedHasta() <= ciclo) {
-                retirar(bloqueados, proceso.getId());
-                proceso.getContextoBuffer().cerrarBloqueo();
-                proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
-                listos.agregar(proceso);
-                registrarEvento(proceso, TipoEventoBuffer.DESPERTAR_RED, "latencia satisfecha");
-            }
-        }
-    }
-
-    private void registrarEvento(Proceso proceso, TipoEventoBuffer tipo, String detalle) {
-        if (tipo != TipoEventoBuffer.TERMINACION)
-            log.agregar(cicloEnCurso>=0?cicloEnCurso:ultimoCiclo,id,proceso.getId(),tipo.name(),detalle);
-        if (proceso.getContextoBuffer() != null)
-            proceso.getBuffer().registrarEvento(cicloEnCurso >= 0 ? cicloEnCurso : ultimoCiclo,
-                    id, proceso.getId(), tipo, detalle);
-    }
-
-    public Proceso getProcesoEnCPU() {
-        mutex.acquireUninterruptibly();
-        try { return cpu.getActual(); } finally { mutex.release(); }
-    }
-
-    /** Incluye procesos terminados; conserva estadisticas despues de liberar su RAM. */
-    public Modelo.VistaBloqueoProceso[] consultarBloqueosProcesos() {
-        mutex.acquireUninterruptibly();
+        ParametrosArchivo datos = datosArchivo(proceso);
         try {
-            Cola<Modelo.VistaBloqueoProceso> vistas = new Cola<>();
-            Object[][] colas = {nuevos.instantanea(), listos.instantanea(), bloqueados.instantanea(), terminados.instantanea()};
-            for (Object[] cola : colas) for (Object elemento : cola) agregarBloqueoProceso(vistas, (Proceso) elemento);
-            if (cpu.getActual() != null) agregarBloqueoProceso(vistas, cpu.getActual());
-            Modelo.VistaBloqueoProceso[] copia = new Modelo.VistaBloqueoProceso[vistas.getTamano()];
-            for (int i = 0; i < copia.length; i++) copia[i] = vistas.quitar();
-            return copia;
-        } finally { mutex.release(); }
+            PlanOperacionArchivo plan = sistemaArchivos.planificar(proceso.getOperacionES(),
+                    proceso.getRutaObjetivo(), datos);
+            long solicitud = disco.encolarSolicitud(proceso.getId(), proceso.getOperacionES(),
+                    plan.bloqueObjetivo(), plan.bloquesTrabajo(), ciclo);
+            proceso.registrarSolicitudDisco(solicitud);
+            log.agregar(ciclo, id, proceso.getId(), "SOLICITUD_ARCHIVO", proceso.getOperacionES() + " "
+                    + proceso.getRutaObjetivo() + " como " + datos.usuario() + ": S" + solicitud
+                    + " al bloque " + plan.bloqueObjetivo() + " (" + plan.bloquesTrabajo() + " bloques)");
+            return true;
+        } catch (SecurityException | IllegalArgumentException | IllegalStateException error) {
+            proceso.cerrarOperacionArchivo();
+            log.agregar(ciclo, id, proceso.getId(), "RECHAZO_ARCHIVO", proceso.getOperacionES() + " "
+                    + proceso.getRutaObjetivo() + " como " + datos.usuario() + ": " + error.getMessage());
+            return false;
+        }
     }
 
-    private void agregarBloqueoProceso(Cola<Modelo.VistaBloqueoProceso> vistas, Proceso proceso) {
-        if (proceso.getContextoBuffer() != null)
-            vistas.agregar(proceso.getContextoBuffer().consultarBloqueos(proceso.getId(), proceso.getNombre(), id));
+    /** Desbloquea a los procesos cuyo disco termino en un ciclo anterior y aplica su operacion. */
+    private void atenderCompletadas(long ciclo) {
+        if (disco == null) return;
+        for (VistaSolicitudDisco completada : disco.tomarCompletadas(ciclo)) {
+            if (completada.operacion() == OperacionES.SUSPENDER || completada.operacion() == OperacionES.REACTIVAR) {
+                atenderSwap(completada, ciclo);
+                continue;
+            }
+            Proceso proceso = buscarBloqueadoPorDisco(completada.procesoId(), completada.id());
+            if (proceso == null) continue;
+            ParametrosArchivo datos = datosArchivo(proceso);
+            try {
+                String resultado = sistemaArchivos.ejecutar(proceso.getOperacionES(),
+                        proceso.getRutaObjetivo(), datos, proceso.getId());
+                log.agregar(ciclo, id, proceso.getId(), "FIN_ARCHIVO", "S" + completada.id() + " " + resultado);
+            } catch (SecurityException | IllegalArgumentException | IllegalStateException error) {
+                log.agregar(ciclo, id, proceso.getId(), "RECHAZO_ARCHIVO", "S" + completada.id()
+                        + " no se pudo aplicar: " + error.getMessage());
+            }
+            proceso.cerrarOperacionArchivo();
+            if (proceso.getRestante() == 0) {
+                terminarRegistrado(proceso);
+                continue;
+            }
+            despertar(proceso, ciclo, proceso.getEstado() == EstadoProceso.BLOQUEADO ? null : "FIN_DISCO",
+                    "S" + completada.id() + " termino mientras estaba en swap");
+        }
     }
 
-    /** Punto de apropiacion del planificador: conserva PC, etapa y permisos adquiridos. */
+    private Proceso buscarBloqueadoPorDisco(long procesoId, long solicitud) {
+        for (Object elemento : concatenar(bloqueados.instantanea(), bloqueadosSuspendidos.instantanea())) {
+            Proceso proceso = (Proceso) elemento;
+            if (proceso.getId() == procesoId && proceso.getSolicitudDisco() == solicitud
+                    && proceso.getMotivoBloqueo() == MotivoBloqueo.DISCO)
+                return proceso;
+        }
+        return null;
+    }
+
+    private static ParametrosArchivo datosArchivo(Proceso proceso) {
+        return proceso.getParametrosArchivo() == null ? ParametrosArchivo.ADMINISTRADOR
+                : proceso.getParametrosArchivo();
+    }
+
+    private void finalizarES(long ciclo) {
+        for (Object elemento : concatenar(bloqueados.instantanea(), bloqueadosSuspendidos.instantanea())) {
+            Proceso proceso = (Proceso) elemento;
+            if (proceso.getMotivoBloqueo() == MotivoBloqueo.ENTRADA_SALIDA && proceso.getEsHasta() <= ciclo)
+                despertar(proceso, ciclo, "FIN_ES", "Termino su E/S");
+        }
+    }
+
+    private static Object[] concatenar(Object[] primero, Object[] segundo) {
+        Object[] todo = new Object[primero.length + segundo.length];
+        System.arraycopy(primero, 0, todo, 0, primero.length);
+        System.arraycopy(segundo, 0, todo, primero.length, segundo.length);
+        return todo;
+    }
+
+    private void registrarUso(long ciclo) {
+        int indice = (historiaInicio + historiaTamano) % historiaCiclos.length;
+        if (historiaTamano == historiaCiclos.length) {
+            indice = historiaInicio;
+            historiaInicio = (historiaInicio + 1) % historiaCiclos.length;
+        } else historiaTamano++;
+        historiaCiclos[indice] = ciclo;
+        historiaUso[indice] = 100.0 * ocupados / ciclo;
+    }
+
     public boolean cederCPU() {
         mutex.acquireUninterruptibly();
         try {
@@ -452,32 +442,25 @@ public class Computador implements ComponenteReloj {
         } finally { mutex.release(); }
     }
 
-    public ModoCPU getModoCPU() {
+    public void cambiarPolitica(PoliticaPlanificacion tipo, int nuevoQuantum) {
+        if (tipo == null || nuevoQuantum < 1)
+            throw new IllegalArgumentException("Politica y quantum positivo obligatorios");
         mutex.acquireUninterruptibly();
-        try { return cpu.getModo(); } finally { mutex.release(); }
+        try {
+            politica = switch (tipo) {
+                case FCFS -> new FCFS();
+                case ROUND_ROBIN -> new Planificacion.RoundRobin();
+                case EDF -> new Planificacion.EDF();
+                case PRIORIDADES -> new Planificacion.Prioridades();
+            };
+            tipoPolitica = tipo;
+            quantum = nuevoQuantum;
+            usadosQuantum = 0;
+            politica.ordenar(listos);
+            log.agregar(ultimoCiclo, id, 0, "POLITICA", tipo + " quantum=" + nuevoQuantum);
+        } finally { mutex.release(); }
     }
 
-    public long getUltimoCiclo() {
-        mutex.acquireUninterruptibly();
-        try { return ultimoCiclo; } finally { mutex.release(); }
-    }
-
-    private void retirar(Cola<Proceso> cola, long idProceso) {
-        int cantidad = cola.getTamano();
-        for (int i = 0; i < cantidad; i++) {
-            Proceso proceso = cola.quitar();
-            if (proceso.getId() != idProceso) cola.agregar(proceso);
-        }
-    }
-
-    private boolean contiene(Cola<Proceso> cola, long idProceso) {
-        for (Object elemento : cola.instantanea()) {
-            if (((Proceso) elemento).getId() == idProceso) return true;
-        }
-        return false;
-    }
-
-    /** Captura CPU, colas y RAM bajo el mismo bloqueo del núcleo. */
     public VistaComputador consultarVista() {
         mutex.acquireUninterruptibly();
         try {
@@ -486,8 +469,10 @@ public class Computador implements ComponenteReloj {
             return new VistaComputador(id, ultimoCiclo, cpu.getModo(), ram[0], ram[1],
                     actual == null ? "Sin proceso" : describirProceso(actual),
                     describirCola(nuevos), describirCola(listos), describirCola(bloqueados), describirCola(terminados),
+                    describirCola(listosSuspendidos), describirCola(bloqueadosSuspendidos),
                     actual == null ? null : vistaProceso(actual), vistasCola(nuevos), vistasCola(listos),
-                    vistasCola(bloqueados), vistasCola(terminados),tipoPolitica,quantum);
+                    vistasCola(bloqueados), vistasCola(terminados), vistasCola(listosSuspendidos),
+                    vistasCola(bloqueadosSuspendidos), tipoPolitica, quantum);
         } finally { mutex.release(); }
     }
 
@@ -498,48 +483,26 @@ public class Computador implements ComponenteReloj {
     }
 
     private String describirOperacion(Proceso proceso) {
-        ContextoBuffer contexto = proceso.getContextoBuffer();
-        if (contexto == null) return proceso.getTipo()==TipoProceso.IO_BOUND ? "E/S rafaga="+proceso.getParametrosES().rafaga()+" duracion="+proceso.getParametrosES().duracion()+" hasta="+proceso.getEsHasta() : "";
-        String etapa = contexto.estaLimpiado()
-                ? (contexto.estaCancelado() ? "interrumpido en " + contexto.getEtapa() : "completado")
-                : contexto.getEtapa().name();
-        String texto = "Buffer " + proceso.getBuffer().getNombre() + " | " + etapa
-                + " | elementos " + contexto.getCompletados() + "/" + proceso.getParametrosBuffer().elementos();
-        if (proceso.getBuffer().getAnfitrion() != id)
-            texto += " | acceso remoto a C" + proceso.getBuffer().getAnfitrion();
-        if (proceso.getMotivoBloqueo() == MotivoBloqueo.RED)
-            texto += " | red: " + Math.max(0, contexto.getRedHasta() - ultimoCiclo) + " ciclos pendientes";
-        for (Object elemento : esperasSemaforos.instantanea()) {
-            EsperaSemaforo espera = (EsperaSemaforo) elemento;
-            if (espera.proceso() == proceso) texto += " | espera " + espera.semaforo().getNombre();
+        if (proceso.getTipo() != TipoProceso.IO_BOUND) return "";
+        if (proceso.getOperacionES() != null) {
+            String texto = proceso.getOperacionES() + (proceso.getRutaObjetivo() == null ? "" : " " + proceso.getRutaObjetivo());
+            if (proceso.getParametrosArchivo() != null) texto += " como " + proceso.getParametrosArchivo().usuario();
+            if (proceso.getSolicitudDisco() > 0 && !proceso.isOperacionAtendida())
+                texto += " (esperando S" + proceso.getSolicitudDisco() + ")";
+            else if (proceso.isOperacionAtendida()) texto += " (atendida)";
+            return texto + describirSwap(proceso);
         }
-        return texto;
+        ParametrosES es = proceso.getParametrosES();
+        if (es == null) return "E/S sin configurar";
+        return "E/S rafaga=" + es.rafaga() + " duracion=" + es.duracion() + " hasta=" + proceso.getEsHasta()
+                + describirSwap(proceso);
     }
 
-    public Modelo.VistaBuffer consultarBuffer(Modelo.Buffer<?> buffer) {
-        if (buffer == null || buffer.getAnfitrion() != id)
-            throw new IllegalArgumentException("El buffer debe pertenecer a este computador");
-        mutex.acquireUninterruptibly();
-        try {
-            StringBuilder contenido = new StringBuilder();
-            for (Object elemento : buffer.instantanea()) {
-                if (!contenido.isEmpty()) contenido.append(", ");
-                contenido.append(elemento);
-            }
-            return new Modelo.VistaBuffer(buffer.getNombre(), id, buffer.getCapacidad(), buffer.getCantidad(),
-                    contenido.toString(), buffer.getMutexSimulado().getValor(), buffer.getVacios().getValor(),
-                    buffer.getLlenos().getValor(), describirEspera(buffer.getMutexSimulado()),
-                    describirEspera(buffer.getVacios()), describirEspera(buffer.getLlenos()));
-        } finally { mutex.release(); }
-    }
-
-    private String describirEspera(SemaforoSimulado semaforo) {
-        StringBuilder texto = new StringBuilder();
-        for (Proceso proceso : semaforo.getEsperando()) {
-            if (!texto.isEmpty()) texto.append(", ");
-            texto.append("P").append(proceso.getId()).append(" ").append(proceso.getNombre());
-        }
-        return texto.isEmpty() ? "sin esperas" : texto.toString();
+    private static String describirSwap(Proceso proceso) {
+        if (proceso.getBloqueSwap() < 0) return "";
+        String texto = " | swap desde bloque " + proceso.getBloqueSwap();
+        if (proceso.getSolicitudSwap() == 0) return texto;
+        return texto + (proceso.isReactivando() ? " (leyendo S" : " (escribiendo S") + proceso.getSolicitudSwap() + ")";
     }
 
     private Modelo.VistaProceso[] vistasCola(Cola<Proceso> cola) {
@@ -559,67 +522,80 @@ public class Computador implements ComponenteReloj {
     }
 
     private String describirProceso(Proceso proceso) {
-        return "P" + proceso.getId() + " " + proceso.getNombre() + " | computador=" + proceso.getComputador()
-                + " | " + proceso.getTipo() + " | " + proceso.getEstado() + " | prioridad=" + proceso.getPrioridad()
-                + " | RAM=" + proceso.getMemoria() + " | deadline=" + proceso.getDeadline()
-                + " | restante=" + proceso.getRestante() + " | PC=" + proceso.getPc() + " | MAR=" + proceso.getMar()
-                + " | bloqueo=" + proceso.getMotivoBloqueo() + " | " + describirOperacion(proceso);
+        return "P" + proceso.getId() + " " + proceso.getNombre() + " | " + proceso.getTipo() + " | "
+                + proceso.getEstado() + " | prioridad=" + proceso.getPrioridad() + " | RAM=" + proceso.getMemoria()
+                + " | deadline=" + proceso.getDeadline() + " | restante=" + proceso.getRestante()
+                + " | PC=" + proceso.getPc() + " | MAR=" + proceso.getMar() + " | bloqueo="
+                + proceso.getMotivoBloqueo() + " | " + describirOperacion(proceso);
     }
 
-    private void finalizarES(long ciclo) {
-        for(Object x:bloqueados.instantanea()) { Proceso p=(Proceso)x;
-            if(p.getMotivoBloqueo()==MotivoBloqueo.ENTRADA_SALIDA && p.getEsHasta()<=ciclo) {
-                retirar(bloqueados,p.getId()); p.cambiarEstado(EstadoProceso.LISTO,MotivoBloqueo.NINGUNO);listos.agregar(p);
-                log.agregar(ciclo,id,p.getId(),"FIN_ES","Vuelve a listos");
+    public VistaMetricas consultarMetricas() {
+        mutex.acquireUninterruptibly();
+        try {
+            int completos = 0, vencidos = 0, cancelados = 0, respondidos = 0;
+            double respuesta = 0, suma = 0, cuadrados = 0;
+            Object[] procesos = todos.instantanea();
+            for (Object elemento : procesos) {
+                Proceso proceso = (Proceso) elemento;
+                switch (proceso.getResultado()) {
+                    case "COMPLETADO" -> completos++;
+                    case "VENCIDO" -> vencidos++;
+                    case "CANCELADO" -> cancelados++;
+                }
+                if (proceso.getRespuesta() >= 0) { respondidos++; respuesta += proceso.getRespuesta(); }
+                suma += proceso.getPc();
+                cuadrados += (double) proceso.getPc() * proceso.getPc();
             }
+            long[] ciclos = new long[historiaTamano];
+            double[] uso = new double[historiaTamano];
+            for (int i = 0; i < ciclos.length; i++) {
+                int indice = (historiaInicio + i) % historiaCiclos.length;
+                ciclos[i] = historiaCiclos[indice];
+                uso[i] = historiaUso[indice];
+            }
+            double media = respondidos == 0 ? 0 : respuesta / respondidos;
+            double equidad = cuadrados == 0 ? 0 : suma * suma / (procesos.length * cuadrados);
+            return new VistaMetricas(id, ultimoCiclo, ocupados, procesos.length, completos, vencidos,
+                    cancelados, respondidos, media, equidad, suma, cuadrados, ciclos, uso);
+        } finally { mutex.release(); }
+    }
+
+    private void retirar(Cola<Proceso> cola, long idProceso) {
+        int cantidad = cola.getTamano();
+        for (int i = 0; i < cantidad; i++) {
+            Proceso proceso = cola.quitar();
+            if (proceso.getId() != idProceso) cola.agregar(proceso);
         }
     }
-    public void cambiarPolitica(Modelo.PoliticaPlanificacion tipo,int q) {
-        if(tipo==null || q<1) throw new IllegalArgumentException("Politica y quantum positivo obligatorios");
-        mutex.acquireUninterruptibly();try {
-            politica=switch(tipo){case FCFS->new FCFS();case ROUND_ROBIN->new Planificacion.RoundRobin();case EDF->new Planificacion.EDF();case PRIORIDADES->new Planificacion.Prioridades();};
-            tipoPolitica=tipo;quantum=q;usadosQuantum=0;politica.ordenar(listos);
-            log.agregar(ultimoCiclo,id,0,"POLITICA",tipo+" quantum="+q);
-        }finally{mutex.release();}
+
+    private boolean contiene(Cola<Proceso> cola, long idProceso) {
+        for (Object elemento : cola.instantanea())
+            if (((Proceso) elemento).getId() == idProceso) return true;
+        return false;
     }
-    public Modelo.PoliticaPlanificacion getPolitica(){mutex.acquireUninterruptibly();try{return tipoPolitica;}finally{mutex.release();}}
-    public int getQuantum(){mutex.acquireUninterruptibly();try{return quantum;}finally{mutex.release();}}
-    public Modelo.EventoSistema[] consultarEventos(){return log.consultar();}
-    public Modelo.VistaMetricas consultarMetricas(){mutex.acquireUninterruptibly();try {
-        int completos=0,vencidos=0,cancelados=0,respondidos=0;double respuesta=0,suma=0,cuadrados=0;
-        Object[] procesos=todos.instantanea();
-        for(Object x:procesos){Proceso p=(Proceso)x;switch(p.getResultado()){case "COMPLETADO"->completos++;case "VENCIDO"->vencidos++;case "CANCELADO"->cancelados++;}
-            if(p.getRespuesta()>=0){respondidos++;respuesta+=p.getRespuesta();} suma+=p.getPc();cuadrados+=(double)p.getPc()*p.getPc();}
-        long[] ciclos=new long[historiaTamano];double[] uso=new double[historiaTamano];
-        for(int i=0;i<ciclos.length;i++){int j=(historiaInicio+i)%historiaCiclos.length;ciclos[i]=historiaCiclos[j];uso[i]=historiaUso[j];}
-        return new Modelo.VistaMetricas(id,ultimoCiclo,ocupados,procesos.length,completos,vencidos,cancelados,respondidos,respondidos==0?0:respuesta/respondidos,cuadrados==0?0:suma*suma/(procesos.length*cuadrados),suma,cuadrados,ciclos,uso);
-    }finally{mutex.release();}}
-    public int getId() { return id; }
-    public Memoria getMemoria() { return memoria; }
-
-    /** Consulta los procesos nuevos sin exponer la cola interna. */
-    public Proceso[] getNuevos() { return copiarProcesos(nuevos); }
-
-    /** Consulta los procesos listos sin exponer la cola interna. */
-    public Proceso[] getListos() { return copiarProcesos(listos); }
-
-    /** Consulta los procesos bloqueados sin exponer la cola interna. */
-    public Proceso[] getBloqueados() { return copiarProcesos(bloqueados); }
-
-    /** Consulta los procesos terminados sin exponer la cola interna. */
-    public Proceso[] getTerminados() { return copiarProcesos(terminados); }
 
     private Proceso[] copiarProcesos(Cola<Proceso> cola) {
         mutex.acquireUninterruptibly();
         try {
             Object[] elementos = cola.instantanea();
             Proceso[] copia = new Proceso[elementos.length];
-            for (int i = 0; i < elementos.length; i++) {
-                copia[i] = (Proceso) elementos[i];
-            }
+            for (int i = 0; i < elementos.length; i++) copia[i] = (Proceso) elementos[i];
             return copia;
-        } finally {
-            mutex.release();
-        }
+        } finally { mutex.release(); }
     }
+
+    public Proceso getProcesoEnCPU() { mutex.acquireUninterruptibly(); try { return cpu.getActual(); } finally { mutex.release(); } }
+    public ModoCPU getModoCPU() { mutex.acquireUninterruptibly(); try { return cpu.getModo(); } finally { mutex.release(); } }
+    public long getUltimoCiclo() { mutex.acquireUninterruptibly(); try { return ultimoCiclo; } finally { mutex.release(); } }
+    public PoliticaPlanificacion getPolitica() { mutex.acquireUninterruptibly(); try { return tipoPolitica; } finally { mutex.release(); } }
+    public int getQuantum() { mutex.acquireUninterruptibly(); try { return quantum; } finally { mutex.release(); } }
+    public EventoSistema[] consultarEventos() { return log.consultar(); }
+    public int getId() { return id; }
+    public Memoria getMemoria() { return memoria; }
+    public Proceso[] getNuevos() { return copiarProcesos(nuevos); }
+    public Proceso[] getListos() { return copiarProcesos(listos); }
+    public Proceso[] getBloqueados() { return copiarProcesos(bloqueados); }
+    public Proceso[] getTerminados() { return copiarProcesos(terminados); }
+    public Proceso[] getListosSuspendidos() { return copiarProcesos(listosSuspendidos); }
+    public Proceso[] getBloqueadosSuspendidos() { return copiarProcesos(bloqueadosSuspendidos); }
 }

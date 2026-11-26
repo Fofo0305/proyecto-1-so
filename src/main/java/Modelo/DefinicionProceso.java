@@ -1,37 +1,63 @@
 package Modelo;
 
-/**
- * Atributos iniciales del proceso, sin ID ni contexto de una ejecución anterior.
- * @author Adolfo
- */
+/** Atributos iniciales de un proceso, sin estado de ejecución. @author Adolfo */
 public record DefinicionProceso(String nombre, int computador, int prioridad,
-        int memoria, int instrucciones, int deadline, TipoProceso tipo, ParametrosBuffer parametrosBuffer, ParametrosES parametrosES) {
-    public DefinicionProceso(String n,int c,int p,int m,int i,int d,TipoProceso t,ParametrosBuffer b) { this(n,c,p,m,i,d,t,b,t==TipoProceso.IO_BOUND?new ParametrosES(2,3):null); }
+        int memoria, int instrucciones, int deadline, TipoProceso tipo, ParametrosES parametrosES,
+        OperacionES operacionES, String rutaObjetivo, ParametrosArchivo parametrosArchivo) {
+    public DefinicionProceso(String nombre, int computador, int prioridad, int memoria, int instrucciones,
+            int deadline, TipoProceso tipo, ParametrosES parametrosES, OperacionES operacionES, String rutaObjetivo) {
+        this(nombre, computador, prioridad, memoria, instrucciones, deadline,
+                tipo, parametrosES, operacionES, rutaObjetivo, null);
+    }
+
     public DefinicionProceso(String nombre, int computador, int prioridad,
             int memoria, int instrucciones, int deadline) {
-        this(nombre, computador, prioridad, memoria, instrucciones, deadline, TipoProceso.CPU_BOUND, null);
+        this(nombre, computador, prioridad, memoria, instrucciones, deadline,
+                TipoProceso.CPU_BOUND, null, null, null);
+    }
+
+    public DefinicionProceso(String nombre, int computador, int prioridad, int memoria,
+            int instrucciones, int deadline, TipoProceso tipo, ParametrosES parametrosES) {
+        this(nombre, computador, prioridad, memoria, instrucciones, deadline,
+                tipo, parametrosES, null, null);
+    }
+
+    public DefinicionProceso(String nombre, int computador, int prioridad, int memoria,
+            int instrucciones, int deadline, OperacionES operacionES, String rutaObjetivo) {
+        this(nombre, computador, prioridad, memoria, instrucciones, deadline,
+                TipoProceso.IO_BOUND, null, operacionES, rutaObjetivo);
+    }
+
+    /** Proceso CRUD con los datos del archivo y la identidad de la sesion que lo creo. */
+    public DefinicionProceso(String nombre, int computador, int prioridad, int memoria, int instrucciones,
+            int deadline, OperacionES operacionES, String rutaObjetivo, ParametrosArchivo parametrosArchivo) {
+        this(nombre, computador, prioridad, memoria, instrucciones, deadline,
+                TipoProceso.IO_BOUND, null, operacionES, rutaObjetivo, parametrosArchivo);
     }
 
     public DefinicionProceso {
         if (nombre == null || nombre.isBlank()) throw new IllegalArgumentException("El nombre es obligatorio");
-        if (computador < 1 || prioridad < 0 || memoria < 1 || instrucciones < 1 || deadline < 1)
+        if (computador != 1 || prioridad < 0 || memoria < 1 || instrucciones < 1 || deadline < 1)
             throw new IllegalArgumentException("Atributos iniciales de proceso fuera de rango");
-        if (tipo == null)
-            throw new IllegalArgumentException("Tipo de proceso no implementado");
-        if ((tipo == TipoProceso.IO_BOUND) != (parametrosES != null)) throw new IllegalArgumentException("Parametros de E/S inconsistentes");
-        boolean comunicante = tipo == TipoProceso.PRODUCTOR || tipo == TipoProceso.CONSUMIDOR;
-        if (comunicante != (parametrosBuffer != null)
-                || (comunicante && instrucciones != parametrosBuffer.instrucciones()))
-            throw new IllegalArgumentException("Los parametros del buffer no corresponden al proceso");
+        if (tipo == null) throw new IllegalArgumentException("Tipo de proceso no implementado");
+        boolean esTemporal = parametrosES != null;
+        boolean esDisco = operacionES != null;
+        if (tipo == TipoProceso.CPU_BOUND && (esTemporal || esDisco))
+            throw new IllegalArgumentException("Un CPU_BOUND no puede declarar E/S");
+        if (tipo == TipoProceso.IO_BOUND && esTemporal == esDisco)
+            throw new IllegalArgumentException("Parametros de E/S inconsistentes");
+        if (esDisco) Proceso.validarDestino(operacionES, rutaObjetivo);
+        if (!esDisco && rutaObjetivo != null)
+            throw new IllegalArgumentException("Una ruta requiere una operacion de disco");
+        if (parametrosArchivo != null && !esDisco)
+            throw new IllegalArgumentException("Los datos de archivo requieren una operacion de disco");
     }
 
     public Proceso crearProceso() {
-        return crearProceso(null);
-    }
-
-    public Proceso crearProceso(Buffer<Object> buffer) {
-        Proceso proceso = new Proceso(nombre, computador, tipo, prioridad, memoria, instrucciones, deadline, parametrosBuffer, buffer);
+        Proceso proceso = new Proceso(nombre, computador, tipo, prioridad, memoria, instrucciones, deadline);
         if (parametrosES != null) proceso.configurarES(parametrosES);
+        if (operacionES != null) proceso.configurarOperacionArchivo(operacionES, rutaObjetivo,
+                parametrosArchivo != null ? parametrosArchivo : ParametrosArchivo.ADMINISTRADOR);
         return proceso;
     }
 }
