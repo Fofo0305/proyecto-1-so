@@ -18,7 +18,8 @@ try {
             'Pruebas.PruebaMetricasDisco',
             'Pruebas.PruebaRelojPoliticas',
             'Pruebas.PruebaSistemaArchivos',
-            'Pruebas.PruebaPersistenciaSistemaArchivos')) {
+            'Pruebas.PruebaPersistenciaSistemaArchivos',
+            'Pruebas.PruebaProcesosES')) {
         & $java -cp $classpath $pruebaProyecto2
         if ($LASTEXITCODE -ne 0) { throw "Fallo $pruebaProyecto2" }
     }
