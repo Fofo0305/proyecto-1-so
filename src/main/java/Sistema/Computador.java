@@ -6,12 +6,15 @@ import Modelo.EventoSistema;
 import Modelo.Memoria;
 import Modelo.ModoCPU;
 import Modelo.MotivoBloqueo;
+import Modelo.ParametrosArchivo;
 import Modelo.ParametrosES;
+import Modelo.PlanOperacionArchivo;
 import Modelo.PoliticaPlanificacion;
 import Modelo.Proceso;
 import Modelo.TipoProceso;
 import Modelo.VistaComputador;
 import Modelo.VistaMetricas;
+import Modelo.VistaSolicitudDisco;
 import Planificacion.FCFS;
 import Planificacion.Politica;
 import java.util.concurrent.Semaphore;
@@ -39,11 +42,28 @@ public class Computador implements ComponenteReloj {
     private int historiaTamano;
     private long ultimoCiclo;
     private long cicloEnCurso = -1;
+    private Disco disco;
+    private SistemaArchivos sistemaArchivos;
 
     public Computador(int id, int capacidadRam) {
         if (id != 1) throw new IllegalArgumentException("AvilaOS utiliza un unico computador con ID 1");
         this.id = id;
         memoria = new Memoria(capacidadRam);
+    }
+
+    /**
+     * Conecta el disco y el sistema de archivos. Sin ellos el computador solo simula CPU y
+     * E/S generica, como en el Proyecto 1.
+     */
+    public void conectarAlmacenamiento(Disco nuevoDisco, SistemaArchivos nuevoSistema) {
+        if (nuevoDisco == null || nuevoSistema == null)
+            throw new IllegalArgumentException("El disco y el sistema de archivos son obligatorios");
+        mutex.acquireUninterruptibly();
+        try {
+            if (ultimoCiclo > 0) throw new IllegalStateException("El almacenamiento se conecta antes de iniciar");
+            disco = nuevoDisco;
+            sistemaArchivos = nuevoSistema;
+        } finally { mutex.release(); }
     }
 
     public void recibirProceso(Proceso proceso) {
@@ -119,6 +139,7 @@ public class Computador implements ComponenteReloj {
         try {
             if (ciclo != ultimoCiclo + 1) throw new IllegalArgumentException("El ciclo debe ser consecutivo");
             cicloEnCurso = ciclo;
+            atenderCompletadas(ciclo);
             admitirPendientes();
             Object[][] colasCiclo = {nuevos.instantanea(), listos.instantanea(), bloqueados.instantanea()};
             Proceso anterior = cpu.getActual();
@@ -145,7 +166,16 @@ public class Computador implements ComponenteReloj {
                 ocupados++;
                 usadosQuantum++;
             }
-            cpu.avanzarCiclo(ciclo);
+            if (disco != null && actual != null && actual.necesitaSolicitarArchivo()) {
+                boolean[] encolada = new boolean[1];
+                cpu.avanzarCicloSistema(ciclo, () -> encolada[0] = solicitarArchivo(actual, ciclo));
+                if (encolada[0]) {
+                    actual.cambiarEstado(EstadoProceso.BLOQUEADO, MotivoBloqueo.DISCO);
+                    cpu.retirar();
+                    usadosQuantum = 0;
+                    bloqueados.agregar(actual);
+                }
+            } else cpu.avanzarCiclo(ciclo);
             for (Object[] cola : colasCiclo)
                 for (Object elemento : cola) ((Proceso) elemento).descontarDeadline();
             if (anterior != null) anterior.descontarDeadline();
@@ -174,6 +204,74 @@ public class Computador implements ComponenteReloj {
             admitirPendientes();
             ultimoCiclo = ciclo;
         } finally { cicloEnCurso = -1; mutex.release(); }
+    }
+
+    /**
+     * Instruccion en modo sistema: el proceso pide su operacion CRUD. Si la identidad del
+     * proceso no tiene permiso, o la operacion no es posible, se rechaza con una explicacion
+     * en el log y la simulacion sigue.
+     * @return true si la solicitud quedo en la cola del disco
+     */
+    private boolean solicitarArchivo(Proceso proceso, long ciclo) {
+        proceso.ejecutarInstruccion();
+        ParametrosArchivo datos = datosArchivo(proceso);
+        try {
+            PlanOperacionArchivo plan = sistemaArchivos.planificar(proceso.getOperacionES(),
+                    proceso.getRutaObjetivo(), datos);
+            long solicitud = disco.encolarSolicitud(proceso.getId(), proceso.getOperacionES(),
+                    plan.bloqueObjetivo(), plan.bloquesTrabajo(), ciclo);
+            proceso.registrarSolicitudDisco(solicitud);
+            log.agregar(ciclo, id, proceso.getId(), "SOLICITUD_ARCHIVO", proceso.getOperacionES() + " "
+                    + proceso.getRutaObjetivo() + " como " + datos.usuario() + ": S" + solicitud
+                    + " al bloque " + plan.bloqueObjetivo() + " (" + plan.bloquesTrabajo() + " bloques)");
+            return true;
+        } catch (SecurityException | IllegalArgumentException | IllegalStateException error) {
+            proceso.cerrarOperacionArchivo();
+            log.agregar(ciclo, id, proceso.getId(), "RECHAZO_ARCHIVO", proceso.getOperacionES() + " "
+                    + proceso.getRutaObjetivo() + " como " + datos.usuario() + ": " + error.getMessage());
+            return false;
+        }
+    }
+
+    /** Desbloquea a los procesos cuyo disco termino en un ciclo anterior y aplica su operacion. */
+    private void atenderCompletadas(long ciclo) {
+        if (disco == null) return;
+        for (VistaSolicitudDisco completada : disco.tomarCompletadas(ciclo)) {
+            Proceso proceso = buscarBloqueadoPorDisco(completada.procesoId(), completada.id());
+            if (proceso == null) continue;
+            ParametrosArchivo datos = datosArchivo(proceso);
+            try {
+                String resultado = sistemaArchivos.ejecutar(proceso.getOperacionES(),
+                        proceso.getRutaObjetivo(), datos, proceso.getId());
+                log.agregar(ciclo, id, proceso.getId(), "FIN_ARCHIVO", "S" + completada.id() + " " + resultado);
+            } catch (SecurityException | IllegalArgumentException | IllegalStateException error) {
+                log.agregar(ciclo, id, proceso.getId(), "RECHAZO_ARCHIVO", "S" + completada.id()
+                        + " no se pudo aplicar: " + error.getMessage());
+            }
+            proceso.cerrarOperacionArchivo();
+            if (proceso.getRestante() == 0) {
+                terminarRegistrado(proceso);
+                continue;
+            }
+            retirar(bloqueados, proceso.getId());
+            proceso.cambiarEstado(EstadoProceso.LISTO, MotivoBloqueo.NINGUNO);
+            listos.agregar(proceso);
+        }
+    }
+
+    private Proceso buscarBloqueadoPorDisco(long procesoId, long solicitud) {
+        for (Object elemento : bloqueados.instantanea()) {
+            Proceso proceso = (Proceso) elemento;
+            if (proceso.getId() == procesoId && proceso.getSolicitudDisco() == solicitud
+                    && proceso.getMotivoBloqueo() == MotivoBloqueo.DISCO)
+                return proceso;
+        }
+        return null;
+    }
+
+    private static ParametrosArchivo datosArchivo(Proceso proceso) {
+        return proceso.getParametrosArchivo() == null ? ParametrosArchivo.ADMINISTRADOR
+                : proceso.getParametrosArchivo();
     }
 
     private void finalizarES(long ciclo) {
@@ -250,8 +348,14 @@ public class Computador implements ComponenteReloj {
 
     private String describirOperacion(Proceso proceso) {
         if (proceso.getTipo() != TipoProceso.IO_BOUND) return "";
-        if (proceso.getOperacionES() != null)
-            return proceso.getOperacionES() + (proceso.getRutaObjetivo() == null ? "" : " " + proceso.getRutaObjetivo());
+        if (proceso.getOperacionES() != null) {
+            String texto = proceso.getOperacionES() + (proceso.getRutaObjetivo() == null ? "" : " " + proceso.getRutaObjetivo());
+            if (proceso.getParametrosArchivo() != null) texto += " como " + proceso.getParametrosArchivo().usuario();
+            if (proceso.getSolicitudDisco() > 0 && !proceso.isOperacionAtendida())
+                texto += " (esperando S" + proceso.getSolicitudDisco() + ")";
+            else if (proceso.isOperacionAtendida()) texto += " (atendida)";
+            return texto;
+        }
         ParametrosES es = proceso.getParametrosES();
         if (es == null) return "E/S sin configurar";
         return "E/S rafaga=" + es.rafaga() + " duracion=" + es.duracion() + " hasta=" + proceso.getEsHasta();
