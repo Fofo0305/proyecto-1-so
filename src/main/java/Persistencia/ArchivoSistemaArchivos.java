@@ -10,7 +10,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonParseException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -19,6 +18,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+
+import static Persistencia.CamposJson.entero;
+import static Persistencia.CamposJson.objeto;
+import static Persistencia.CamposJson.texto;
 
 /**
  * Carga el disco y el arbol de archivos desde el JSON del enunciado:
@@ -117,12 +120,20 @@ public final class ArchivoSistemaArchivos {
 
     /** JSON del disco y del arbol: directorios en orden del arbol y luego archivos con su cadena. */
     public static String escribir(SistemaCargado cargado) {
+        return escribir(cargado, true);
+    }
+
+    /**
+     * @param incluirSwap si es false no escribe {@code swapBlocks}, para que al leerlo valga el
+     *        swap que se pida en ese momento (por ejemplo, el del JSON de procesos)
+     */
+    public static String escribir(SistemaCargado cargado, boolean incluirSwap) {
         if (cargado == null) throw new IllegalArgumentException("El sistema es obligatorio");
         Disco disco = cargado.disco();
         JsonObject configuracion = new JsonObject();
         configuracion.addProperty("totalBlocks", disco.getTotalBloques());
         configuracion.addProperty("initialHead", disco.getPosicionCabezal());
-        configuracion.addProperty("swapBlocks", disco.getTamanoSwap());
+        if (incluirSwap) configuracion.addProperty("swapBlocks", disco.getTamanoSwap());
         JsonArray lista = new JsonArray();
         agregarDirectorios(cargado.sistema().consultarArbol(), lista);
         VistaAsignacionArchivo[] filas = cargado.sistema().consultarAsignacion();
@@ -287,31 +298,5 @@ public final class ArchivoSistemaArchivos {
         if (permiso.equals("public")) return PermisoArchivo.PUBLICO;
         if (permiso.equals("private")) return PermisoArchivo.PRIVADO;
         throw new IllegalArgumentException("Permiso desconocido en " + ruta(entrada) + ": " + permiso);
-    }
-
-    private static JsonObject objeto(JsonElement elemento, String nombre) {
-        if (elemento == null || !elemento.isJsonObject())
-            throw new IllegalArgumentException(nombre + " debe ser un objeto JSON");
-        return elemento.getAsJsonObject();
-    }
-
-    private static String texto(JsonObject objeto, String campo) {
-        JsonElement valor = objeto.get(campo);
-        if (valor == null || !valor.isJsonPrimitive() || !((JsonPrimitive) valor).isString())
-            throw new IllegalArgumentException("Falta el texto " + campo);
-        return valor.getAsString();
-    }
-
-    private static int entero(JsonObject objeto, String campo) {
-        return entero(objeto.get(campo), campo);
-    }
-
-    private static int entero(JsonElement valor, String campo) {
-        if (valor == null || !valor.isJsonPrimitive() || !((JsonPrimitive) valor).isNumber())
-            throw new IllegalArgumentException("Falta el numero " + campo);
-        double numero = valor.getAsDouble();
-        if (numero != Math.rint(numero) || numero < Integer.MIN_VALUE || numero > Integer.MAX_VALUE)
-            throw new IllegalArgumentException(campo + " debe ser entero");
-        return (int) numero;
     }
 }
