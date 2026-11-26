@@ -33,7 +33,11 @@ public class PanelControles extends JPanel {
             String mensaje;
             try {
                 switch (accion) {
-                    case "iniciar" -> controlador.iniciar();
+                    case "iniciar" -> {
+                        String falta = controlador.faltaParaIniciar();
+                        if (falta != null) throw new IllegalStateException(falta);
+                        controlador.iniciar();
+                    }
                     case "pausar" -> controlador.pausar();
                     case "reanudar" -> controlador.reanudar();
                     case "detener" -> controlador.detener();
