@@ -88,7 +88,7 @@ se renombra encima del destino: si el guardado falla, el archivo anterior queda 
 ./verificar-proyecto2.sh --jdk "$JAVA_HOME"
 ```
 
-Para incluir las dos comprobaciones Swing:
+Para incluir las tres comprobaciones Swing (planificación, scroll de colas y la pestaña «Disco y archivos»):
 
 ```bash
 ./verificar-proyecto2.sh --jdk "$JAVA_HOME" --interfaz

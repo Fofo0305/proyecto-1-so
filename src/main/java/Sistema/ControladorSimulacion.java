@@ -10,9 +10,11 @@ import Modelo.OperacionES;
 import Modelo.ParametrosArchivo;
 import Modelo.ParametrosES;
 import Modelo.PermisoArchivo;
+import Modelo.PoliticaDisco;
 import Modelo.PoliticaPlanificacion;
 import Modelo.Proceso;
 import Modelo.TipoProceso;
+import Modelo.VistaAlmacenamiento;
 import Modelo.VistaComputador;
 import Modelo.VistaMetricas;
 import Persistencia.ArchivoSistemaArchivos;
@@ -164,6 +166,46 @@ public class ControladorSimulacion implements AutoCloseable {
         mutex.acquireUninterruptibly();
         try { comprobarDisponible(); return computador.terminarProceso(proceso); }
         finally { mutex.release(); }
+    }
+
+    /** Cambia la politica con que el disco elige la proxima solicitud; vale desde el siguiente ciclo. */
+    public void cambiarPoliticaDisco(PoliticaDisco tipo) {
+        if (tipo == null) throw new IllegalArgumentException("La politica de disco es obligatoria");
+        mutex.acquireUninterruptibly();
+        try {
+            comprobarDisponible();
+            disco.cambiarPolitica(switch (tipo) {
+                case FIFO -> new PlanificacionDisco.FIFO();
+                case SSTF -> new PlanificacionDisco.SSTF();
+                case SCAN -> new PlanificacionDisco.SCAN();
+                case C_SCAN -> new PlanificacionDisco.CSCAN();
+            });
+        } finally { mutex.release(); }
+    }
+
+    /** Cuantos rechazos recientes guarda la vista del almacenamiento. */
+    private static final int RECHAZOS_VISIBLES = 8;
+
+    /** Disco, sistema de archivos y sesion en una sola lectura; null si no hay simulacion. */
+    public VistaAlmacenamiento consultarAlmacenamiento() {
+        mutex.acquireUninterruptibly();
+        try {
+            if (computador == null || disco == null) return null;
+            EventoSistema[] eventos = computador.consultarEventos();
+            Cola<EventoSistema> recientes = new Cola<>();
+            for (EventoSistema evento : eventos) {
+                if (!evento.tipo().equals("RECHAZO_ARCHIVO")) continue;
+                recientes.agregar(evento);
+                if (recientes.getTamano() > RECHAZOS_VISIBLES) recientes.quitar();
+            }
+            EventoSistema[] rechazos = new EventoSistema[recientes.getTamano()];
+            for (int i = 0; i < rechazos.length; i++) rechazos[i] = recientes.quitar();
+            return new VistaAlmacenamiento(reloj.getCiclo(), disco.getPolitica(), disco.getPosicionCabezal(),
+                    disco.getDireccion(), disco.getTamanoSwap(), disco.consultarBloques(), disco.consultarActiva(),
+                    disco.consultarCola(), disco.consultarMetricas(), disco.consultarEventos(),
+                    sistemaArchivos.consultarArbol(), sistemaArchivos.consultarAsignacion(),
+                    sistemaArchivos.getModo(), sistemaArchivos.getUsuario(), rechazos);
+        } finally { mutex.release(); }
     }
 
     public CargaInicial getCargaInicial() {

@@ -29,5 +29,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Fallo el panel de planificacion.' }
         & $java -cp $classpath Pruebas.PruebaScrollColas
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la estabilidad del scroll de colas.' }
+        & $java -cp $classpath Pruebas.PruebaPanelDisco
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo el panel de disco y archivos.' }
     }
 } finally { Pop-Location }
